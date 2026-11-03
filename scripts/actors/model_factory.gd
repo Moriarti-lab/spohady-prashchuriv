@@ -1,0 +1,271 @@
+## Прості low-poly моделі героя й ворогів, зібрані з примітивів (плейсхолдери).
+## Пізніше їх можна замінити готовими CC0-моделями, не чіпаючи решти коду.
+## Усі моделі дивляться в бік −Z, початок координат — біля ніг.
+class_name ModelFactory
+
+const SKIN := Color("E3B58C")
+const HAIR := Color("5A3B26")
+const PANTS := Color("5E4A36")
+const LEATHER := Color("3E2C20")
+const STEEL_LIGHT := Color("A9B0BA")
+const STEEL_DARK := Color("6F7782")
+const WOOD := Color("7A5532")
+const CLOTH_BLUE := Color("2F5E78")
+
+
+static func _v(x: float, y: float, z: float) -> Vector3:
+	return Vector3(x, y, z)
+
+
+# =====================================================================
+#  ГЕРОЙ
+# =====================================================================
+
+static func hero(class_id: String, accent: Color) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Model"
+	var body: Array = []
+	var shirt: Color = Palette.LINEN
+	if class_id == "strilets":
+		shirt = Color("7C8A94")
+	elif class_id == "volkhv":
+		shirt = CLOTH_BLUE
+	# ноги й чоботи
+	body.append(LowPoly.box(_v(0.17, 0.72, 0.22), _v(-0.13, 0.36, 0), PANTS))
+	body.append(LowPoly.box(_v(0.17, 0.72, 0.22), _v(0.13, 0.36, 0), PANTS))
+	body.append(LowPoly.box(_v(0.2, 0.14, 0.32), _v(-0.13, 0.07, -0.04), LEATHER))
+	body.append(LowPoly.box(_v(0.2, 0.14, 0.32), _v(0.13, 0.07, -0.04), LEATHER))
+	# сорочка з вишивкою
+	body.append(LowPoly.cyl(0.24, 0.28, 0.66, _v(0, 1.05, 0), shirt))
+	body.append(LowPoly.cyl(0.285, 0.285, 0.09, _v(0, 0.76, 0), Palette.EMBROIDERY))
+	body.append(LowPoly.cyl(0.25, 0.25, 0.06, _v(0, 1.37, 0), Palette.EMBROIDERY))
+	for i in range(6):
+		var a := TAU * float(i) / 6.0
+		body.append(LowPoly.box(_v(0.05, 0.05, 0.02), _v(sin(a) * 0.255, 1.37, -cos(a) * 0.255), Palette.GOLD, _v(0, -rad_to_deg(a), 0)))
+	# голова
+	body.append(LowPoly.ball(0.21, _v(0, 1.58, 0), SKIN, 7))
+	body.append(LowPoly.box(_v(0.05, 0.05, 0.05), _v(0, 1.55, -0.2), SKIN))
+	body.append(LowPoly.box(_v(0.04, 0.05, 0.02), _v(-0.08, 1.6, -0.2), Palette.NIGHT))
+	body.append(LowPoly.box(_v(0.04, 0.05, 0.02), _v(0.08, 1.6, -0.2), Palette.NIGHT))
+	# руки (рукави)
+	var sleeve: Color = shirt
+	body.append(LowPoly.box(_v(0.13, 0.5, 0.13), _v(-0.37, 1.08, -0.1), sleeve, _v(-25, 0, 8)))
+	body.append(LowPoly.box(_v(0.13, 0.5, 0.13), _v(0.37, 1.08, -0.12), sleeve, _v(-35, 0, -8)))
+	body.append(LowPoly.ball(0.07, _v(-0.42, 0.86, -0.27), SKIN, 5))
+	body.append(LowPoly.ball(0.07, _v(0.42, 0.87, -0.32), SKIN, 5))
+
+	var wp := Node3D.new()
+	wp.name = "WeaponPivot"
+	root.add_child(wp)
+
+	match class_id:
+		"druzhynnyk":
+			body.append(LowPoly.cyl(0.27, 0.31, 0.5, _v(0, 1.08, 0), STEEL_DARK, 8))
+			body.append(LowPoly.cyl(0.3, 0.3, 0.07, _v(0, 0.8, 0), Palette.GOLD, 8))
+			body.append(LowPoly.ball(0.16, _v(-0.39, 1.32, 0), STEEL_LIGHT, 6))
+			body.append(LowPoly.ball(0.16, _v(0.39, 1.32, 0), STEEL_LIGHT, 6))
+			body.append(LowPoly.cyl(0.04, 0.23, 0.26, _v(0, 1.78, 0), STEEL_LIGHT, 8))
+			body.append(LowPoly.cyl(0.25, 0.25, 0.05, _v(0, 1.66, 0), STEEL_DARK, 8))
+			body.append(LowPoly.box(_v(0.04, 0.16, 0.04), _v(0, 1.97, 0), Palette.EMBROIDERY))
+			# щит на лівій руці
+			body.append(LowPoly.cyl(0.32, 0.32, 0.07, _v(-0.5, 1.0, -0.3), Palette.EMBROIDERY, 8, _v(90, 0, 0)))
+			body.append(LowPoly.cyl(0.34, 0.34, 0.04, _v(-0.5, 1.0, -0.26), Palette.GOLD, 8, _v(90, 0, 0)))
+			body.append(LowPoly.ball(0.1, _v(-0.5, 1.0, -0.38), Palette.GOLD, 5))
+			wp.position = _v(0.42, 0.9, -0.35)
+			wp.rotation_degrees = _v(-15, 0, 0)
+			var sw: Array = []
+			sw.append(LowPoly.box(_v(0.07, 0.95, 0.025), _v(0, 0.62, 0), STEEL_LIGHT))
+			sw.append(LowPoly.prism(_v(0.07, 0.15, 0.025), _v(0, 1.17, 0), STEEL_LIGHT))
+			sw.append(LowPoly.box(_v(0.3, 0.05, 0.06), _v(0, 0.12, 0), Palette.GOLD))
+			sw.append(LowPoly.box(_v(0.06, 0.2, 0.06), _v(0, -0.02, 0), LEATHER))
+			wp.add_child(LowPoly.instance(sw))
+		"strilets":
+			body.append(LowPoly.cyl(0.26, 0.3, 0.55, _v(0, 1.05, 0), Color("8E99A3"), 8))  # кольчуга
+			body.append(LowPoly.ball(0.25, _v(0, 1.62, 0.02), Color("8E99A3"), 7, _v(1, 0.8, 1)))  # каптур
+			body.append(LowPoly.box(_v(0.62, 0.95, 0.05), _v(0, 1.0, 0.22), Palette.LEAF, _v(8, 0, 0)))  # плащ
+			body.append(LowPoly.cyl(0.08, 0.08, 0.55, _v(0.16, 1.2, 0.3), WOOD, 6, _v(0, 0, 14)))  # сагайдак
+			for i in range(3):
+				body.append(LowPoly.box(_v(0.03, 0.12, 0.03), _v(0.2 + i * 0.03, 1.5, 0.3), Palette.LINEN))
+			wp.position = _v(-0.45, 1.05, -0.4)
+			wp.rotation_degrees = Vector3.ZERO
+			var bow: Array = []
+			bow.append(LowPoly.box(_v(0.06, 0.22, 0.06), _v(0, 0, 0), WOOD))
+			bow.append(LowPoly.box(_v(0.05, 0.55, 0.05), _v(0, 0.36, 0.08), WOOD, _v(18, 0, 0)))
+			bow.append(LowPoly.box(_v(0.05, 0.55, 0.05), _v(0, -0.36, 0.08), WOOD, _v(-18, 0, 0)))
+			bow.append(LowPoly.box(_v(0.012, 1.15, 0.012), _v(0, 0, 0.19), Palette.LINEN))
+			wp.add_child(LowPoly.instance(bow))
+		_:  # волхв
+			body.append(LowPoly.cyl(0.22, 0.48, 1.05, _v(0, 0.58, 0), CLOTH_BLUE, 8))   # балахон
+			body.append(LowPoly.cyl(0.49, 0.49, 0.1, _v(0, 0.08, 0), Palette.EMBROIDERY, 8))
+			for i in range(8):
+				var a2 := TAU * float(i) / 8.0
+				body.append(LowPoly.box(_v(0.07, 0.07, 0.025), _v(sin(a2) * 0.5, 0.1, -cos(a2) * 0.5), Palette.GOLD, _v(0, -rad_to_deg(a2), 0)))
+			body.append(LowPoly.cyl(0.215, 0.215, 0.06, _v(0, 1.68, 0), Palette.EMBROIDERY, 8))  # очіпок-пов'язка
+			body.append(LowPoly.cone(0.13, 0.42, _v(0, 1.32, -0.15), Color("D9D6CF"), 5))       # борода
+			body.append(LowPoly.box(_v(0.4, 0.5, 0.06), _v(0, 1.4, 0.2), Color("CFCBC2")))      # довге волосся
+			wp.position = _v(0.46, 0.9, -0.3)
+			wp.rotation_degrees = _v(-8, 0, 0)
+			var staff: Array = []
+			staff.append(LowPoly.cyl(0.035, 0.045, 1.95, _v(0, 0.62, 0), WOOD, 6))
+			staff.append(LowPoly.ball(0.1, _v(0, 1.62, 0), Palette.GOLD, 5))
+			wp.add_child(LowPoly.instance(staff))
+			var orb := LowPoly.glow_instance(LowPoly.ball(0.13, _v(0, 1.8, 0), accent, 6), accent, 2.5)
+			orb.name = "Orb"
+			wp.add_child(orb)
+	# амулет благословення на грудях
+	body.append(LowPoly.cyl(0.075, 0.075, 0.03, _v(0, 1.2, -0.285), Palette.GOLD, 8, _v(90, 0, 0)))
+	root.add_child(LowPoly.instance(body))
+	var gem := LowPoly.glow_instance(LowPoly.ball(0.05, _v(0, 1.2, -0.31), accent, 5), accent, 3.0)
+	root.add_child(gem)
+	return root
+
+
+# =====================================================================
+#  ВОРОГИ ОРДЕНУ
+# =====================================================================
+
+static func enemy(kind: String) -> Node3D:
+	match kind:
+		"novice":
+			return _novice()
+		"werewolf":
+			return _werewolf_human()
+		"wraith":
+			return _wraith()
+	return Node3D.new()
+
+
+static func _novice() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Model"
+	var cloak := Palette.ASH.darkened(0.25)
+	var hood := Palette.STEEL.darkened(0.2)
+	var p: Array = []
+	p.append(LowPoly.cyl(0.18, 0.52, 1.75, _v(0, 0.88, 0), cloak, 7))
+	p.append(LowPoly.cyl(0.54, 0.54, 0.06, _v(0, 0.05, 0), cloak.darkened(0.3), 7))
+	p.append(LowPoly.ball(0.27, _v(0, 1.82, 0.02), hood, 7, _v(1, 1.25, 1)))
+	p.append(LowPoly.cone(0.2, 0.4, _v(0, 2.15, 0.1), hood, 7))
+	p.append(LowPoly.box(_v(0.09, 0.8, 0.09), _v(-0.34, 1.25, -0.3), cloak, _v(-60, 0, 8)))
+	p.append(LowPoly.box(_v(0.09, 0.8, 0.09), _v(0.34, 1.25, -0.3), cloak, _v(-60, 0, -8)))
+	p.append(LowPoly.ball(0.07, _v(-0.38, 1.0, -0.62), Color("C9C2B5"), 5))
+	p.append(LowPoly.ball(0.07, _v(0.38, 1.0, -0.62), Color("C9C2B5"), 5))
+	p.append(LowPoly.box(_v(0.6, 0.06, 0.06), _v(0, 1.05, -0.02), Palette.BLOOD.darkened(0.2)))
+	root.add_child(LowPoly.instance(p))
+	# безлике обличчя: порожнє біле коло (знак Ордену)
+	var face := LowPoly.glow_instance(LowPoly.cyl(0.15, 0.15, 0.03, _v(0, 1.8, -0.27), Color("F4F4F0"), 12, _v(90, 0, 0)), Color("F4F4F0"), 0.8)
+	root.add_child(face)
+	var chest := LowPoly.glow_instance(LowPoly.cyl(0.1, 0.1, 0.02, _v(0, 1.3, -0.3), Color("F4F4F0"), 12, _v(90, 0, 0)), Color("F4F4F0"), 0.6)
+	root.add_child(chest)
+	return root
+
+
+static func _werewolf_human() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Model"
+	var fur := Color("4A4038")
+	var p: Array = []
+	p.append(LowPoly.box(_v(0.17, 0.8, 0.2), _v(-0.15, 0.4, 0), Color("3A322C")))
+	p.append(LowPoly.box(_v(0.17, 0.8, 0.2), _v(0.15, 0.4, 0), Color("3A322C")))
+	p.append(LowPoly.cyl(0.3, 0.26, 0.8, _v(0, 1.15, -0.06), fur, 6, _v(-18, 0, 0)))  # згорблений тулуб
+	p.append(LowPoly.ball(0.22, _v(0, 1.62, -0.28), Color("6E5E50"), 6))
+	p.append(LowPoly.box(_v(0.16, 0.14, 0.2), _v(0, 1.54, -0.46), Color("6E5E50")))
+	p.append(LowPoly.prism(_v(0.1, 0.16, 0.06), _v(-0.12, 1.84, -0.26), fur))
+	p.append(LowPoly.prism(_v(0.1, 0.16, 0.06), _v(0.12, 1.84, -0.26), fur))
+	p.append(LowPoly.box(_v(0.1, 0.95, 0.1), _v(-0.4, 1.0, -0.2), fur, _v(-15, 0, 6)))
+	p.append(LowPoly.box(_v(0.1, 0.95, 0.1), _v(0.4, 1.0, -0.2), fur, _v(-15, 0, -6)))
+	root.add_child(LowPoly.instance(p))
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.05, 0.04, 0.02), _v(-0.08, 1.66, -0.5), Color("FFD23F"), Vector3.ZERO), Color("FFD23F"), 3.0))
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.05, 0.04, 0.02), _v(0.08, 1.66, -0.5), Color("FFD23F"), Vector3.ZERO), Color("FFD23F"), 3.0))
+	return root
+
+
+static func werewolf_beast() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Model"
+	var fur := Color("3B3B45")
+	var p: Array = []
+	p.append(LowPoly.box(_v(0.65, 0.6, 1.2), _v(0, 0.85, 0.05), fur, _v(-6, 0, 0)))
+	p.append(LowPoly.box(_v(0.5, 0.5, 0.5), _v(0, 1.0, -0.7), fur.lightened(0.1)))
+	p.append(LowPoly.box(_v(0.26, 0.24, 0.45), _v(0, 0.93, -1.08), fur.lightened(0.15)))
+	p.append(LowPoly.prism(_v(0.14, 0.24, 0.08), _v(-0.17, 1.38, -0.62), fur))
+	p.append(LowPoly.prism(_v(0.14, 0.24, 0.08), _v(0.17, 1.38, -0.62), fur))
+	p.append(LowPoly.box(_v(0.14, 0.7, 0.16), _v(-0.28, 0.42, -0.45), fur))
+	p.append(LowPoly.box(_v(0.14, 0.7, 0.16), _v(0.28, 0.42, -0.45), fur))
+	p.append(LowPoly.box(_v(0.16, 0.7, 0.18), _v(-0.28, 0.42, 0.5), fur))
+	p.append(LowPoly.box(_v(0.16, 0.7, 0.18), _v(0.28, 0.42, 0.5), fur))
+	p.append(LowPoly.cone(0.1, 0.8, _v(0, 0.95, 0.85), fur, 5))
+	for sx in [-1.0, 1.0]:
+		for i in range(3):
+			p.append(LowPoly.box(_v(0.03, 0.03, 0.14), _v(0.28 * sx + (i - 1) * 0.04 * sx, 0.04, -0.58), Palette.LINEN))
+	p.append(LowPoly.box(_v(0.2, 0.04, 0.1), _v(0, 0.8, -1.25), Palette.BLOOD))  # паща
+	root.add_child(LowPoly.instance(p))
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.07, 0.05, 0.03), _v(-0.13, 1.1, -0.96), Color("FFD23F")), Color("FFD23F"), 3.5))
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.07, 0.05, 0.03), _v(0.13, 1.1, -0.96), Color("FFD23F")), Color("FFD23F"), 3.5))
+	root.scale = Vector3.ONE * 1.1
+	return root
+
+
+static func _wraith() -> Node3D:
+	var root := Node3D.new()
+	root.name = "Model"
+	var col := Color(0.62, 0.78, 0.72, 0.55)
+	var dark := Color(0.30, 0.42, 0.40, 0.7)
+	var p: Array = []
+	p.append(LowPoly.cyl(0.14, 0.44, 1.5, _v(0, 1.05, 0), col, 7))
+	for i in range(6):
+		var a := TAU * float(i) / 6.0
+		p.append(LowPoly.cone(0.13, 0.55, _v(sin(a) * 0.34, 0.25, cos(a) * 0.34), col, 4))
+	p.append(LowPoly.ball(0.25, _v(0, 1.88, 0), dark, 7, _v(1, 1.2, 1)))
+	p.append(LowPoly.cone(0.18, 0.38, _v(0, 2.2, 0.05), dark, 6))
+	p.append(LowPoly.box(_v(0.07, 0.8, 0.07), _v(-0.3, 1.3, -0.35), col, _v(-55, 0, 10)))
+	p.append(LowPoly.box(_v(0.07, 0.8, 0.07), _v(0.3, 1.3, -0.35), col, _v(-55, 0, -10)))
+	var mi := LowPoly.instance(p, LowPoly.vc_material(true))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mi)
+	var eye_c := Color("A8F0FF")
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.07, 0.11, 0.02), _v(-0.09, 1.9, -0.24), eye_c), eye_c, 3.5))
+	root.add_child(LowPoly.glow_instance(LowPoly.box(_v(0.07, 0.11, 0.02), _v(0.09, 1.9, -0.24), eye_c), eye_c, 3.5))
+	var orb := LowPoly.glow_instance(LowPoly.ball(0.16, _v(0, 1.35, -0.6), eye_c, 6), eye_c, 3.0, 0.85)
+	orb.name = "Orb"
+	root.add_child(orb)
+	return root
+
+
+# =====================================================================
+#  Снаряди
+# =====================================================================
+
+static func arrow() -> Node3D:
+	var root := Node3D.new()
+	var p: Array = []
+	p.append(LowPoly.box(_v(0.03, 0.03, 0.8), _v(0, 0, 0), WOOD))
+	p.append(LowPoly.prism(_v(0.12, 0.2, 0.05), _v(0, 0, -0.45), STEEL_LIGHT, _v(-90, 0, 0)))
+	p.append(LowPoly.box(_v(0.12, 0.02, 0.18), _v(0, 0, 0.36), Palette.LINEN))
+	root.add_child(LowPoly.instance(p))
+	return root
+
+
+static func bolt(color: Color, size: float = 1.0) -> Node3D:
+	var root := Node3D.new()
+	root.add_child(LowPoly.glow_instance(LowPoly.ball(0.17 * size, Vector3.ZERO, color, 6), color, 3.0))
+	root.add_child(LowPoly.glow_instance(LowPoly.ball(0.3 * size, Vector3.ZERO, color, 6), color, 1.2, 0.35))
+	return root
+
+
+# =====================================================================
+#  Позначки
+# =====================================================================
+
+## Робить усі меші моделі білими на мить: «влучання».
+static func set_flash(node: Node, on: bool) -> void:
+	var overlay: Material = null
+	if on:
+		overlay = LowPoly.glow_material(Color(1, 1, 1), 1.5, 0.55)
+	_apply_overlay(node, overlay)
+
+
+static func _apply_overlay(node: Node, overlay: Material) -> void:
+	if node is MeshInstance3D:
+		(node as MeshInstance3D).material_overlay = overlay
+	for c in node.get_children():
+		_apply_overlay(c, overlay)
