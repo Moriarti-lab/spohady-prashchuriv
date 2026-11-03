@@ -1,43 +1,22 @@
-## Стартова зброя й броня, а також три стартові класи.
+## Три стартові класи: стартова зброя й броня (див. Items.STARTER) та місце старту на Древі.
 class_name Gear
-
-const WEAPONS := {
-	"sword": {
-		"name": "Дружинний меч", "kind": "melee", "dmg": 12.0, "interval": 0.55,
-		"range": 2.7, "arc": 150.0, "stat": "str",
-	},
-	"bow": {
-		"name": "Мисливський лук", "kind": "arrow", "dmg": 10.0, "interval": 0.75,
-		"range": 13.0, "arc": 0.0, "stat": "agi",
-	},
-	"staff": {
-		"name": "Посох-кий", "kind": "magic", "dmg": 9.0, "interval": 0.8,
-		"range": 11.5, "arc": 0.0, "stat": "faith",
-	},
-}
-
-const ARMORS := {
-	"plate": {"name": "Цільнометалева броня", "armor": 60.0, "move": -0.05, "faith": 0.0, "mana_regen": 0.0},
-	"mail": {"name": "Кольчуга", "armor": 35.0, "move": 0.0, "faith": 0.0, "mana_regen": 0.0},
-	"cloth": {"name": "Балахон із вишитими оберегами", "armor": 10.0, "move": 0.0, "faith": 2.0, "mana_regen": 0.5},
-}
 
 const CLASS_IDS := ["druzhynnyk", "strilets", "volkhv"]
 
 const CLASSES := {
 	"druzhynnyk": {
 		"name": "Дружинник", "weapon": "sword", "offhand": "Щит", "armor": "plate",
-		"start_node": "s1", "start_near": "Сили",
+		"start_near": "Сили", "region": "str",
 		"desc": "Воїн ближнього бою. Бʼє мечем, ховається за щитом.",
 	},
 	"strilets": {
 		"name": "Стрілець", "weapon": "bow", "offhand": "Сагайдак", "armor": "mail",
-		"start_node": "a1", "start_near": "Спритності",
+		"start_near": "Спритності", "region": "agi",
 		"desc": "Влучний мисливець. Стріляє по найближчому ворогові.",
 	},
 	"volkhv": {
 		"name": "Волхв", "weapon": "staff", "offhand": "", "armor": "cloth",
-		"start_node": "f1", "start_near": "Віри",
+		"start_near": "Віри", "region": "faith",
 		"desc": "Заклинач. Магічний снаряд має стихію твого бога.",
 	},
 }
@@ -45,10 +24,15 @@ const CLASSES := {
 static func class_def(id: String) -> Dictionary:
 	return CLASSES.get(id, {})
 
+
+static func start_node(class_id: String) -> String:
+	return PerkTree.class_start(class_id)
+
+
 static func kit_text(class_id: String) -> String:
 	var c: Dictionary = class_def(class_id)
-	var w: Dictionary = WEAPONS[c["weapon"]]
-	var a: Dictionary = ARMORS[c["armor"]]
+	var w: Dictionary = Items.BASES[c["weapon"]]
+	var a: Dictionary = Items.BASES[c["armor"]]
 	var s: String = w["name"]
 	if c["offhand"] != "":
 		s += " + " + str(c["offhand"]).to_lower()

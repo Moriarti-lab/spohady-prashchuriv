@@ -42,8 +42,30 @@ static func dead_tree_mesh() -> ArrayMesh:
 
 static func rock_mesh() -> ArrayMesh:
 	var parts: Array = []
-	parts.append(LowPoly.ball(0.7, Vector3(0, 0.3, 0), Color("77767A"), 5, Vector3(1.2, 0.7, 1.0), Vector3(0, 20, 0)))
-	parts.append(LowPoly.ball(0.4, Vector3(0.55, 0.15, 0.2), Color("8A898D"), 5, Vector3(1, 0.7, 1)))
+	parts.append(LowPoly.ball(0.7, Vector3(0, 0.3, 0), Color("6F6E75"), 5, Vector3(1.2, 0.8, 1.0), Vector3(0, 20, 0)))
+	parts.append(LowPoly.ball(0.4, Vector3(0.55, 0.15, 0.2), Color("84838A"), 5, Vector3(1, 0.7, 1)))
+	parts.append(LowPoly.ball(0.32, Vector3(-0.3, 0.55, -0.1), Color("8E8D94"), 5, Vector3(1, 0.7, 1)))
+	return LowPoly.build_mesh(parts)
+
+
+## Висока скеля для межі долини.
+static func cliff_mesh() -> ArrayMesh:
+	var parts: Array = []
+	parts.append(LowPoly.box(Vector3(1.9, 2.6, 1.6), Vector3(0, 1.3, 0), Color("63626A"), Vector3(0, 20, 4)))
+	parts.append(LowPoly.box(Vector3(1.4, 2.2, 1.2), Vector3(0.25, 3.2, 0.1), Color("74737B"), Vector3(0, 48, -5)))
+	parts.append(LowPoly.box(Vector3(0.85, 1.4, 0.8), Vector3(0.1, 4.7, 0), Color("86858D"), Vector3(0, 70, 6)))
+	parts.append(LowPoly.prism(Vector3(0.9, 0.8, 0.8), Vector3(0.1, 5.8, 0), Color("93929A"), Vector3(0, 70, 0)))
+	parts.append(LowPoly.box(Vector3(0.9, 1.6, 0.7), Vector3(-1.0, 0.8, 0.4), Color("55545B"), Vector3(0, -30, 8)))
+	return LowPoly.build_mesh(parts)
+
+
+## Купа дрібного каміння.
+static func stones_mesh() -> ArrayMesh:
+	var parts: Array = []
+	parts.append(LowPoly.ball(0.5, Vector3(0, 0.22, 0), Color("83828A"), 5, Vector3(1.2, 0.6, 1.0), Vector3(0, 10, 0)))
+	parts.append(LowPoly.ball(0.34, Vector3(0.5, 0.14, 0.25), Color("93929A"), 5, Vector3(1, 0.65, 1)))
+	parts.append(LowPoly.ball(0.3, Vector3(-0.4, 0.12, 0.3), Color("74737B"), 5, Vector3(1, 0.6, 1)))
+	parts.append(LowPoly.ball(0.25, Vector3(0.1, 0.4, -0.1), Color("A09FA7"), 5, Vector3(1, 0.7, 1)))
 	return LowPoly.build_mesh(parts)
 
 
@@ -56,14 +78,15 @@ static func flower_mesh(color: Color) -> ArrayMesh:
 
 static func grass_mesh() -> ArrayMesh:
 	var parts: Array = []
-	var c := Color("5E9446")
+	var c := Color("5D8248")
 	parts.append(LowPoly.cone(0.05, 0.4, Vector3(0, 0.2, 0), c, 3))
 	parts.append(LowPoly.cone(0.05, 0.3, Vector3(0.1, 0.15, 0.05), c.darkened(0.1), 3))
 	parts.append(LowPoly.cone(0.05, 0.35, Vector3(-0.08, 0.17, -0.06), c.lightened(0.1), 3))
 	return LowPoly.build_mesh(parts)
 
 
-static func multimesh(mesh: Mesh, transforms: Array, shadows: bool) -> MultiMeshInstance3D:
+## Один MultiMesh на вид пропа. Тіней немає зовсім.
+static func multimesh(mesh: Mesh, transforms: Array, _unused: bool = false) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
@@ -73,6 +96,5 @@ static func multimesh(mesh: Mesh, transforms: Array, shadows: bool) -> MultiMesh
 	var mi := MultiMeshInstance3D.new()
 	mi.multimesh = mm
 	mi.material_override = LowPoly.vc_material()
-	if not shadows:
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi

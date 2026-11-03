@@ -47,6 +47,41 @@ static func label(text: String, size: int = 24, color: Color = Palette.LINEN,
 	return l
 
 
+static var _frame_cache := {}
+
+
+## Дерев'яна рамка з арту (9-patch). scale — у скільки разів зменшити кути (щоб не з'їдали екран).
+static func frame_style(scale: float = 0.5, fill: Color = Color(0, 0, 0, 0)) -> StyleBox:
+	var key := "%s|%s" % [scale, fill.to_html()]
+	if _frame_cache.has(key):
+		return _frame_cache[key]
+	var tex := art_texture(UI_DIR + "frame_wood.png")
+	var out: StyleBox
+	if tex == null:
+		out = panel_style(Palette.PANEL, Palette.GOLD, 3, 14)
+	else:
+		var img := tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		var w := int(round(img.get_width() * scale))
+		img.resize(w, w, Image.INTERPOLATE_LANCZOS)
+		var sb := StyleBoxTexture.new()
+		sb.texture = ImageTexture.create_from_image(img)
+		var m := 56.0 * scale
+		sb.texture_margin_left = m
+		sb.texture_margin_right = m
+		sb.texture_margin_top = m
+		sb.texture_margin_bottom = m
+		var cm := m * 0.72
+		sb.content_margin_left = cm
+		sb.content_margin_right = cm
+		sb.content_margin_top = cm
+		sb.content_margin_bottom = cm
+		out = sb
+	_frame_cache[key] = out
+	return out
+
+
 static func art_texture(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
 		var r = load(path)

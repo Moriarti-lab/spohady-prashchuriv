@@ -28,12 +28,9 @@ func _ready() -> void:
 	add_child(LowPoly.instance(parts))
 	var orb := LowPoly.glow_instance(LowPoly.ball(0.2, Vector3(0, 3.5, 0), Palette.TURQUOISE, 6), Palette.TURQUOISE, 3.0)
 	add_child(orb)
-	var light := OmniLight3D.new()
-	light.position = Vector3(0, 3.2, 0)
-	light.light_color = Color("7FE6DE")
-	light.light_energy = 1.2
-	light.omni_range = 9.0
-	add_child(light)
+	# Світло немає: від нього змінюються шейдери й гра смикається. Лише світний камінь.
+	var halo := LowPoly.glow_instance(LowPoly.ball(0.34, Vector3(0, 3.5, 0), Palette.TURQUOISE, 6), Palette.TURQUOISE, 1.2, 0.3)
+	add_child(halo)
 	_ring = MeshInstance3D.new()
 	var t := TorusMesh.new()
 	t.inner_radius = 0.93

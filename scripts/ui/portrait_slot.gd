@@ -22,10 +22,16 @@ func set_portrait(blessing_id: String, class_id: String) -> void:
 
 
 ## Довільне зображення (наприклад, портрет бога).
-func set_art(path: String, p_accent: Color, p_letter: String) -> void:
+## fit_height > 0: слот підлаштовується під пропорції малюнка (висота фіксована).
+func set_art(path: String, p_accent: Color, p_letter: String, fit_height: float = 0.0) -> void:
 	texture = FolkTheme.art_texture(path)
 	accent = p_accent
 	letter = p_letter
+	if texture != null and fit_height > 0.0:
+		var aspect := float(texture.get_width()) / float(texture.get_height())
+		custom_minimum_size = Vector2(fit_height * aspect + 8.0, fit_height + 8.0)
+	elif fit_height > 0.0:
+		custom_minimum_size = Vector2(fit_height * 0.75, fit_height)
 	queue_redraw()
 
 
@@ -38,7 +44,22 @@ func _draw() -> void:
 	bg.set_corner_radius_all(10)
 	draw_style_box(bg, r)
 	if texture != null:
-		draw_texture_rect(texture, r.grow(-4.0), false)
+		var inner := r.grow(-4.0)
+		var ta := float(texture.get_width()) / float(texture.get_height())
+		var dst := inner
+		if inner.size.x / inner.size.y > ta:
+			dst.size.x = inner.size.y * ta
+			dst.position.x += (inner.size.x - dst.size.x) * 0.5
+		else:
+			dst.size.y = inner.size.x / ta
+			dst.position.y += (inner.size.y - dst.size.y) * 0.5
+		draw_texture_rect(texture, dst, false)
+		var frame := StyleBoxFlat.new()
+		frame.draw_center = false
+		frame.border_color = Palette.GOLD
+		frame.set_border_width_all(3)
+		frame.set_corner_radius_all(10)
+		draw_style_box(frame, r)
 		return
 	var c := size * 0.5
 	var rad := minf(size.x, size.y) * 0.36

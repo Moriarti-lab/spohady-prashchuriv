@@ -7,8 +7,14 @@ static func ensure() -> void:
 	_add("move_up", [KEY_W, KEY_UP])
 	_add("move_down", [KEY_S, KEY_DOWN])
 	_add("attack", [KEY_SPACE, KEY_J])
-	_add("skill_1", [KEY_K, KEY_1])
-	_add("skill_2", [KEY_L, KEY_2])
+	_add("skill_1", [KEY_1, KEY_K])
+	_add("skill_2", [KEY_2, KEY_L])
+	_add("skill_3", [KEY_3])
+	_add("skill_4", [KEY_4])
+	_add("potion_hp", [KEY_Q])
+	_add("potion_mana", [KEY_E])
+	_add("open_bag", [KEY_B, KEY_I])
+	_add("open_map", [KEY_M])
 	_add("perk_screen", [KEY_P, KEY_TAB])
 
 

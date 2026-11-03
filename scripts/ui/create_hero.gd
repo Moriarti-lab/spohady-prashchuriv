@@ -164,7 +164,7 @@ func _build_intro() -> void:
 	var sp := Control.new()
 	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_content.add_child(sp)
-	var l := FolkTheme.label(Strings.MOKOSH_INTRO % hero_name, 32, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
+	var l := FolkTheme.label(Strings.MOKOSH_INTRO % Strings.vocative(hero_name), 32, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
 	l.custom_minimum_size.x = 900
 	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_content.add_child(l)
@@ -230,6 +230,11 @@ func _build_class() -> void:
 		b.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size.y = 110
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var ctex := FolkTheme.art_texture(FolkTheme.PORTRAIT_DIR + "class_%s.png" % id)
+		if ctex != null:
+			b.icon = ctex
+			b.expand_icon = true
+			b.add_theme_constant_override("icon_max_width", 84)
 		b.pressed.connect(_pick_class.bind(id))
 		_cards[id] = b
 		col.add_child(b)
@@ -250,14 +255,18 @@ func _build_detail_panel(parent: Control) -> void:
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 12)
 	v.add_child(top)
-	_portrait = PortraitSlot.new(Vector2(96, 96))
+	_portrait = PortraitSlot.new(Vector2(112, 150))
 	top.add_child(_portrait)
 	_detail_title = FolkTheme.label("Торкнись картки", 28, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, true)
 	_detail_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_detail_title)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
 	_detail = FolkTheme.label("", 21, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
-	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(_detail)
+	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_detail)
 
 
 func _style_card(b: Button, c: Color, selected: bool) -> void:
@@ -283,7 +292,7 @@ func _pick_blessing(id: String) -> void:
 	_detail.text = "%s\n\nБонус: %s.\n\nНавичка: «%s» (%s)\n%s\n\nСтихія снарядів: %s" % [
 		d["legend"], Blessings.bonus_text(id), d["skill_name"],
 		"активна" if d["skill_kind"] == "active" else "пасивна", d["skill_desc"], d["element"]]
-	_portrait.set_art(FolkTheme.PORTRAIT_DIR + "blessing_%s.png" % id, d["color"], str(d["god"]).substr(0, 1))
+	_portrait.set_art(FolkTheme.PORTRAIT_DIR + "blessing_%s.png" % id, d["color"], str(d["god"]).substr(0, 1), 150.0)
 	_update_next()
 
 
@@ -292,12 +301,12 @@ func _pick_class(id: String) -> void:
 	for k in _cards.keys():
 		_style_card(_cards[k], Palette.LEAF.darkened(0.2), k == id)
 	var d: Dictionary = Gear.class_def(id)
-	var w: Dictionary = Gear.WEAPONS[d["weapon"]]
-	var start: Dictionary = PerkTree.get_def(d["start_node"])
+	var w: Dictionary = Items.BASES[d["weapon"]]
+	var start: Dictionary = PerkTree.get_def(PerkTree.class_start(id))
 	_detail_title.text = d["name"]
 	_detail.text = "%s\n\nСпорядження:\n%s\n\nЗвичайна атака: %s\nСтарт на Древі: «%s», поруч із гілкою %s." % [
 		d["desc"], Gear.kit_text(id), _attack_text(w["kind"]), start["name"], d["start_near"]]
-	_portrait.set_art(FolkTheme.PORTRAIT_DIR + "class_%s.png" % id, Blessings.get_def(blessing).get("color", Palette.GOLD), str(d["name"]).substr(0, 1))
+	_portrait.set_art(FolkTheme.PORTRAIT_DIR + "class_%s.png" % id, Blessings.get_def(blessing).get("color", Palette.GOLD), str(d["name"]).substr(0, 1), 150.0)
 	_update_next()
 
 

@@ -1,15 +1,18 @@
-# Куди класти малюнки (2D)
+# Малюнки (2D)
 
-Гра сама підхопить файл, щойно він з'явиться за потрібною назвою. Нічого перепрограмовувати не треба:
-поки файлу немає, показується простий плейсхолдер. Формат — **PNG з прозорістю**, кольоровий простір sRGB.
+Усі малюнки зроблені власником проєкту за допомогою ШІ й підготовлені скриптом `tools/prepare_art.py`
+(зміна розміру, прозорість, PNG). Гра підхоплює файл за назвою; якщо файлу немає — показується плейсхолдер
+(наприклад, текстова кнопка навички). Формат: **PNG**, sRGB.
 
 | Папка | Файл | Розмір | Де показується |
 |---|---|---|---|
-| `art/icons/skills/` | `power_strike.png`, `arrow_volley.png`, `element_wave.png`, `stribog_dash.png` | 256×256 | кнопки навичок біля кнопки удару |
-| `art/icons/perks/` | `<id вузла>.png`, наприклад `s1.png`, `a3.png`, `core.png` (усі id — у `scripts/data/perk_tree.gd`) | 128×128 | вузли Древа звитяги |
-| `art/portraits/` | `hero_druzhynnyk.png`, `hero_strilets.png`, `hero_volkhv.png` | 256×256 | портрет героя у верхньому лівому куті |
-| `art/portraits/` | `blessing_perun.png`, `blessing_veles.png`, `blessing_stribog.png`, `blessing_dazhbog.png`, `blessing_mokosh.png`, `blessing_svarog.png` | 512×512 | вибір благословення |
-| `art/portraits/` | `class_druzhynnyk.png`, `class_strilets.png`, `class_volkhv.png` | 512×512 | вибір класу |
-| `art/ui/` | (резерв) рамки, фони, орнаменти | за потреби | поки не підключено |
+| `art/icons/skills/` | `power_strike`, `arrow_volley`, `stribog_dash`, `element_wave_<бог>` (perun, veles, dazhbog, mokosh, svarog) | 256×256 | кнопки навичок, слоти навичок |
+| `art/icons/skills/` | `whirlwind`, `piercing_shot`, `ancestral_heal` | 256×256 | **ще немає** — поки текстові кнопки |
+| `art/icons/perks/` | `region_str`, `region_agi`, `region_faith`, `core` | 128×128 | видатні вузли Древа за областю та центр |
+| `art/portraits/` | `hero_<клас>` | 256 | портрет героя у HUD |
+| `art/portraits/` | `blessing_<бог>`, `class_<клас>` | 512 | вибір благословення й класу |
+| `art/enemies/` | `novice`, `werewolf`, `wraith` | 256 | панель ворога |
+| `art/ui/` | `band_top`, `band_bottom` (смужка вишивки), `frame_wood` (рамка) | 1024×~125 / 384 | орнамент і рамки вікон |
 
-Іконки малюйте так, щоб центральні 80% були значущими: у грі їх обрізає кругла кнопка.
+Інші іконки вузлів Древа задаються полем `icon` у `data/perk_tree.json` (ім'я файла без `.png` з `art/icons/perks/`).
+Іконки робіть так, щоб центральні 80% були значущими: у грі їх обрізає кругла маска.

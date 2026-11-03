@@ -9,6 +9,8 @@ var radius := 0.45
 var life := 2.0
 var hit_callback := Callable()  # викликається з ціллю при влучанні
 var spark_color := Color.WHITE
+var pierce := false              # пробиває ворогів на шляху
+var _hit_ids := {}
 var _dead := false
 
 
@@ -28,6 +30,13 @@ func _physics_process(delta: float) -> void:
 				continue
 			var d := Vector2(en.global_position.x - from_node.x, en.global_position.z - from_node.z).length()
 			if d < radius + en.body_radius:
+				if pierce:
+					if not _hit_ids.has(en.get_instance_id()):
+						_hit_ids[en.get_instance_id()] = true
+						if hit_callback.is_valid():
+							hit_callback.call(en)
+						Fx.sparks(get_parent(), global_position, spark_color, 5)
+					continue
 				_hit(en)
 				return
 	else:

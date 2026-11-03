@@ -1,36 +1,56 @@
-## Ігровий інтерфейс: життя, чар, звитяга, джойстик, кнопки атаки й навичок.
+## Ігровий інтерфейс: життя, чар, звитяга, міні-карта, джойстик, кнопки атаки, навичок і зілля.
 class_name Hud
 extends CanvasLayer
 
 const MARGIN := 36.0
+const SKILL_COUNT := 4
+const SKILL_ANGLES := [172.0, 212.0, 252.0, 292.0]   # градуси навколо кнопки атаки, 180° — ліворуч, 270° — вгору
+const SKILL_DIST := 156.0
+const MINI_SIZE := 150.0
+const TOP_STRIP := 92.0       # верхня смуга кнопок: дотики тут не підбирають здобич
 
 var player: Player
-var world: Node
+var world: GameWorld
 
 var _root: Control
 var _stick: TouchStick
 var _attack: TouchButton
 var _skills: Array = []
+var _potion_hp: TouchButton
+var _potion_mana: TouchButton
 var _hp_bar: StatBar
 var _mana_bar: StatBar
 var _xp_bar: StatBar
 var _name_label: Label
+var _gold_label: Label
 var _portrait: Control
-var _perk_btn: Button
-var _pause_btn: Button
+var _btn_bag: Button
+var _btn_skills: Button
+var _btn_perks: Button
+var _btn_menu: Button
+var _mini: MapView
+var _mini_frame: Panel
+var _target_panel: PanelContainer
+var _target_art: TextureRect
+var _target_name: Label
+var _target_bar: StatBar
+var _target_kind := ""
 var _death_box: Control
 var _death_label: Label
 var _banner: Label
 var _toast: Label
 var _perk_screen: PerkTreeScreen
 var _pause_menu: PauseMenu
-var _touches := {}      # індекс пальця -> роль ("stick", "attack", "skill0", "skill1")
+var _inventory: InventoryScreen
+var _map_screen: MapScreen
+var _touches := {}      # індекс пальця -> роль ("stick", "attack", "skill0".."skill3", "potion_hp", "potion_mana")
 var _overlay_open := false
 var _toast_tween: Tween
 
 
 func _init() -> void:
 	layer = 10
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 func _ready() -> void:
@@ -40,6 +60,7 @@ func _ready() -> void:
 	add_child(_root)
 	_build_top_left()
 	_build_top_right()
+	_build_target_frame()
 	_build_touch_controls()
 	_build_overlays()
 	_root.resized.connect(_layout)
@@ -49,9 +70,15 @@ func _ready() -> void:
 	_on_state_changed()
 
 
-func bind(p_player: Player, p_world: Node) -> void:
+func _exit_tree() -> void:
+	if GameState.changed.is_connected(_on_state_changed):
+		GameState.changed.disconnect(_on_state_changed)
+
+
+func bind(p_player: Player, p_world: GameWorld) -> void:
 	player = p_player
 	world = p_world
+	_mini.bind(world, player)
 	_refresh_attack_label()
 
 
@@ -70,10 +97,10 @@ func _build_top_left() -> void:
 	_portrait = PortraitSlot.new(Vector2(84, 84))
 	h.add_child(_portrait)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
+	v.add_theme_constant_override("separation", 3)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(v)
-	_name_label = FolkTheme.label("", 22, Palette.LINEN)
+	_name_label = FolkTheme.label("", 21, Palette.LINEN)
 	v.add_child(_name_label)
 	_hp_bar = StatBar.new(Palette.HP_COLOR, Strings.HP, 26)
 	v.add_child(_hp_bar)
@@ -82,20 +109,67 @@ func _build_top_left() -> void:
 	_xp_bar = StatBar.new(Palette.XP_COLOR.darkened(0.15), Strings.XP, 20)
 	_xp_bar.font_size = 14
 	v.add_child(_xp_bar)
+	_gold_label = FolkTheme.label("", 18, Palette.GOLD)
+	v.add_child(_gold_label)
+
+
+func _top_button(text: String, color: Color, minw: float, handler: Callable) -> Button:
+	var b := Button.new()
+	b.text = text
+	FolkTheme.apply_button(b, color, 21)
+	b.custom_minimum_size = Vector2(minw, 60)
+	b.pressed.connect(handler)
+	_root.add_child(b)
+	return b
 
 
 func _build_top_right() -> void:
-	_pause_btn = Button.new()
-	_pause_btn.text = "Меню"
-	FolkTheme.apply_button(_pause_btn, Palette.PANEL_LIGHT, 22)
-	_pause_btn.custom_minimum_size = Vector2(120, 64)
-	_pause_btn.pressed.connect(_open_pause)
-	_root.add_child(_pause_btn)
-	_perk_btn = Button.new()
-	FolkTheme.apply_button(_perk_btn, Palette.TURQUOISE.darkened(0.25), 22)
-	_perk_btn.custom_minimum_size = Vector2(190, 64)
-	_perk_btn.pressed.connect(open_perks)
-	_root.add_child(_perk_btn)
+	_btn_menu = _top_button("Меню", Palette.PANEL_LIGHT, 100, _open_pause)
+	_btn_perks = _top_button("Древо", Palette.TURQUOISE.darkened(0.25), 150, open_perks)
+	_btn_skills = _top_button("Навички", Palette.PANEL_LIGHT, 130, func() -> void: open_inventory(InventoryScreen.TAB_SKILLS))
+	_btn_bag = _top_button("Сумка", Palette.EMBROIDERY, 110, func() -> void: open_inventory(InventoryScreen.TAB_BAG))
+	_mini = MapView.new(MapView.Mode.MINI)
+	_mini.custom_minimum_size = Vector2(MINI_SIZE, MINI_SIZE)
+	_mini.size = Vector2(MINI_SIZE, MINI_SIZE)
+	_root.add_child(_mini)
+	_mini_frame = Panel.new()
+	_mini_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.border_color = Palette.GOLD
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(6)
+	_mini_frame.add_theme_stylebox_override("panel", sb)
+	_mini_frame.size = Vector2(MINI_SIZE, MINI_SIZE)
+	_root.add_child(_mini_frame)
+
+
+func _build_target_frame() -> void:
+	_target_panel = PanelContainer.new()
+	_target_panel.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.85), Palette.BLOOD.lightened(0.2), 2, 10))
+	_target_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_target_panel.visible = false
+	_root.add_child(_target_panel)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_target_panel.add_child(h)
+	_target_art = TextureRect.new()
+	_target_art.custom_minimum_size = Vector2(54, 72)
+	_target_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_target_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_target_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(_target_art)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	v.custom_minimum_size = Vector2(210, 0)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	_target_name = FolkTheme.label("", 20, Palette.LINEN)
+	v.add_child(_target_name)
+	_target_bar = StatBar.new(Palette.BLOOD.lightened(0.15), "", 22)
+	v.add_child(_target_bar)
 
 
 func _build_touch_controls() -> void:
@@ -105,11 +179,19 @@ func _build_touch_controls() -> void:
 	_attack = TouchButton.new(80.0, Palette.EMBROIDERY)
 	_attack.font_size = 26
 	_root.add_child(_attack)
-	for i in range(2):
-		var b := TouchButton.new(52.0, Palette.TURQUOISE.darkened(0.2))
-		b.font_size = 19
+	for i in range(SKILL_COUNT):
+		var b := TouchButton.new(48.0, Palette.TURQUOISE.darkened(0.2))
+		b.font_size = 17
 		_root.add_child(b)
 		_skills.append(b)
+	_potion_hp = TouchButton.new(34.0, Palette.HP_COLOR.darkened(0.3))
+	_potion_hp.font_size = 15
+	_potion_hp.text = "Життя"
+	_root.add_child(_potion_hp)
+	_potion_mana = TouchButton.new(34.0, Palette.MANA_COLOR.darkened(0.3))
+	_potion_mana.font_size = 15
+	_potion_mana.text = "Чар"
+	_root.add_child(_potion_mana)
 
 
 func _build_overlays() -> void:
@@ -123,7 +205,7 @@ func _build_overlays() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	FolkTheme.fullscreen(dim)
 	_death_box.add_child(dim)
-	_death_label = FolkTheme.label("", 36, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
+	_death_label = FolkTheme.label("", 34, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
 	FolkTheme.fullscreen(_death_label)
 	_death_label.offset_left = 120.0
 	_death_label.offset_right = -120.0
@@ -137,7 +219,8 @@ func _build_overlays() -> void:
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_banner)
 	# підказки
-	_toast = FolkTheme.label("", 26, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER)
+	_toast = FolkTheme.label("", 28, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER)
+	_toast.add_theme_constant_override("outline_size", 8)
 	_toast.visible = false
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_toast)
@@ -147,11 +230,23 @@ func _build_overlays() -> void:
 	_perk_screen.visible = false
 	_perk_screen.closed.connect(_close_overlay)
 	add_child(_perk_screen)
+	_inventory = InventoryScreen.new()
+	_inventory.process_mode = Node.PROCESS_MODE_ALWAYS
+	_inventory.visible = false
+	_inventory.closed.connect(_close_overlay)
+	add_child(_inventory)
+	_map_screen = MapScreen.new()
+	_map_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	_map_screen.visible = false
+	_map_screen.closed.connect(_close_overlay)
+	add_child(_map_screen)
 	_pause_menu = PauseMenu.new()
 	_pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 	_pause_menu.visible = false
 	_pause_menu.resume_pressed.connect(_close_overlay)
 	_pause_menu.perks_pressed.connect(open_perks)
+	_pause_menu.bag_pressed.connect(open_inventory.bind(InventoryScreen.TAB_BAG))
+	_pause_menu.skills_pressed.connect(open_inventory.bind(InventoryScreen.TAB_SKILLS))
 	_pause_menu.title_pressed.connect(_go_title)
 	add_child(_pause_menu)
 
@@ -162,11 +257,23 @@ func _layout() -> void:
 	var vs := _root.size
 	if vs.x < 10.0:
 		vs = get_viewport().get_visible_rect().size
-	_pause_btn.position = Vector2(vs.x - 120 - 16, 12)
-	_perk_btn.position = Vector2(vs.x - 120 - 16 - 190 - 12, 12)
+	_mini.position = Vector2(vs.x - MINI_SIZE - 16.0, 12.0)
+	_mini_frame.position = _mini.position
+	var x := _mini.position.x - 12.0
+	for b in [_btn_menu, _btn_perks, _btn_skills, _btn_bag]:
+		var bb: Button = b
+		var w := maxf(bb.custom_minimum_size.x, bb.get_combined_minimum_size().x)
+		bb.size = Vector2(w, 60)
+		x -= w
+		bb.position = Vector2(x, 12)
+		x -= 8.0
+	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 82.0)
 	_attack.place(Vector2(vs.x - MARGIN - 80.0 - 20.0, vs.y - MARGIN - 80.0 - 10.0))
-	_skills[0].place(_attack.center + Vector2(-150, 28))
-	_skills[1].place(_attack.center + Vector2(-92, -120))
+	for i in range(SKILL_COUNT):
+		var a := deg_to_rad(float(SKILL_ANGLES[i]))
+		(_skills[i] as TouchButton).place(_attack.center + Vector2(cos(a), sin(a)) * SKILL_DIST)
+	_potion_hp.place(_attack.center + Vector2(64.0, -246.0))
+	_potion_mana.place(_attack.center + Vector2(-20.0, -262.0))
 	_stick.home = Vector2(MARGIN + 110.0 + 40.0, vs.y - MARGIN - 110.0 - 20.0)
 	if not _stick.active:
 		_stick.base_center = _stick.home
@@ -174,17 +281,27 @@ func _layout() -> void:
 	_banner.size = Vector2(vs.x, 80)
 	_banner.position = Vector2(0, vs.y * 0.2)
 	_toast.size = Vector2(vs.x, 40)
-	_toast.position = Vector2(0, vs.y * 0.62)
+	_toast.position = Vector2(0, vs.y * 0.58)
 
 
 # ---------- Оновлення ----------
+
+func map_dirty() -> void:
+	if _mini != null:
+		_mini.mark_dirty()
+	if _map_screen != null and _map_screen.map != null:
+		_map_screen.map.mark_dirty()
+
 
 func _on_state_changed() -> void:
 	_name_label.text = "%s · %s %d" % [GameState.hero_name, Strings.LEVEL, GameState.level]
 	_xp_bar.set_values(float(GameState.xp), float(GameState.xp_needed()))
 	var pts := GameState.perk_points
-	_perk_btn.text = "Древо" if pts <= 0 else "Древо  (+%d)" % pts
+	_btn_perks.text = "Древо" if pts <= 0 else "Древо (+%d)" % pts
+	_gold_label.text = "Гривні: %d" % GameState.gold
 	(_portrait as PortraitSlot).set_portrait(GameState.blessing, GameState.hero_class)
+	if _btn_perks.is_inside_tree():
+		_layout()
 	if player != null:
 		_refresh_attack_label()
 
@@ -199,31 +316,76 @@ func _process(_delta: float) -> void:
 		return
 	_hp_bar.set_values(player.hp, HeroStats.max_hp())
 	_mana_bar.set_values(player.mana, HeroStats.max_mana())
-	for i in range(2):
-		var b: TouchButton = _skills[i]
-		var id := player.skill_id(i)
-		if id == "":
-			b.empty = true
-			b.text = "—"
-			b.sub_text = ""
-			b.cooldown = 0.0
-			b.usable = true
-		else:
-			var def: Dictionary = Skills.get_def(id)
-			b.empty = false
-			b.color = Color(def["color"]).darkened(0.35)
-			b.text = def["short"]
-			b.sub_text = "%d чару" % int(def["mana"])
-			b.cooldown = player.skill_cd_ratio(i)
-			b.usable = player.mana >= float(def["mana"])
-			b.icon = FolkTheme.art_texture(FolkTheme.ICON_DIR + "skills/%s.png" % id)
-		b.queue_redraw()
+	for i in range(SKILL_COUNT):
+		_update_skill_button(i)
+	_potion_hp.sub_text = "×%d" % GameState.hp_potions
+	_potion_hp.cooldown = clampf(player.potion_cd / Player.POTION_COOLDOWN, 0.0, 1.0)
+	_potion_hp.usable = GameState.hp_potions > 0
+	_potion_hp.queue_redraw()
+	_potion_mana.sub_text = "×%d" % GameState.mana_potions
+	_potion_mana.cooldown = clampf(player.potion_cd / Player.POTION_COOLDOWN, 0.0, 1.0)
+	_potion_mana.usable = GameState.mana_potions > 0
+	_potion_mana.queue_redraw()
+	_update_target()
+
+
+func _update_skill_button(i: int) -> void:
+	var b: TouchButton = _skills[i]
+	var id := player.skill_id(i)
+	if id == "":
+		b.empty = true
+		b.text = "—"
+		b.sub_text = ""
+		b.cooldown = 0.0
+		b.usable = true
+		b.icon = null
+	else:
+		var def: Dictionary = Skills.get_def(id)
+		b.empty = false
+		b.color = Color(def["color"]).darkened(0.35)
+		b.text = def["short"]
+		b.sub_text = "%d чару" % int(def["mana"])
+		b.cooldown = player.skill_cd_ratio(i)
+		b.usable = player.mana >= float(def["mana"])
+		b.icon = FolkTheme.art_texture(Skills.icon_path(id, GameState.blessing))
+	b.queue_redraw()
+
+
+func _update_target() -> void:
+	var t := player.last_target
+	var show := t != null and is_instance_valid(t) and not t.dead and player.last_target_t > 0.0
+	_target_panel.visible = show
+	if not show:
+		return
+	if t.kind != _target_kind:
+		_target_kind = t.kind
+		_target_art.texture = FolkTheme.art_texture("res://art/enemies/%s.png" % t.kind)
+	_target_name.text = "%s · рів. %d" % [t.def.get("name", "Ворог"), t.level]
+	_target_bar.set_values(t.hp, t.max_hp)
 
 
 # ---------- Дотики (багатопальцеве керування) ----------
 
 func _input(event: InputEvent) -> void:
-	if player == null or _overlay_open:
+	if player == null:
+		return
+	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
+		if event.is_action("open_bag"):
+			if _overlay_open:
+				if _inventory.visible:
+					_close_overlay()
+			else:
+				open_inventory(InventoryScreen.TAB_BAG)
+		elif event.is_action("open_map"):
+			if _overlay_open:
+				if _map_screen.visible:
+					_close_overlay()
+			else:
+				open_map()
+		elif event.is_action("ui_cancel") and _overlay_open:
+			_close_overlay()
+		return
+	if _overlay_open:
 		return
 	if event is InputEventScreenTouch:
 		var t := event as InputEventScreenTouch
@@ -246,16 +408,33 @@ func _touch_down(index: int, pos: Vector2) -> void:
 		_attack.set_pressed(true)
 		player.attack_held = true
 		return
-	for i in range(2):
-		if (_skills[i] as TouchButton).hit(pos):
+	for i in range(SKILL_COUNT):
+		if (_skills[i] as TouchButton).hit(pos, 1.1):
 			_touches[index] = "skill%d" % i
 			(_skills[i] as TouchButton).set_pressed(true)
 			player.use_skill(i)
 			return
+	if _potion_hp.hit(pos, 1.1):
+		_touches[index] = "potion_hp"
+		_potion_hp.set_pressed(true)
+		player.use_potion("hp")
+		return
+	if _potion_mana.hit(pos, 1.1):
+		_touches[index] = "potion_mana"
+		_potion_mana.set_pressed(true)
+		player.use_potion("mana")
+		return
+	if Rect2(_mini.position, _mini.size).grow(6.0).has_point(pos):
+		_touches[index] = "map"
+		return
 	if pos.x < vs.x * 0.5 and pos.y > vs.y * 0.28 and not _has_role("stick"):
 		_touches[index] = "stick"
 		_stick.begin(pos)
 		player.move_input = Vector2.ZERO
+		return
+	if pos.y > TOP_STRIP and world != null:
+		# дотик по землі справа: підібрати здобич, що лежить там
+		world.tap_world(pos)
 
 
 func _touch_up(index: int) -> void:
@@ -268,10 +447,15 @@ func _touch_up(index: int) -> void:
 		"attack":
 			_attack.set_pressed(false)
 			player.attack_held = false
-		"skill0":
-			(_skills[0] as TouchButton).set_pressed(false)
-		"skill1":
-			(_skills[1] as TouchButton).set_pressed(false)
+		"potion_hp":
+			_potion_hp.set_pressed(false)
+		"potion_mana":
+			_potion_mana.set_pressed(false)
+		"map":
+			open_map()
+		_:
+			if role.begins_with("skill"):
+				(_skills[int(role.substr(5))] as TouchButton).set_pressed(false)
 
 
 func _has_role(role: String) -> bool:
@@ -280,7 +464,11 @@ func _has_role(role: String) -> bool:
 
 func _release_all() -> void:
 	for idx in _touches.keys().duplicate():
-		_touch_up(idx)
+		var role: String = _touches[idx]
+		if role == "map":
+			_touches.erase(idx)
+		else:
+			_touch_up(idx)
 	if player != null:
 		player.move_input = Vector2.ZERO
 		player.attack_held = false
@@ -323,24 +511,48 @@ func toast(text: String) -> void:
 
 # ---------- Екрани ----------
 
-func open_perks() -> void:
+func _enter_overlay() -> void:
 	_release_all()
-	_pause_menu.visible = false
+	_hide_screens()
 	_overlay_open = true
 	get_tree().paused = true
+
+
+func _hide_screens() -> void:
+	_perk_screen.visible = false
+	_pause_menu.visible = false
+	_inventory.visible = false
+	_map_screen.visible = false
+
+
+func open_perks() -> void:
+	_enter_overlay()
 	_perk_screen.open()
 
 
+func open_inventory(tab: int = InventoryScreen.TAB_BAG) -> void:
+	_enter_overlay()
+	_inventory.open(tab)
+
+
+func open_map() -> void:
+	if _overlay_open or world == null:
+		return
+	_enter_overlay()
+	_map_screen.open(world, player)
+
+
 func _open_pause() -> void:
-	_release_all()
-	_overlay_open = true
-	get_tree().paused = true
+	_enter_overlay()
 	_pause_menu.open()
 
 
+func is_overlay_open() -> bool:
+	return _overlay_open
+
+
 func _close_overlay() -> void:
-	_perk_screen.visible = false
-	_pause_menu.visible = false
+	_hide_screens()
 	_overlay_open = false
 	get_tree().paused = false
 	GameState.save_game()

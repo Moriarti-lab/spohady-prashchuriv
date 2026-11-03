@@ -21,7 +21,7 @@ static func _v(x: float, y: float, z: float) -> Vector3:
 #  ГЕРОЙ
 # =====================================================================
 
-static func hero(class_id: String, accent: Color) -> Node3D:
+static func hero(class_id: String, accent: Color, weapon_base: String = "") -> Node3D:
 	var root := Node3D.new()
 	root.name = "Model"
 	var body: Array = []
@@ -71,14 +71,6 @@ static func hero(class_id: String, accent: Color) -> Node3D:
 			body.append(LowPoly.cyl(0.32, 0.32, 0.07, _v(-0.5, 1.0, -0.3), Palette.EMBROIDERY, 8, _v(90, 0, 0)))
 			body.append(LowPoly.cyl(0.34, 0.34, 0.04, _v(-0.5, 1.0, -0.26), Palette.GOLD, 8, _v(90, 0, 0)))
 			body.append(LowPoly.ball(0.1, _v(-0.5, 1.0, -0.38), Palette.GOLD, 5))
-			wp.position = _v(0.42, 0.9, -0.35)
-			wp.rotation_degrees = _v(-15, 0, 0)
-			var sw: Array = []
-			sw.append(LowPoly.box(_v(0.07, 0.95, 0.025), _v(0, 0.62, 0), STEEL_LIGHT))
-			sw.append(LowPoly.prism(_v(0.07, 0.15, 0.025), _v(0, 1.17, 0), STEEL_LIGHT))
-			sw.append(LowPoly.box(_v(0.3, 0.05, 0.06), _v(0, 0.12, 0), Palette.GOLD))
-			sw.append(LowPoly.box(_v(0.06, 0.2, 0.06), _v(0, -0.02, 0), LEATHER))
-			wp.add_child(LowPoly.instance(sw))
 		"strilets":
 			body.append(LowPoly.cyl(0.26, 0.3, 0.55, _v(0, 1.05, 0), Color("8E99A3"), 8))  # кольчуга
 			body.append(LowPoly.ball(0.25, _v(0, 1.62, 0.02), Color("8E99A3"), 7, _v(1, 0.8, 1)))  # каптур
@@ -86,14 +78,6 @@ static func hero(class_id: String, accent: Color) -> Node3D:
 			body.append(LowPoly.cyl(0.08, 0.08, 0.55, _v(0.16, 1.2, 0.3), WOOD, 6, _v(0, 0, 14)))  # сагайдак
 			for i in range(3):
 				body.append(LowPoly.box(_v(0.03, 0.12, 0.03), _v(0.2 + i * 0.03, 1.5, 0.3), Palette.LINEN))
-			wp.position = _v(-0.45, 1.05, -0.4)
-			wp.rotation_degrees = Vector3.ZERO
-			var bow: Array = []
-			bow.append(LowPoly.box(_v(0.06, 0.22, 0.06), _v(0, 0, 0), WOOD))
-			bow.append(LowPoly.box(_v(0.05, 0.55, 0.05), _v(0, 0.36, 0.08), WOOD, _v(18, 0, 0)))
-			bow.append(LowPoly.box(_v(0.05, 0.55, 0.05), _v(0, -0.36, 0.08), WOOD, _v(-18, 0, 0)))
-			bow.append(LowPoly.box(_v(0.012, 1.15, 0.012), _v(0, 0, 0.19), Palette.LINEN))
-			wp.add_child(LowPoly.instance(bow))
 		_:  # волхв
 			body.append(LowPoly.cyl(0.22, 0.48, 1.05, _v(0, 0.58, 0), CLOTH_BLUE, 8))   # балахон
 			body.append(LowPoly.cyl(0.49, 0.49, 0.1, _v(0, 0.08, 0), Palette.EMBROIDERY, 8))
@@ -103,15 +87,7 @@ static func hero(class_id: String, accent: Color) -> Node3D:
 			body.append(LowPoly.cyl(0.215, 0.215, 0.06, _v(0, 1.68, 0), Palette.EMBROIDERY, 8))  # очіпок-пов'язка
 			body.append(LowPoly.cone(0.13, 0.42, _v(0, 1.32, -0.15), Color("D9D6CF"), 5))       # борода
 			body.append(LowPoly.box(_v(0.4, 0.5, 0.06), _v(0, 1.4, 0.2), Color("CFCBC2")))      # довге волосся
-			wp.position = _v(0.46, 0.9, -0.3)
-			wp.rotation_degrees = _v(-8, 0, 0)
-			var staff: Array = []
-			staff.append(LowPoly.cyl(0.035, 0.045, 1.95, _v(0, 0.62, 0), WOOD, 6))
-			staff.append(LowPoly.ball(0.1, _v(0, 1.62, 0), Palette.GOLD, 5))
-			wp.add_child(LowPoly.instance(staff))
-			var orb := LowPoly.glow_instance(LowPoly.ball(0.13, _v(0, 1.8, 0), accent, 6), accent, 2.5)
-			orb.name = "Orb"
-			wp.add_child(orb)
+	_add_weapon(wp, weapon_base, class_id, accent)
 	# амулет благословення на грудях
 	body.append(LowPoly.cyl(0.075, 0.075, 0.03, _v(0, 1.2, -0.285), Palette.GOLD, 8, _v(90, 0, 0)))
 	root.add_child(LowPoly.instance(body))
@@ -120,19 +96,92 @@ static func hero(class_id: String, accent: Color) -> Node3D:
 	return root
 
 
+## Зброя в руці героя за ідентифікатором основи (sword, axe, bow, longbow, staff, wand).
+## Порожній id — без зброї (голі руки).
+static func _add_weapon(wp: Node3D, base_id: String, class_id: String, accent: Color) -> void:
+	var kind := ""
+	if Items.BASES.has(base_id) and Items.BASES[base_id]["slot"] == "weapon":
+		kind = str(Items.BASES[base_id]["kind"])
+	wp.set_meta("kind", kind)
+	match kind:
+		"melee":
+			wp.position = _v(0.42, 0.9, -0.35)
+			wp.rotation_degrees = _v(-15, 0, 0)
+			var sw: Array = []
+			if base_id == "axe":
+				sw.append(LowPoly.box(_v(0.05, 0.9, 0.05), _v(0, 0.5, 0), WOOD))
+				sw.append(LowPoly.box(_v(0.06, 0.34, 0.3), _v(0, 0.92, -0.1), STEEL_LIGHT))
+				sw.append(LowPoly.prism(_v(0.06, 0.2, 0.14), _v(0, 0.92, -0.32), STEEL_LIGHT, _v(0, 0, 0)))
+				sw.append(LowPoly.box(_v(0.07, 0.18, 0.07), _v(0, -0.02, 0), LEATHER))
+			else:
+				sw.append(LowPoly.box(_v(0.07, 0.95, 0.025), _v(0, 0.62, 0), STEEL_LIGHT))
+				sw.append(LowPoly.prism(_v(0.07, 0.15, 0.025), _v(0, 1.17, 0), STEEL_LIGHT))
+				sw.append(LowPoly.box(_v(0.3, 0.05, 0.06), _v(0, 0.12, 0), Palette.GOLD))
+				sw.append(LowPoly.box(_v(0.06, 0.2, 0.06), _v(0, -0.02, 0), LEATHER))
+			wp.add_child(LowPoly.instance(sw))
+		"arrow":
+			var k := 1.0 if base_id == "bow" else 1.2
+			wp.position = _v(-0.45, 1.05, -0.4) if class_id != "druzhynnyk" else _v(-0.62, 1.05, -0.55)
+			wp.rotation_degrees = Vector3.ZERO
+			var bow: Array = []
+			bow.append(LowPoly.box(_v(0.06, 0.22, 0.06), _v(0, 0, 0), WOOD))
+			bow.append(LowPoly.box(_v(0.05, 0.55 * k, 0.05), _v(0, 0.36 * k, 0.08), WOOD, _v(18, 0, 0)))
+			bow.append(LowPoly.box(_v(0.05, 0.55 * k, 0.05), _v(0, -0.36 * k, 0.08), WOOD, _v(-18, 0, 0)))
+			bow.append(LowPoly.box(_v(0.012, 1.15 * k, 0.012), _v(0, 0, 0.19), Palette.LINEN))
+			if base_id == "longbow":
+				bow.append(LowPoly.box(_v(0.07, 0.1, 0.07), _v(0, 0, 0), Palette.GOLD))
+			wp.add_child(LowPoly.instance(bow))
+		"magic":
+			wp.position = _v(0.46, 0.9, -0.3)
+			wp.rotation_degrees = _v(-8, 0, 0)
+			var staff: Array = []
+			if base_id == "wand":
+				staff.append(LowPoly.cyl(0.03, 0.04, 0.9, _v(0, 0.4, 0), WOOD, 6))
+				staff.append(LowPoly.ball(0.07, _v(0, 0.9, 0), Palette.GOLD, 5))
+				wp.add_child(LowPoly.instance(staff))
+				var orb2 := LowPoly.glow_instance(LowPoly.ball(0.09, _v(0, 1.0, 0), accent, 6), accent, 2.5)
+				orb2.name = "Orb"
+				wp.add_child(orb2)
+			else:
+				staff.append(LowPoly.cyl(0.035, 0.045, 1.95, _v(0, 0.62, 0), WOOD, 6))
+				staff.append(LowPoly.ball(0.1, _v(0, 1.62, 0), Palette.GOLD, 5))
+				wp.add_child(LowPoly.instance(staff))
+				var orb := LowPoly.glow_instance(LowPoly.ball(0.13, _v(0, 1.8, 0), accent, 6), accent, 2.5)
+				orb.name = "Orb"
+				wp.add_child(orb)
+		_:
+			wp.position = _v(0.42, 0.9, -0.35)
+
+
 # =====================================================================
 #  ВОРОГИ ОРДЕНУ
 # =====================================================================
 
+static var _enemy_cache := {}
+
+
+## Модель ворога. Перша збірка кладеться в кеш, далі повертаються копії зі спільними мешами
+## (щоб поява ворога не гальмувала гру).
 static func enemy(kind: String) -> Node3D:
-	match kind:
-		"novice":
-			return _novice()
-		"werewolf":
-			return _werewolf_human()
-		"wraith":
-			return _wraith()
-	return Node3D.new()
+	if not _enemy_cache.has(kind):
+		var t: Node3D = null
+		match kind:
+			"novice":
+				t = _novice()
+			"werewolf":
+				t = _werewolf_human()
+			"wraith":
+				t = _wraith()
+			"beast":
+				t = werewolf_beast_build()
+			_:
+				t = Node3D.new()
+		_enemy_cache[kind] = t
+	return (_enemy_cache[kind] as Node3D).duplicate()
+
+
+static func werewolf_beast() -> Node3D:
+	return enemy("beast")
 
 
 static func _novice() -> Node3D:
@@ -179,7 +228,7 @@ static func _werewolf_human() -> Node3D:
 	return root
 
 
-static func werewolf_beast() -> Node3D:
+static func werewolf_beast_build() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Model"
 	var fur := Color("3B3B45")

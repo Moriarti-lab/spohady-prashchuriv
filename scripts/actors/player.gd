@@ -5,10 +5,14 @@ extends CharacterBody3D
 signal died
 signal vitals_changed
 signal skill_cast(slot: int)
+signal potion_used(kind: String)
 
 const TURN_SPEED := 16.0
 const DASH_SPEED := 30.0
 const DASH_TIME := 0.2
+const POTION_COOLDOWN := 6.0
+const HP_POTION_HEAL := 0.45
+const MANA_POTION_RESTORE := 0.5
 
 var body_radius := 0.4
 var hp := 100.0
@@ -38,6 +42,10 @@ var _swing := 0.0
 var _regen_acc := 0.0
 var _flash_t := 0.0
 var _world_root: Node = null
+var potion_cd := 0.0
+var last_target: Enemy = null
+var last_target_t := 0.0
+var _weapon_base := ""
 
 
 func _ready() -> void:
@@ -55,6 +63,33 @@ func _ready() -> void:
 	rebuild_model()
 	hp = HeroStats.max_hp()
 	mana = HeroStats.max_mana()
+	GameState.changed.connect(_on_state_changed)
+
+
+func _exit_tree() -> void:
+	if GameState.changed.is_connected(_on_state_changed):
+		GameState.changed.disconnect(_on_state_changed)
+
+
+## Спорядження або Древо змінилися: оновлюємо зброю в руках і межі життя та чару.
+func _on_state_changed() -> void:
+	if _current_weapon_base() != _weapon_base:
+		rebuild_model()
+	var mh := HeroStats.max_hp()
+	var mm := HeroStats.max_mana()
+	if hp > mh or mana > mm:
+		hp = minf(hp, mh)
+		mana = minf(mana, mm)
+	vitals_changed.emit()
+
+
+func _current_weapon_base() -> String:
+	var w: Variant = GameState.equipment.get("weapon", null)
+	return str(w.get("base", "")) if typeof(w) == TYPE_DICTIONARY else ""
+
+
+func facing_vec2() -> Vector2:
+	return Vector2(_facing.x, _facing.z).normalized()
 
 
 func set_world_root(n: Node) -> void:
@@ -69,7 +104,8 @@ func rebuild_model() -> void:
 	if model != null:
 		model.queue_free()
 	var accent: Color = Blessings.get_def(GameState.blessing)["color"]
-	model = ModelFactory.hero(GameState.hero_class, accent)
+	_weapon_base = _current_weapon_base()
+	model = ModelFactory.hero(GameState.hero_class, accent, _weapon_base)
 	add_child(model)
 	weapon_pivot = model.get_node("WeaponPivot")
 
@@ -81,6 +117,9 @@ func _physics_process(delta: float) -> void:
 		return
 	combat_timer += delta
 	attack_cd = maxf(0.0, attack_cd - delta)
+	potion_cd = maxf(0.0, potion_cd - delta)
+	if last_target_t > 0.0:
+		last_target_t -= delta
 	invuln = maxf(0.0, invuln - delta)
 	for k in cooldowns.keys():
 		cooldowns[k] = maxf(0.0, float(cooldowns[k]) - delta)
@@ -91,10 +130,13 @@ func _physics_process(delta: float) -> void:
 
 	# клавіатура
 	var mv := _input_vec()
-	if Input.is_action_just_pressed("skill_1"):
-		use_skill(0)
-	if Input.is_action_just_pressed("skill_2"):
-		use_skill(1)
+	for i in range(GameState.QUICK_SLOTS):
+		if Input.is_action_just_pressed("skill_%d" % (i + 1)):
+			use_skill(i)
+	if Input.is_action_just_pressed("potion_hp"):
+		use_potion("hp")
+	if Input.is_action_just_pressed("potion_mana"):
+		use_potion("mana")
 
 	var speed := HeroStats.move_speed()
 	if GameState.blessing == "veles" and combat_timer > 5.0:
@@ -159,7 +201,7 @@ func _animate(delta: float, move_amount: float) -> void:
 	if _swing > 0.0:
 		_swing = maxf(0.0, _swing - delta * 4.5)
 	if weapon_pivot != null:
-		var kind: String = HeroStats.weapon_def()["kind"]
+		var kind: String = HeroStats.attack_kind()
 		if kind == "melee":
 			weapon_pivot.rotation.x = deg_to_rad(-15.0 - 110.0 * sin(_swing * PI))
 		else:
@@ -265,11 +307,11 @@ func _melee_hit(dir: Vector3, reach: float) -> void:
 		Fx.sparks(_fx_parent(), global_position + dir * 1.4 + Vector3(0, 1.0, 0), Palette.GOLD, 6)
 
 
-func _shoot(visual: Node3D, dir: Vector3, spd: float, spark: Color, basic: bool, dmg_override: float = -1.0) -> void:
+func _shoot(visual: Node3D, dir: Vector3, spd: float, spark: Color, basic: bool, dmg_override: float = -1.0) -> Projectile:
 	var pr := Projectile.new()
 	pr.add_child(visual)
 	pr.velocity = dir * spd
-	pr.life = float(HeroStats.weapon_def()["range"]) / spd + 0.25
+	pr.life = (float(HeroStats.weapon_def()["range"]) if basic else 14.0) / spd + 0.25
 	pr.spark_color = spark
 	var base := HeroStats.weapon_damage() if dmg_override < 0.0 else dmg_override
 	var r := _roll_damage(base)
@@ -279,6 +321,7 @@ func _shoot(visual: Node3D, dir: Vector3, spd: float, spark: Color, basic: bool,
 	_fx_parent().add_child(pr)
 	pr.global_position = global_position + Vector3(0, 1.1, 0) + dir * 0.6
 	pr.look_at(pr.global_position + dir, Vector3.UP)
+	return pr
 
 
 ## Єдина точка нанесення шкоди ворогу.
@@ -286,6 +329,8 @@ func deal_damage(enemy: Enemy, amount: float, crit: bool, basic: bool, knock_for
 	if enemy == null or enemy.dead:
 		return
 	combat_timer = 0.0
+	last_target = enemy
+	last_target_t = 5.0
 	enemy.take_damage(amount, global_position, crit, knock_force)
 	# Громова мітка Перуна: кожен 5-й звичайний удар б'є блискавкою
 	if basic and GameState.blessing == "perun":
@@ -298,8 +343,7 @@ func deal_damage(enemy: Enemy, amount: float, crit: bool, basic: bool, knock_for
 # ---------- Навички ----------
 
 func skill_id(slot: int) -> String:
-	var a := GameState.active_skills()
-	return a[slot] if slot < a.size() else ""
+	return GameState.quick_skill(slot)
 
 
 func skill_cd_ratio(slot: int) -> float:
@@ -338,6 +382,12 @@ func use_skill(slot: int) -> void:
 			_cast_wave()
 		"stribog_dash":
 			_cast_dash()
+		"whirlwind":
+			_cast_whirlwind()
+		"piercing_shot":
+			_cast_piercing(dir)
+		"ancestral_heal":
+			_cast_ancestral_heal()
 	var cd := float(def["cd"])
 	if GameState.blessing == "mokosh" and randf() < 0.10:
 		cd = 0.0
@@ -386,6 +436,45 @@ func _cast_wave() -> void:
 			deal_damage(en, r[0], r[1], false, 5.0)
 
 
+func _cast_whirlwind() -> void:
+	var def: Dictionary = Skills.get_def("whirlwind")
+	var ticks := int(def["ticks"])
+	var radius := float(def["radius"])
+	for i in range(ticks):
+		var t := create_tween()
+		t.tween_callback(_whirl_tick.bind(radius, def["color"])).set_delay(0.22 * float(i))
+
+
+func _whirl_tick(radius: float, col: Color) -> void:
+	if dead:
+		return
+	_swing = 1.0
+	Fx.ring_burst(_fx_parent(), global_position, radius, col, 0.25)
+	for e in _enemies():
+		var en: Enemy = e
+		if en.dead:
+			continue
+		if _flat_dist(en.global_position) <= radius + en.body_radius:
+			var r := _roll_damage(HeroStats.skill_damage("whirlwind"))
+			deal_damage(en, r[0], r[1], false, 3.5)
+
+
+func _cast_piercing(dir: Vector3) -> void:
+	var pr := _shoot(ModelFactory.arrow(), dir, 30.0, Skills.get_def("piercing_shot")["color"], false, HeroStats.skill_damage("piercing_shot"))
+	if pr != null:
+		pr.pierce = true
+		pr.life = 0.9
+		pr.scale = Vector3(1.4, 1.4, 1.4)
+
+
+func _cast_ancestral_heal() -> void:
+	var def: Dictionary = Skills.get_def("ancestral_heal")
+	var amount := HeroStats.max_hp() * float(def["heal_pct"]) + HeroStats.stat("faith") * 1.5
+	Fx.ring_burst(_fx_parent(), global_position, 3.0, def["color"], 0.5)
+	Fx.sparks(_fx_parent(), global_position + Vector3(0, 0.8, 0), def["color"], 14)
+	heal(amount)
+
+
 func _cast_dash() -> void:
 	var iv := _input_vec()
 	var mv := Vector3(iv.x, 0, iv.y)
@@ -421,6 +510,30 @@ func take_damage(amount: float, from_pos: Vector3, knock_force: float = 3.0) -> 
 	vitals_changed.emit()
 	if hp <= 0.0:
 		_die()
+
+
+## Зілля: kind = "hp" або "mana". Спільна перезарядка, витрачає запас.
+func use_potion(kind: String) -> bool:
+	if dead or potion_cd > 0.0:
+		return false
+	if kind == "hp" and hp >= HeroStats.max_hp() - 0.5:
+		return false
+	if kind == "mana" and mana >= HeroStats.max_mana() - 0.5:
+		return false
+	if not GameState.take_potion(kind):
+		Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.3, 0), "Зілля скінчились", Palette.TEXT_DIM, false)
+		return false
+	potion_cd = POTION_COOLDOWN
+	if kind == "hp":
+		heal(HeroStats.max_hp() * HP_POTION_HEAL)
+		Fx.sparks(_fx_parent(), global_position + Vector3(0, 1.0, 0), Palette.HP_COLOR.lightened(0.3), 10)
+	else:
+		mana = minf(HeroStats.max_mana(), mana + HeroStats.max_mana() * MANA_POTION_RESTORE)
+		Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.3, 0), "+%d чару" % int(HeroStats.max_mana() * MANA_POTION_RESTORE), Palette.MANA_COLOR.lightened(0.2), false)
+		Fx.sparks(_fx_parent(), global_position + Vector3(0, 1.0, 0), Palette.MANA_COLOR, 10)
+	potion_used.emit(kind)
+	vitals_changed.emit()
+	return true
 
 
 func drain_mana(amount: float) -> void:
@@ -464,6 +577,7 @@ func respawn(at: Vector3) -> void:
 	_facing = Vector3(0, 0, -1)
 	_knock = Vector3.ZERO
 	cooldowns.clear()
+	potion_cd = 0.0
 	model.rotation.x = 0.0
 	model.position.y = 0.0
 	ModelFactory.set_flash(model, false)

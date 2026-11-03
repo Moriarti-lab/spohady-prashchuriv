@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Редактор Древа звитяги — «Спогади пращурів»</title>
+<style>
+:root { --bg:#16120f; --panel:#241d18; --panel2:#2e251e; --line:#5b4630; --gold:#d9b25b; --text:#f1e6cf; --dim:#a89a82; --bad:#e0624f; --good:#7cbf5a; --warn:#e0b04f; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow:hidden; }
+#app { display:grid; height:100%; grid-template-rows:auto 1fr; grid-template-columns:1fr; }
+#bar { display:flex; flex-wrap:wrap; gap:6px; padding:6px; background:var(--panel); border-bottom:2px solid var(--line); align-items:center; }
+#bar .grp { display:flex; gap:4px; flex-wrap:wrap; }
+#bar .sep { width:1px; height:30px; background:var(--line); margin:0 2px; }
+button, select, input, textarea { font:inherit; color:var(--text); }
+button { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:9px 11px; min-height:42px; cursor:pointer; touch-action:manipulation; }
+button:active { background:#43362a; }
+button.on { background:var(--gold); color:#20170c; border-color:var(--gold); font-weight:600; }
+button.danger { border-color:var(--bad); color:#ffb4a8; }
+button:disabled { opacity:.4; }
+#main { display:grid; min-height:0; grid-template-columns:1fr; grid-template-rows:1fr auto; }
+#stage { position:relative; min-height:0; overflow:hidden; background:radial-gradient(circle at 50% 50%, #251d16, #120e0b); }
+canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; display:block; }
+#hint { position:absolute; left:8px; bottom:8px; right:8px; pointer-events:none; color:var(--dim); font-size:13px; text-shadow:0 1px 2px #000; }
+#toast { position:absolute; left:50%; top:10px; transform:translateX(-50%); background:#000d; border:1px solid var(--gold); padding:8px 14px; border-radius:10px; display:none; max-width:90%; z-index:5; text-align:center; }
+#side { background:var(--panel); border-top:2px solid var(--line); max-height:42vh; overflow:auto; padding:8px; }
+#side h3 { margin:0 0 6px; font-size:15px; color:var(--gold); }
+.row { display:flex; gap:6px; margin-bottom:6px; align-items:center; flex-wrap:wrap; }
+.row > label { flex:0 0 96px; color:var(--dim); font-size:13px; }
+.row > input, .row > select, .row > textarea { flex:1 1 140px; min-width:0; background:#17120e; border:1px solid var(--line); border-radius:6px; padding:8px; min-height:38px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:6px; margin:4px 0 8px; }
+.stats div { display:flex; align-items:center; gap:4px; }
+.stats label { flex:1; font-size:12px; color:var(--dim); }
+.stats input { width:64px; background:#17120e; border:1px solid var(--line); border-radius:6px; padding:6px; min-height:34px; }
+.badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:12px; border:1px solid var(--line); margin-right:4px; }
+#dlg { position:fixed; inset:0; background:#000c; display:none; align-items:center; justify-content:center; z-index:10; padding:8px; }
+#dlg .box { background:var(--panel); border:2px solid var(--gold); border-radius:12px; width:min(820px,100%); max-height:100%; overflow:auto; padding:12px; }
+#dlg textarea { width:100%; height:34vh; background:#100c09; border:1px solid var(--line); border-radius:6px; padding:8px; font:12px/1.3 ui-monospace,Consolas,monospace; }
+#msgs { margin:8px 0; font-size:13px; max-height:22vh; overflow:auto; }
+#msgs .e { color:var(--bad); } #msgs .w { color:var(--warn); } #msgs .g { color:var(--good); }
+@media (min-width: 900px) and (min-height: 500px) {
+  #main { grid-template-columns:1fr 360px; grid-template-rows:1fr; }
+  #side { max-height:none; border-top:0; border-left:2px solid var(--line); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <div class="grp" id="modes">
+      <button data-mode="move" class="on" title="Тягни вузол, щоб пересунути. Тап — вибрати.">✋ Рух</button>
+      <button data-mode="link" title="Тапни два вузли: зв'язок з'явиться або зникне.">🔗 Зв'язки</button>
+      <button data-mode="add" title="Тапни порожнє місце, щоб додати вузол.">➕ Вузол</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="bUndo">↶</button><button id="bRedo">↷</button>
+      <button id="bFit" title="Показати все Древо">⤢</button>
+      <button id="bGrid" title="Прив'язка до сітки 10">▦</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="bIO">⇅ Імпорт / Експорт</button>
+      <button id="bCheck">✔ Перевірити</button>
+      <button id="bMeta">⚙ Класи й назва</button>
+    </div>
+    <div id="count" style="margin-left:auto;color:var(--dim);font-size:13px"></div>
+  </div>
+  <div id="main">
+    <div id="stage">
+      <canvas id="cv"></canvas>
+      <div id="toast"></div>
+      <div id="hint"></div>
+    </div>
+    <div id="side"></div>
+  </div>
+</div>
+
+<div id="dlg"><div class="box" id="dlgbox"></div></div>
+
+<script id="default-tree" type="application/json">{
+ "format": "spohady-perk-tree",
+ "version": 1,
+ "title": "Древо звитяги (стартове)",
+ "comment": "Формат описано в docs/perk_tree_format.md. Координати x, y: у «умовних пікселях», центр (0, 0).",
+ "regions": [
+  {
+   "id": "str",
+   "name": "Сила",
+   "color": "#D8574B",
+   "angle": -90.0
+  },
+  {
+   "id": "agi",
+   "name": "Спритність",
+   "color": "#7CBF5A",
+   "angle": 30.0
+  },
+  {
+   "id": "faith",
+   "name": "Віра",
+   "color": "#3FB9B3",
+   "angle": 150.0
+  }
+ ],
+ "class_starts": {
+  "druzhynnyk": "s_t0",
+  "strilets": "a_t0",
+  "volkhv": "f_t0"
+ },
+ "nodes": [
+  {
+   "id": "s_t0",
+   "name": "Міцні руки",
+   "description": "Початок шляху.",
+   "x": 0,
+   "y": -1100,
+   "type": "start",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t1",
+   "name": "Дружинна наука",
+   "description": "",
+   "x": 0,
+   "y": -990,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t2",
+   "name": "Широкі плечі",
+   "description": "",
+   "x": 0,
+   "y": -880,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t3",
+   "name": "Серце дружини",
+   "description": "Перший великий вузол шляху.",
+   "x": 0,
+   "y": -770,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t4",
+   "name": "Загартована шкіра",
+   "description": "",
+   "x": 0,
+   "y": -660,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t5",
+   "name": "Залізний хват",
+   "description": "",
+   "x": 0,
+   "y": -550,
+   "type": "small",
+   "stats": {
+    "str": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t6",
+   "name": "Кузня предків",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": 0,
+   "y": -440,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t7",
+   "name": "Гнів Перуна",
+   "description": "",
+   "x": 0,
+   "y": -330,
+   "type": "small",
+   "stats": {
+    "str": 3,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t8",
+   "name": "Кам'яна воля",
+   "description": "Ти стоїш, як дуб. Повільніше, але міцніше.",
+   "x": 0,
+   "y": -220,
+   "type": "keystone",
+   "stats": {
+    "hp_pct": 25,
+    "armor": 40,
+    "move_pct": -8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a1",
+   "name": "Зводи меча",
+   "description": "",
+   "x": -125,
+   "y": -960,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "armor": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a2",
+   "name": "Бойовий клич",
+   "description": "",
+   "x": -240,
+   "y": -900,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a3",
+   "name": "Могутній удар",
+   "description": "",
+   "x": -330,
+   "y": -800,
+   "type": "skill",
+   "stats": {
+    "str": 3
+   },
+   "skill": "power_strike",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b1",
+   "name": "Вага сокири",
+   "description": "",
+   "x": 125,
+   "y": -960,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b2",
+   "name": "Дух поединку",
+   "description": "",
+   "x": 240,
+   "y": -900,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b3",
+   "name": "Вихор лез",
+   "description": "",
+   "x": 330,
+   "y": -800,
+   "type": "skill",
+   "stats": {
+    "str": 3
+   },
+   "skill": "whirlwind",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c1",
+   "name": "Щитова стіна",
+   "description": "",
+   "x": -135,
+   "y": -650,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c2",
+   "name": "Кольчужне плетіння",
+   "description": "",
+   "x": -250,
+   "y": -570,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c3",
+   "name": "Незламний",
+   "description": "",
+   "x": -330,
+   "y": -460,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d1",
+   "name": "Лютий порив",
+   "description": "",
+   "x": 135,
+   "y": -650,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d2",
+   "name": "Кров воїна",
+   "description": "",
+   "x": 250,
+   "y": -570,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d3",
+   "name": "Громовий кулак",
+   "description": "",
+   "x": 330,
+   "y": -460,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_e1",
+   "name": "Біг у кольчузі",
+   "description": "",
+   "x": -130,
+   "y": -410,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_e2",
+   "name": "Витримка",
+   "description": "",
+   "x": -215,
+   "y": -310,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_f1",
+   "name": "Гарт у вогні",
+   "description": "",
+   "x": 130,
+   "y": -410,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_f2",
+   "name": "Шрами слави",
+   "description": "",
+   "x": 215,
+   "y": -310,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_g1",
+   "name": "Міцні ноги",
+   "description": "",
+   "x": -130,
+   "y": -770,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_g2",
+   "name": "Тверда хода",
+   "description": "",
+   "x": 130,
+   "y": -770,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "a_t0",
+   "name": "Влучне око",
+   "description": "Початок шляху.",
+   "x": 953,
+   "y": 550,
+   "type": "start",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t1",
+   "name": "Легка рука",
+   "description": "",
+   "x": 857,
+   "y": 495,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t2",
+   "name": "Тиха хода",
+   "description": "",
+   "x": 762,
+   "y": 440,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t3",
+   "name": "Серце мисливця",
+   "description": "Перший великий вузол шляху.",
+   "x": 667,
+   "y": 385,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t4",
+   "name": "Гостре зір",
+   "description": "",
+   "x": 572,
+   "y": 330,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t5",
+   "name": "Рука без тремтіння",
+   "description": "",
+   "x": 476,
+   "y": 275,
+   "type": "small",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t6",
+   "name": "Лісова наука",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": 381,
+   "y": 220,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t7",
+   "name": "Подих Стрибога",
+   "description": "",
+   "x": 286,
+   "y": 165,
+   "type": "small",
+   "stats": {
+    "agi": 3,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t8",
+   "name": "Вітер у спину",
+   "description": "Легкий, як вітер, але крихкий.",
+   "x": 191,
+   "y": 110,
+   "type": "keystone",
+   "stats": {
+    "move_pct": 15,
+    "atk_speed_pct": 12,
+    "hp_pct": -10
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a1",
+   "name": "Натяг тятиви",
+   "description": "",
+   "x": 894,
+   "y": 372,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a2",
+   "name": "Швидкі пальці",
+   "description": "",
+   "x": 899,
+   "y": 242,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a3",
+   "name": "Град стріл",
+   "description": "",
+   "x": 858,
+   "y": 114,
+   "type": "skill",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "arrow_volley",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b1",
+   "name": "Стежка звіра",
+   "description": "",
+   "x": 769,
+   "y": 588,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b2",
+   "name": "Мить прицілу",
+   "description": "",
+   "x": 659,
+   "y": 658,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b3",
+   "name": "Влучний постріл",
+   "description": "",
+   "x": 528,
+   "y": 686,
+   "type": "skill",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "piercing_shot",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c1",
+   "name": "Пір'я на стрілі",
+   "description": "",
+   "x": 630,
+   "y": 208,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c2",
+   "name": "Холодна кров",
+   "description": "",
+   "x": 619,
+   "y": 68,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c3",
+   "name": "Око яструба",
+   "description": "",
+   "x": 563,
+   "y": -56,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d1",
+   "name": "Біг по росі",
+   "description": "",
+   "x": 495,
+   "y": 442,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d2",
+   "name": "Тінь у хащі",
+   "description": "",
+   "x": 369,
+   "y": 502,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d3",
+   "name": "Стрибок вовка",
+   "description": "",
+   "x": 233,
+   "y": 516,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_e1",
+   "name": "Нюх мисливця",
+   "description": "",
+   "x": 420,
+   "y": 92,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_e2",
+   "name": "Гнучкість",
+   "description": "",
+   "x": 376,
+   "y": -31,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_f1",
+   "name": "Сагайдак повний",
+   "description": "",
+   "x": 290,
+   "y": 318,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_f2",
+   "name": "Швидка тятива",
+   "description": "",
+   "x": 161,
+   "y": 341,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_g1",
+   "name": "Легка хода",
+   "description": "",
+   "x": 732,
+   "y": 272,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_g2",
+   "name": "Спритні ноги",
+   "description": "",
+   "x": 602,
+   "y": 498,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "f_t0",
+   "name": "Щире слово",
+   "description": "Початок шляху.",
+   "x": -953,
+   "y": 550,
+   "type": "start",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t1",
+   "name": "Тиха молитва",
+   "description": "",
+   "x": -857,
+   "y": 495,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t2",
+   "name": "Вогонь капища",
+   "description": "",
+   "x": -762,
+   "y": 440,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t3",
+   "name": "Серце волхва",
+   "description": "Перший великий вузол шляху.",
+   "x": -667,
+   "y": 385,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t4",
+   "name": "Пам'ять роду",
+   "description": "",
+   "x": -572,
+   "y": 330,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t5",
+   "name": "Глибока криниця",
+   "description": "",
+   "x": -476,
+   "y": 275,
+   "type": "small",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t6",
+   "name": "Шепіт пращурів",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": -381,
+   "y": 220,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t7",
+   "name": "Мокошева нитка",
+   "description": "",
+   "x": -286,
+   "y": 165,
+   "type": "small",
+   "stats": {
+    "faith": 3,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t8",
+   "name": "Вічне джерело",
+   "description": "Чарівна криниця без дна, а тіло тендітне.",
+   "x": -191,
+   "y": 110,
+   "type": "keystone",
+   "stats": {
+    "mana_pct": 40,
+    "mana_regen": 2,
+    "hp_pct": -10
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a1",
+   "name": "Обряд світанку",
+   "description": "",
+   "x": -769,
+   "y": 588,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a2",
+   "name": "Сила оберегу",
+   "description": "",
+   "x": -659,
+   "y": 658,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a3",
+   "name": "Хвиля стихії",
+   "description": "",
+   "x": -528,
+   "y": 686,
+   "type": "skill",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "element_wave",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b1",
+   "name": "Теплий вогонь",
+   "description": "",
+   "x": -894,
+   "y": 372,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b2",
+   "name": "Дар Дажбога",
+   "description": "",
+   "x": -899,
+   "y": 242,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b3",
+   "name": "Поклик пращурів",
+   "description": "",
+   "x": -858,
+   "y": 114,
+   "type": "skill",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "ancestral_heal",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c1",
+   "name": "Вишиті слова",
+   "description": "",
+   "x": -495,
+   "y": 442,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c2",
+   "name": "Чистий дух",
+   "description": "",
+   "x": -369,
+   "y": 502,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c3",
+   "name": "Голос богів",
+   "description": "",
+   "x": -233,
+   "y": 516,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d1",
+   "name": "Хвиля чару",
+   "description": "",
+   "x": -630,
+   "y": 208,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d2",
+   "name": "Тиха сила",
+   "description": "",
+   "x": -619,
+   "y": 68,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d3",
+   "name": "Світло Дажбога",
+   "description": "",
+   "x": -563,
+   "y": -56,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_e1",
+   "name": "Берегиня",
+   "description": "",
+   "x": -290,
+   "y": 318,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_e2",
+   "name": "Ясна думка",
+   "description": "",
+   "x": -161,
+   "y": 341,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_f1",
+   "name": "Тепло домівки",
+   "description": "",
+   "x": -420,
+   "y": 92,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_f2",
+   "name": "Благословення роду",
+   "description": "",
+   "x": -376,
+   "y": -31,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_g1",
+   "name": "Вітер чарів",
+   "description": "",
+   "x": -602,
+   "y": 498,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_g2",
+   "name": "Легка молитва",
+   "description": "",
+   "x": -732,
+   "y": 272,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "core",
+   "name": "Серце роду",
+   "description": "Тут сходяться всі три шляхи: Сила, Спритність і Віра.",
+   "x": 0,
+   "y": 0,
+   "type": "core",
+   "stats": {
+    "str": 3,
+    "agi": 3,
+    "faith": 3,
+    "dmg_pct": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "core"
+  },
+  {
+   "id": "x_sa_1",
+   "name": "Воїн і лучник",
+   "description": "",
+   "x": 388,
+   "y": -359,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_sa_2",
+   "name": "Погляд і удар",
+   "description": "",
+   "x": 447,
+   "y": -258,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "agi": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_sa_3",
+   "name": "Кров і вітер",
+   "description": "",
+   "x": 505,
+   "y": -157,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_1",
+   "name": "Подих лісу",
+   "description": "",
+   "x": 117,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_2",
+   "name": "Шепіт і стріла",
+   "description": "",
+   "x": 0,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "faith": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_3",
+   "name": "Лісова стежка",
+   "description": "",
+   "x": -117,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_1",
+   "name": "Оберіг-щит",
+   "description": "",
+   "x": -505,
+   "y": -157,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_2",
+   "name": "Вогонь чаклуна",
+   "description": "",
+   "x": -447,
+   "y": -258,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "str": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_3",
+   "name": "Віра і сталь",
+   "description": "",
+   "x": -388,
+   "y": -359,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  }
+ ],
+ "links": [
+  [
+   "s_t0",
+   "s_t1"
+  ],
+  [
+   "s_t1",
+   "s_t2"
+  ],
+  [
+   "s_t2",
+   "s_t3"
+  ],
+  [
+   "s_t3",
+   "s_t4"
+  ],
+  [
+   "s_t4",
+   "s_t5"
+  ],
+  [
+   "s_t5",
+   "s_t6"
+  ],
+  [
+   "s_t6",
+   "s_t7"
+  ],
+  [
+   "s_t7",
+   "s_t8"
+  ],
+  [
+   "s_t1",
+   "s_a1"
+  ],
+  [
+   "s_a1",
+   "s_a2"
+  ],
+  [
+   "s_a2",
+   "s_a3"
+  ],
+  [
+   "s_t1",
+   "s_b1"
+  ],
+  [
+   "s_b1",
+   "s_b2"
+  ],
+  [
+   "s_b2",
+   "s_b3"
+  ],
+  [
+   "s_t4",
+   "s_c1"
+  ],
+  [
+   "s_c1",
+   "s_c2"
+  ],
+  [
+   "s_c2",
+   "s_c3"
+  ],
+  [
+   "s_t4",
+   "s_d1"
+  ],
+  [
+   "s_d1",
+   "s_d2"
+  ],
+  [
+   "s_d2",
+   "s_d3"
+  ],
+  [
+   "s_t6",
+   "s_e1"
+  ],
+  [
+   "s_e1",
+   "s_e2"
+  ],
+  [
+   "s_t6",
+   "s_f1"
+  ],
+  [
+   "s_f1",
+   "s_f2"
+  ],
+  [
+   "s_t3",
+   "s_g1"
+  ],
+  [
+   "s_t3",
+   "s_g2"
+  ],
+  [
+   "s_t8",
+   "core"
+  ],
+  [
+   "a_t0",
+   "a_t1"
+  ],
+  [
+   "a_t1",
+   "a_t2"
+  ],
+  [
+   "a_t2",
+   "a_t3"
+  ],
+  [
+   "a_t3",
+   "a_t4"
+  ],
+  [
+   "a_t4",
+   "a_t5"
+  ],
+  [
+   "a_t5",
+   "a_t6"
+  ],
+  [
+   "a_t6",
+   "a_t7"
+  ],
+  [
+   "a_t7",
+   "a_t8"
+  ],
+  [
+   "a_t1",
+   "a_a1"
+  ],
+  [
+   "a_a1",
+   "a_a2"
+  ],
+  [
+   "a_a2",
+   "a_a3"
+  ],
+  [
+   "a_t1",
+   "a_b1"
+  ],
+  [
+   "a_b1",
+   "a_b2"
+  ],
+  [
+   "a_b2",
+   "a_b3"
+  ],
+  [
+   "a_t4",
+   "a_c1"
+  ],
+  [
+   "a_c1",
+   "a_c2"
+  ],
+  [
+   "a_c2",
+   "a_c3"
+  ],
+  [
+   "a_t4",
+   "a_d1"
+  ],
+  [
+   "a_d1",
+   "a_d2"
+  ],
+  [
+   "a_d2",
+   "a_d3"
+  ],
+  [
+   "a_t6",
+   "a_e1"
+  ],
+  [
+   "a_e1",
+   "a_e2"
+  ],
+  [
+   "a_t6",
+   "a_f1"
+  ],
+  [
+   "a_f1",
+   "a_f2"
+  ],
+  [
+   "a_t3",
+   "a_g1"
+  ],
+  [
+   "a_t3",
+   "a_g2"
+  ],
+  [
+   "a_t8",
+   "core"
+  ],
+  [
+   "f_t0",
+   "f_t1"
+  ],
+  [
+   "f_t1",
+   "f_t2"
+  ],
+  [
+   "f_t2",
+   "f_t3"
+  ],
+  [
+   "f_t3",
+   "f_t4"
+  ],
+  [
+   "f_t4",
+   "f_t5"
+  ],
+  [
+   "f_t5",
+   "f_t6"
+  ],
+  [
+   "f_t6",
+   "f_t7"
+  ],
+  [
+   "f_t7",
+   "f_t8"
+  ],
+  [
+   "f_t1",
+   "f_a1"
+  ],
+  [
+   "f_a1",
+   "f_a2"
+  ],
+  [
+   "f_a2",
+   "f_a3"
+  ],
+  [
+   "f_t1",
+   "f_b1"
+  ],
+  [
+   "f_b1",
+   "f_b2"
+  ],
+  [
+   "f_b2",
+   "f_b3"
+  ],
+  [
+   "f_t4",
+   "f_c1"
+  ],
+  [
+   "f_c1",
+   "f_c2"
+  ],
+  [
+   "f_c2",
+   "f_c3"
+  ],
+  [
+   "f_t4",
+   "f_d1"
+  ],
+  [
+   "f_d1",
+   "f_d2"
+  ],
+  [
+   "f_d2",
+   "f_d3"
+  ],
+  [
+   "f_t6",
+   "f_e1"
+  ],
+  [
+   "f_e1",
+   "f_e2"
+  ],
+  [
+   "f_t6",
+   "f_f1"
+  ],
+  [
+   "f_f1",
+   "f_f2"
+  ],
+  [
+   "f_t3",
+   "f_g1"
+  ],
+  [
+   "f_t3",
+   "f_g2"
+  ],
+  [
+   "f_t8",
+   "core"
+  ],
+  [
+   "s_d3",
+   "x_sa_1"
+  ],
+  [
+   "x_sa_1",
+   "x_sa_2"
+  ],
+  [
+   "x_sa_2",
+   "x_sa_3"
+  ],
+  [
+   "x_sa_3",
+   "a_c3"
+  ],
+  [
+   "a_d3",
+   "x_af_1"
+  ],
+  [
+   "x_af_1",
+   "x_af_2"
+  ],
+  [
+   "x_af_2",
+   "x_af_3"
+  ],
+  [
+   "x_af_3",
+   "f_c3"
+  ],
+  [
+   "f_d3",
+   "x_fs_1"
+  ],
+  [
+   "x_fs_1",
+   "x_fs_2"
+  ],
+  [
+   "x_fs_2",
+   "x_fs_3"
+  ],
+  [
+   "x_fs_3",
+   "s_c3"
+  ]
+ ]
+}</script>
+
+<script>
+/*CORE-START*/
+// ---- Ядро без DOM: формат, перевірка, серіалізація. Дзеркало scripts/data/perk_tree.gd ----
+var FORMAT = "spohady-perk-tree";
+var VERSION = 1;
+var NODE_TYPES = ["small", "notable", "keystone", "skill", "start", "core"];
+var TYPE_NAMES = { small: "Малий", notable: "Значущий", keystone: "Ключовий", skill: "Навичка", start: "Старт класу", core: "Серце Древа" };
+var CLASS_IDS = ["druzhynnyk", "strilets", "volkhv"];
+var CLASS_NAMES = { druzhynnyk: "Дружинник", strilets: "Стрілець", volkhv: "Волхв" };
+var STAT_KEYS = ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "armor", "dmg_pct", "atk_speed_pct", "crit_pct", "move_pct", "xp_pct"];
+var STAT_NAMES = { str: "Сила", agi: "Спритність", faith: "Віра", hp: "Життя", hp_pct: "Життя, %", mana_pct: "Чар, %", mana_regen: "Відновлення чару / с", armor: "Броня", dmg_pct: "Шкода, %", atk_speed_pct: "Швидкість атаки, %", crit_pct: "Шанс крита, %", move_pct: "Швидкість руху, %", xp_pct: "Звитяга, %" };
+var SKILL_IDS = ["stribog_dash", "power_strike", "arrow_volley", "element_wave", "whirlwind", "piercing_shot", "ancestral_heal"];
+var SKILL_NAMES = { stribog_dash: "Подих Стрибога", power_strike: "Могутній удар", arrow_volley: "Град стріл", element_wave: "Хвиля стихії", whirlwind: "Вихор лез", piercing_shot: "Влучний постріл", ancestral_heal: "Поклик пращурів" };
+var ICON_KEYS = ["region_str", "region_agi", "region_faith", "core", "power_strike", "arrow_volley", "stribog_dash"];
+var FREE_REGIONS = ["mixed", "core"];
+
+function isNum(v) { return typeof v === "number" && isFinite(v); }
+function validId(s) { return /^[A-Za-z0-9_-]+$/.test(s); }
+
+// Повертає { errors: [...], warnings: [...] } українською
+function validateTree(d) {
+  var errors = [], warnings = [];
+  if (d === null || typeof d !== "object" || Array.isArray(d)) return { errors: ["Файл має бути JSON-об'єктом."], warnings: [] };
+  if (d.format !== FORMAT) errors.push("Поле format має бути «" + FORMAT + "».");
+  if (!isNum(d.version) || Math.trunc(d.version) !== VERSION) errors.push("Поле version має бути " + VERSION + ".");
+  var nodes = d.nodes;
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    errors.push("Список nodes порожній або відсутній.");
+    return { errors: errors, warnings: warnings };
+  }
+  var ids = {}, coords = {};
+  for (var i = 0; i < nodes.length; i++) {
+    var nd = nodes[i], tag = "Вузол №" + (i + 1);
+    if (nd === null || typeof nd !== "object" || Array.isArray(nd)) { errors.push(tag + ": має бути об'єктом."); continue; }
+    if (typeof nd.id !== "string" || nd.id === "") { errors.push(tag + ": немає id."); continue; }
+    var id = nd.id;
+    tag = "Вузол «" + id + "»";
+    if (!validId(id)) errors.push(tag + ": id може містити лише латинські літери, цифри, _ та -.");
+    if (ids[id]) errors.push(tag + ": id повторюється.");
+    ids[id] = true;
+    if (typeof nd.name !== "string" || nd.name.trim() === "") errors.push(tag + ": порожня назва (name).");
+    ["x", "y"].forEach(function (ax) { if (!isNum(nd[ax])) errors.push(tag + ": поле " + ax + " має бути числом."); });
+    var typ = nd.type === undefined ? "" : String(nd.type);
+    if (NODE_TYPES.indexOf(typ) < 0) errors.push(tag + ": невідомий тип «" + typ + "» (дозволено: " + NODE_TYPES.join(", ") + ").");
+    var st = nd.stats === undefined ? {} : nd.stats;
+    if (st === null || typeof st !== "object" || Array.isArray(st)) errors.push(tag + ": stats має бути об'єктом.");
+    else Object.keys(st).forEach(function (k) {
+      if (STAT_KEYS.indexOf(k) < 0) errors.push(tag + ": невідомий бонус «" + k + "».");
+      else if (!isNum(st[k])) errors.push(tag + ": бонус «" + k + "» має бути числом.");
+    });
+    var sk = nd.skill === undefined || nd.skill === null ? "" : String(nd.skill);
+    if (sk !== "" && SKILL_IDS.indexOf(sk) < 0) errors.push(tag + ": невідома навичка «" + sk + "».");
+    if (typ === "skill" && sk === "") errors.push(tag + ": тип skill потребує поля skill.");
+    if (isNum(nd.x) && isNum(nd.y)) {
+      var key = Math.round(nd.x) + "," + Math.round(nd.y);
+      if (coords[key]) warnings.push("Вузли «" + coords[key] + "» і «" + id + "» стоять в одній точці.");
+      coords[key] = id;
+    }
+  }
+  var adj = {};
+  Object.keys(ids).forEach(function (k) { adj[k] = []; });
+  var seen = {};
+  if (!Array.isArray(d.links)) errors.push("Список links відсутній.");
+  else d.links.forEach(function (l, i2) {
+    var tag2 = "Зв'язок №" + (i2 + 1);
+    if (!Array.isArray(l) || l.length !== 2) { errors.push(tag2 + ": має бути парою [id, id]."); return; }
+    var a = String(l[0]), b = String(l[1]);
+    if (!ids[a] || !ids[b]) { errors.push(tag2 + ": невідомий вузол (" + a + " — " + b + ")."); return; }
+    if (a === b) { errors.push(tag2 + ": вузол з'єднано сам із собою («" + a + "»)."); return; }
+    var k2 = a < b ? a + "|" + b : b + "|" + a;
+    if (seen[k2]) { errors.push(tag2 + ": повтор зв'язку " + a + " — " + b + "."); return; }
+    seen[k2] = true;
+    adj[a].push(b); adj[b].push(a);
+  });
+  var cs = d.class_starts, startIds = [];
+  if (cs === null || typeof cs !== "object" || Array.isArray(cs) || cs === undefined) errors.push("Немає class_starts (стартових вузлів класів).");
+  else CLASS_IDS.forEach(function (c) {
+    if (!(c in cs)) errors.push("class_starts: немає класу «" + c + "».");
+    else if (!ids[String(cs[c])]) errors.push("class_starts: вузла «" + String(cs[c]) + "» (клас «" + c + "») не існує.");
+    else startIds.push(String(cs[c]));
+  });
+  if (errors.length === 0 && startIds.length > 0) {
+    var reach = {}, queue = startIds.slice();
+    queue.forEach(function (s) { reach[s] = true; });
+    while (queue.length) {
+      var cur = queue.pop();
+      adj[cur].forEach(function (nb) { if (!reach[nb]) { reach[nb] = true; queue.push(nb); } });
+    }
+    Object.keys(ids).forEach(function (k) { if (!reach[k]) warnings.push("Вузол «" + k + "» недосяжний з жодного старту."); });
+  }
+  return { errors: errors, warnings: warnings };
+}
+
+// Той самий вигляд, що й data/perk_tree.json (відступ 1 пробіл)
+function serializeTree(d) { return JSON.stringify(d, null, 1) + "\n"; }
+
+// Приводить вузол до повного вигляду (усі поля, у тому самому порядку)
+function normalizeNode(n) {
+  var stats = {};
+  if (n.stats && typeof n.stats === "object") STAT_KEYS.forEach(function (k) { if (k in n.stats && isNum(n.stats[k]) && n.stats[k] !== 0) stats[k] = n.stats[k]; });
+  return { id: n.id, name: n.name, description: n.description || "", x: n.x, y: n.y, type: n.type, stats: stats, skill: n.skill || "", icon: n.icon || "", region: n.region || "" };
+}
+/*CORE-END*/
+</script>
+
+<script>
+(function () {
+"use strict";
+var $ = function (s) { return document.querySelector(s); };
+var cv = $("#cv"), ctx = cv.getContext("2d");
+var data = null;            // поточне Древо (той самий формат, що й файл)
+var undo = [], redo = [], last = "";
+var mode = "move", sel = null, linkFrom = null, snap = false;
+var view = { x: 0, y: 0, k: 0.4 };
+var DPR = Math.max(1, window.devicePixelRatio || 1);
+var regionColors = { mixed: "#c9a24a", core: "#f1e6cf" };
+var STORE = "spohady_tree_editor_v1";
+
+function el(tag, attrs, kids) {
+  var e = document.createElement(tag);
+  if (attrs) Object.keys(attrs).forEach(function (k) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]);
+    else e.setAttribute(k, attrs[k]);
+  });
+  (kids || []).forEach(function (c) { e.appendChild(c); });
+  return e;
+}
+function toast(t, ms) {
+  var b = $("#toast"); b.textContent = t; b.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(function () { b.style.display = "none"; }, ms || 2200);
+}
+
+// ---------- Дані ----------
+function loadDefault() { return JSON.parse($("#default-tree").textContent); }
+function prepare(d) {
+  d.regions = Array.isArray(d.regions) ? d.regions : [];
+  d.class_starts = d.class_starts || {};
+  d.links = Array.isArray(d.links) ? d.links : [];
+  d.nodes = (d.nodes || []).map(function (n) { return normalizeNode(n); });
+  regionColors = { mixed: "#c9a24a", core: "#f1e6cf" };
+  d.regions.forEach(function (r) { regionColors[r.id] = r.color || "#999"; });
+  return d;
+}
+function snapshot() { return JSON.stringify(data); }
+function commit() {
+  var now = snapshot();
+  if (now === last) return;
+  undo.push(last); if (undo.length > 150) undo.shift();
+  redo = []; last = now; persist(); refresh();
+}
+function persist() { try { localStorage.setItem(STORE, snapshot()); } catch (e) {} }
+function restore(s) { data = prepare(JSON.parse(s)); last = s; if (sel && !nodeById(sel)) sel = null; linkFrom = null; persist(); refresh(); }
+function nodeById(id) { for (var i = 0; i < data.nodes.length; i++) if (data.nodes[i].id === id) return data.nodes[i]; return null; }
+function linkIndex(a, b) {
+  for (var i = 0; i < data.links.length; i++) { var l = data.links[i]; if ((l[0] === a && l[1] === b) || (l[0] === b && l[1] === a)) return i; }
+  return -1;
+}
+function nextId() {
+  var n = data.nodes.length + 1;
+  while (nodeById("n_" + n)) n++;
+  return "n_" + n;
+}
+
+// ---------- Малювання ----------
+function resize() {
+  var r = cv.getBoundingClientRect();
+  cv.width = Math.max(10, Math.round(r.width * DPR)); cv.height = Math.max(10, Math.round(r.height * DPR));
+  draw();
+}
+function w2s(x, y) { return [x * view.k + view.x, y * view.k + view.y]; }
+function s2w(x, y) { return [(x - view.x) / view.k, (y - view.y) / view.k]; }
+var RADIUS = { small: 13, notable: 20, keystone: 28, skill: 22, start: 26, core: 36 };
+function nodeR(n) { return RADIUS[n.type] || 13; }
+function draw() {
+  var W = cv.width / DPR, H = cv.height / DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  if (!data) return;
+  // сітка
+  var step = 100 * view.k;
+  if (step > 14) {
+    ctx.strokeStyle = "#ffffff0d"; ctx.lineWidth = 1; ctx.beginPath();
+    var ox = ((view.x % step) + step) % step, oy = ((view.y % step) + step) % step;
+    for (var gx = ox; gx < W; gx += step) { ctx.moveTo(gx, 0); ctx.lineTo(gx, H); }
+    for (var gy = oy; gy < H; gy += step) { ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
+    ctx.stroke();
+  }
+  var o = w2s(0, 0);
+  ctx.strokeStyle = "#ffffff22"; ctx.beginPath(); ctx.moveTo(o[0] - 12, o[1]); ctx.lineTo(o[0] + 12, o[1]); ctx.moveTo(o[0], o[1] - 12); ctx.lineTo(o[0], o[1] + 12); ctx.stroke();
+  // зв'язки
+  var map = {}; data.nodes.forEach(function (n) { map[n.id] = n; });
+  ctx.lineCap = "round";
+  data.links.forEach(function (l) {
+    var a = map[l[0]], b = map[l[1]]; if (!a || !b) return;
+    var p = w2s(a.x, a.y), q = w2s(b.x, b.y);
+    var hot = sel && (l[0] === sel || l[1] === sel);
+    ctx.strokeStyle = hot ? "#f2d58a" : "#8a7048"; ctx.lineWidth = hot ? 4 : 2.5;
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+  });
+  // вузли
+  var starts = {}; Object.keys(data.class_starts).forEach(function (c) { starts[data.class_starts[c]] = c; });
+  var fs = Math.max(10, Math.min(15, 13 * view.k * 1.6));
+  ctx.textAlign = "center"; ctx.font = fs + "px system-ui,sans-serif";
+  data.nodes.forEach(function (n) {
+    var p = w2s(n.x, n.y); if (p[0] < -50 || p[1] < -50 || p[0] > W + 50 || p[1] > H + 50) return;
+    var r = Math.max(5, nodeR(n) * view.k * 1.25);
+    var col = regionColors[n.region] || "#999";
+    ctx.beginPath();
+    if (n.type === "keystone") { for (var i = 0; i < 6; i++) { var an = Math.PI / 3 * i; ctx.lineTo(p[0] + Math.cos(an) * r, p[1] + Math.sin(an) * r); } ctx.closePath(); }
+    else if (n.type === "notable") { ctx.moveTo(p[0], p[1] - r); ctx.lineTo(p[0] + r, p[1]); ctx.lineTo(p[0], p[1] + r); ctx.lineTo(p[0] - r, p[1]); ctx.closePath(); }
+    else if (n.type === "skill") { ctx.rect(p[0] - r * .85, p[1] - r * .85, r * 1.7, r * 1.7); }
+    else ctx.arc(p[0], p[1], r, 0, 7);
+    ctx.fillStyle = col + (n.type === "small" ? "99" : "dd"); ctx.fill();
+    var isSel = n.id === sel, isLink = n.id === linkFrom;
+    ctx.lineWidth = isSel || isLink ? 4 : (n.type === "small" ? 1.5 : 3);
+    ctx.strokeStyle = isLink ? "#7fd0ff" : isSel ? "#fff" : (n.type === "small" ? "#00000088" : "#f2d58a");
+    ctx.stroke();
+    if (starts[n.id]) { ctx.fillStyle = "#fff"; ctx.font = "bold " + Math.max(10, r * .9) + "px system-ui"; ctx.fillText(starts[n.id][0].toUpperCase(), p[0], p[1] + r * .32); ctx.font = fs + "px system-ui,sans-serif"; }
+    if (view.k > 0.45 || isSel || n.type === "keystone" || n.type === "core") {
+      if (view.k > 0.28 || isSel) {
+        ctx.fillStyle = "#f1e6cf"; ctx.strokeStyle = "#000"; ctx.lineWidth = 3;
+        ctx.strokeText(n.name, p[0], p[1] + r + fs + 1); ctx.fillText(n.name, p[0], p[1] + r + fs + 1);
+      }
+    }
+  });
+  $("#count").textContent = "Вузлів: " + data.nodes.length + " · зв'язків: " + data.links.length;
+}
+function fit() {
+  if (!data || !data.nodes.length) return;
+  var r = cv.getBoundingClientRect(), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  data.nodes.forEach(function (n) { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); });
+  var k = Math.min(r.width / (x1 - x0 + 160), r.height / (y1 - y0 + 160));
+  view.k = Math.max(0.05, Math.min(3, k));
+  view.x = r.width / 2 - ((x0 + x1) / 2) * view.k; view.y = r.height / 2 - ((y0 + y1) / 2) * view.k;
+  draw();
+}
+function pick(sx, sy) {
+  var best = null, bd = 1e9;
+  data.nodes.forEach(function (n) {
+    var p = w2s(n.x, n.y), d = Math.hypot(p[0] - sx, p[1] - sy), r = Math.max(20, nodeR(n) * view.k * 1.25 + 8);
+    if (d < r && d < bd) { bd = d; best = n; }
+  });
+  return best;
+}
+
+// ---------- Дотики та миша ----------
+var ptrs = {}, drag = null, pinch = null;
+function pos(e) { var r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.addEventListener("pointerdown", function (e) {
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  var p = pos(e); ptrs[e.pointerId] = p;
+  var ids = Object.keys(ptrs);
+  if (ids.length >= 2) {
+    if (drag && drag.moved) { /* лишаємо вже зроблене */ }
+    drag = null;
+    var a = ptrs[ids[0]], b = ptrs[ids[1]];
+    pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), c: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
+    return;
+  }
+  var n = pick(p[0], p[1]);
+  drag = { start: p, last: p, node: mode === "move" ? n : null, hit: n, moved: false, pan: !(mode === "move" && n), orig: n ? [n.x, n.y] : null };
+});
+cv.addEventListener("pointermove", function (e) {
+  if (!ptrs[e.pointerId]) return;
+  var p = pos(e); ptrs[e.pointerId] = p;
+  var ids = Object.keys(ptrs);
+  if (ids.length >= 2 && pinch) {
+    var a = ptrs[ids[0]], b = ptrs[ids[1]];
+    var d = Math.hypot(a[0] - b[0], a[1] - b[1]), c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    var w = s2w(pinch.c[0], pinch.c[1]);
+    view.k = Math.max(0.05, Math.min(4, view.k * d / Math.max(1, pinch.d)));
+    view.x = c[0] - w[0] * view.k; view.y = c[1] - w[1] * view.k;
+    pinch = { d: d, c: c }; draw(); return;
+  }
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(p[0] - drag.start[0], p[1] - drag.start[1]) < 7) return;
+  drag.moved = true;
+  if (drag.node) {
+    var w2 = s2w(p[0], p[1]);
+    var nx = w2[0], ny = w2[1];
+    if (snap) { nx = Math.round(nx / 10) * 10; ny = Math.round(ny / 10) * 10; }
+    drag.node.x = Math.round(nx); drag.node.y = Math.round(ny);
+    sel = drag.node.id; fillSide(true);
+  } else {
+    view.x += p[0] - drag.last[0]; view.y += p[1] - drag.last[1];
+  }
+  drag.last = p; draw();
+});
+function endPtr(e) {
+  if (!ptrs[e.pointerId]) return;
+  var p = pos(e); delete ptrs[e.pointerId];
+  if (pinch) { if (Object.keys(ptrs).length < 2) pinch = null; drag = null; return; }
+  if (!drag) return;
+  var d = drag; drag = null;
+  if (d.moved) { if (d.node) commit(); return; }
+  tap(p, d.hit);
+}
+cv.addEventListener("pointerup", endPtr);
+cv.addEventListener("pointercancel", function (e) { delete ptrs[e.pointerId]; drag = null; pinch = null; });
+cv.addEventListener("wheel", function (e) {
+  e.preventDefault();
+  var p = pos(e), w = s2w(p[0], p[1]), f = Math.exp(-e.deltaY * 0.0015);
+  view.k = Math.max(0.05, Math.min(4, view.k * f));
+  view.x = p[0] - w[0] * view.k; view.y = p[1] - w[1] * view.k; draw();
+}, { passive: false });
+
+function tap(p, n) {
+  if (mode === "move") {
+    sel = n ? n.id : null; fillSide(); draw(); return;
+  }
+  if (mode === "link") {
+    if (!n) { linkFrom = null; draw(); hint(); return; }
+    if (!linkFrom) { linkFrom = n.id; sel = n.id; fillSide(); draw(); hint(); return; }
+    if (linkFrom === n.id) { linkFrom = null; draw(); hint(); return; }
+    var i = linkIndex(linkFrom, n.id);
+    if (i >= 0) { data.links.splice(i, 1); toast("Зв'язок прибрано"); }
+    else { data.links.push([linkFrom, n.id]); toast("Зв'язок додано"); }
+    linkFrom = null; sel = n.id; commit(); hint(); return;
+  }
+  if (mode === "add") {
+    if (n) { sel = n.id; fillSide(); draw(); return; }
+    var w = s2w(p[0], p[1]);
+    var x = Math.round(w[0]), y = Math.round(w[1]);
+    if (snap) { x = Math.round(x / 10) * 10; y = Math.round(y / 10) * 10; }
+    var from = sel ? nodeById(sel) : null;
+    var nn = normalizeNode({ id: nextId(), name: "Новий вузол", description: "", x: x, y: y, type: "small", stats: { str: 1 }, skill: "", icon: "", region: from ? from.region : "mixed" });
+    data.nodes.push(nn);
+    if (from) data.links.push([from.id, nn.id]);
+    sel = nn.id; commit(); toast("Вузол «" + nn.id + "» додано" + (from ? " і з'єднано з «" + from.id + "»" : ""));
+  }
+}
+
+// ---------- Бічна панель ----------
+function fillSide(light) {
+  var box = $("#side");
+  var n = sel ? nodeById(sel) : null;
+  if (light && n && box.dataset.sel === n.id) {   // під час перетягування лише оновлюємо x/y
+    var ix = $("#f_x"), iy = $("#f_y"); if (ix) ix.value = n.x; if (iy) iy.value = n.y; return;
+  }
+  box.dataset.sel = n ? n.id : "";
+  box.innerHTML = "";
+  if (!n) {
+    box.appendChild(el("h3", { text: "Вузол не вибрано" }));
+    box.appendChild(el("div", { style: "color:var(--dim)", text: "Тапни вузол на полотні, щоб редагувати його. Два пальці — масштаб і зсув, один палець по порожньому — зсув. Режим «➕ Вузол»: тап по порожньому додає вузол (і з'єднує з вибраним)." }));
+    return;
+  }
+  box.appendChild(el("h3", { text: "Вузол «" + n.id + "»" }));
+  function field(label, input) { var r = el("div", { "class": "row" }, [el("label", { text: label }), input]); box.appendChild(r); return input; }
+  function text(prop, id, area) {
+    var i = el(area ? "textarea" : "input", { id: id, rows: 2 });
+    i.value = n[prop];
+    i.addEventListener("input", function () { n[prop] = i.value; draw(); });
+    i.addEventListener("change", function () { commit(); });
+    return i;
+  }
+  var idIn = field("Ідентифікатор", el("input", { id: "f_id" })); idIn.value = n.id;
+  idIn.addEventListener("change", function () {
+    var v = idIn.value.trim();
+    if (v === n.id) return;
+    if (!validId(v) || nodeById(v)) { toast("Id має бути унікальним: латиниця, цифри, _ та -"); idIn.value = n.id; return; }
+    var old = n.id; n.id = v;
+    data.links.forEach(function (l) { if (l[0] === old) l[0] = v; if (l[1] === old) l[1] = v; });
+    Object.keys(data.class_starts).forEach(function (c) { if (data.class_starts[c] === old) data.class_starts[c] = v; });
+    sel = v; if (linkFrom === old) linkFrom = v; commit();
+  });
+  field("Назва", text("name", "f_name"));
+  field("Опис", text("description", "f_desc", true));
+  var xi = field("x", el("input", { id: "f_x", type: "number", step: "10" })); xi.value = n.x;
+  var yi = field("y", el("input", { id: "f_y", type: "number", step: "10" })); yi.value = n.y;
+  [[xi, "x"], [yi, "y"]].forEach(function (p) {
+    p[0].addEventListener("input", function () { var v = parseFloat(p[0].value); if (isFinite(v)) { n[p[1]] = v; draw(); } });
+    p[0].addEventListener("change", function () { commit(); });
+  });
+  var ts = field("Тип", el("select"));
+  NODE_TYPES.forEach(function (t) { var o = el("option", { value: t, text: TYPE_NAMES[t] + " (" + t + ")" }); if (t === n.type) o.selected = true; ts.appendChild(o); });
+  ts.addEventListener("change", function () { n.type = ts.value; commit(); fillSide(); });
+  var rs = field("Регіон", el("select"));
+  data.regions.map(function (r) { return [r.id, r.name]; }).concat([["mixed", "Змішаний"], ["core", "Серце"]]).forEach(function (r) {
+    var o = el("option", { value: r[0], text: r[1] + " (" + r[0] + ")" }); if (r[0] === n.region) o.selected = true; rs.appendChild(o);
+  });
+  rs.addEventListener("change", function () { n.region = rs.value; commit(); });
+  var ss = field("Навичка", el("select"));
+  ss.appendChild(el("option", { value: "", text: "— немає —" }));
+  SKILL_IDS.forEach(function (s) { var o = el("option", { value: s, text: SKILL_NAMES[s] + " (" + s + ")" }); if (s === n.skill) o.selected = true; ss.appendChild(o); });
+  ss.addEventListener("change", function () { n.skill = ss.value; commit(); });
+  var ic = field("Іконка", el("input", { list: "icons", placeholder: "порожньо = за регіоном і типом" })); ic.value = n.icon;
+  var dl = el("datalist", { id: "icons" }); ICON_KEYS.forEach(function (k) { dl.appendChild(el("option", { value: k })); }); box.appendChild(dl);
+  ic.addEventListener("input", function () { n.icon = ic.value.trim(); });
+  ic.addEventListener("change", function () { commit(); });
+  box.appendChild(el("div", { style: "color:var(--dim);font-size:13px;margin:4px 0", text: "Бонуси (0 = немає):" }));
+  var grid = el("div", { "class": "stats" });
+  STAT_KEYS.forEach(function (k) {
+    var i = el("input", { type: "number", step: "any", inputmode: "decimal" }); i.value = n.stats[k] || 0;
+    i.addEventListener("input", function () { var v = parseFloat(i.value); if (isFinite(v) && v !== 0) n.stats[k] = v; else delete n.stats[k]; });
+    i.addEventListener("change", function () { commit(); });
+    grid.appendChild(el("div", null, [el("label", { text: STAT_NAMES[k] }), i]));
+  });
+  box.appendChild(grid);
+  var starts = CLASS_IDS.filter(function (c) { return data.class_starts[c] === n.id; });
+  if (starts.length) box.appendChild(el("div", { style: "margin:4px 0" }, [el("span", { "class": "badge", text: "Старт: " + starts.map(function (c) { return CLASS_NAMES[c]; }).join(", ") })]));
+  var nb = []; data.links.forEach(function (l) { if (l[0] === n.id) nb.push(l[1]); else if (l[1] === n.id) nb.push(l[0]); });
+  box.appendChild(el("div", { style: "color:var(--dim);font-size:13px;margin:4px 0", text: "Сусіди (" + nb.length + "): " + (nb.join(", ") || "—") }));
+  var br = el("div", { "class": "row" });
+  br.appendChild(el("button", { text: "🔗 З'єднувати цей", onclick: function () { setMode("link"); linkFrom = n.id; draw(); hint(); } }));
+  br.appendChild(el("button", { text: "⧉ Дублювати", onclick: function () {
+    var c = JSON.parse(JSON.stringify(n)); c.id = nextId(); c.x += 60; c.y += 60; c.name = n.name + " (копія)";
+    data.nodes.push(normalizeNode(c)); sel = c.id; commit();
+  } }));
+  br.appendChild(el("button", { "class": "danger", text: "🗑 Видалити вузол", onclick: function () {
+    if (!confirm("Видалити вузол «" + n.name + "» і всі його зв'язки?")) return;
+    data.nodes = data.nodes.filter(function (m) { return m.id !== n.id; });
+    data.links = data.links.filter(function (l) { return l[0] !== n.id && l[1] !== n.id; });
+    var lost = CLASS_IDS.filter(function (c) { return data.class_starts[c] === n.id; });
+    lost.forEach(function (c) { delete data.class_starts[c]; });
+    sel = null; linkFrom = null; commit();
+    toast(lost.length ? "Видалено старт класу — призначте новий у «⚙ Класи й назва»" : "Вузол видалено", 3500);
+  } }));
+  box.appendChild(br);
+}
+function hint() {
+  var h = { move: "Рух: тягни вузол, щоб пересунути; тап — вибрати. Порожнє місце — зсув; два пальці — масштаб.", link: linkFrom ? "Зв'язки: тапни другий вузол — зв'язок з'явиться або зникне (якщо вже був)." : "Зв'язки: тапни перший вузол.", add: "Вузол: тапни порожнє місце. Якщо вузол вибрано, новий з'єднається з ним." };
+  $("#hint").textContent = h[mode];
+}
+function setMode(m) {
+  mode = m; linkFrom = null;
+  document.querySelectorAll("#modes button").forEach(function (b) { b.classList.toggle("on", b.dataset.mode === m); });
+  hint(); draw();
+}
+function refresh() { fillSide(); draw(); $("#bUndo").disabled = !undo.length; $("#bRedo").disabled = !redo.length; }
+
+// ---------- Діалоги ----------
+function openDlg(build) { var b = $("#dlgbox"); b.innerHTML = ""; build(b); $("#dlg").style.display = "flex"; }
+function closeDlg() { $("#dlg").style.display = "none"; }
+function showMsgs(box, v) {
+  box.innerHTML = "";
+  v.errors.forEach(function (m) { box.appendChild(el("div", { "class": "e", text: "✖ " + m })); });
+  v.warnings.forEach(function (m) { box.appendChild(el("div", { "class": "w", text: "⚠ " + m })); });
+  if (!v.errors.length && !v.warnings.length) box.appendChild(el("div", { "class": "g", text: "✔ Усе гаразд: Древо відповідає формату гри." }));
+}
+function exportObj() {
+  var d = JSON.parse(snapshot());
+  d.nodes = d.nodes.map(normalizeNode);
+  var out = { format: FORMAT, version: VERSION, title: d.title || "Древо звитяги", comment: d.comment || "", regions: d.regions, class_starts: d.class_starts, nodes: d.nodes, links: d.links };
+  return out;
+}
+function download(name, text) {
+  var a = el("a", { href: URL.createObjectURL(new Blob([text], { type: "application/json" })), download: name });
+  document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function ioDialog() {
+  openDlg(function (b) {
+    b.appendChild(el("h3", { text: "Імпорт / Експорт JSON", style: "margin-top:0;color:var(--gold)" }));
+    b.appendChild(el("div", { style: "color:var(--dim);font-size:13px;margin-bottom:6px", text: "Гра читає res://data/perk_tree.json. Збережіть файл із назвою perk_tree.json у теці data/ проєкту (або надішліть його розробнику). Щоб відкрити своє Древо — вставте JSON у поле нижче або оберіть файл." }));
+    var ta = el("textarea", { spellcheck: "false" });
+    ta.value = serializeTree(exportObj());
+    b.appendChild(ta);
+    var msgs = el("div", { id: "msgs" }); b.appendChild(msgs);
+    showMsgs(msgs, validateTree(exportObj()));
+    var row = el("div", { "class": "row" });
+    row.appendChild(el("button", { text: "⬇ Завантажити perk_tree.json", onclick: function () {
+      var o = exportObj(), v = validateTree(o); showMsgs(msgs, v);
+      if (v.errors.length && !confirm("У Древі є помилки (" + v.errors.length + "), гра його не прийме. Все одно завантажити?")) return;
+      var t = serializeTree(o); ta.value = t; download("perk_tree.json", t); toast("Файл perk_tree.json завантажено");
+    } }));
+    row.appendChild(el("button", { text: "⧉ Скопіювати", onclick: function () {
+      ta.value = serializeTree(exportObj()); ta.select();
+      var done = function () { toast("JSON скопійовано"); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, function () { document.execCommand("copy"); done(); });
+      else { try { document.execCommand("copy"); } catch (e) {} done(); }
+    } }));
+    var file = el("input", { type: "file", accept: ".json,application/json,text/plain", style: "display:none" });
+    file.addEventListener("change", function () {
+      var f = file.files[0]; if (!f) return;
+      var rd = new FileReader(); rd.onload = function () { ta.value = String(rd.result); applyText(); }; rd.readAsText(f, "utf-8");
+    });
+    row.appendChild(file);
+    row.appendChild(el("button", { text: "📂 Відкрити файл…", onclick: function () { file.click(); } }));
+    function applyText() {
+      var d;
+      try { d = JSON.parse(ta.value); } catch (e) { showMsgs(msgs, { errors: ["Це не JSON: " + e.message], warnings: [] }); return; }
+      var v = validateTree(d); showMsgs(msgs, v);
+      if (v.errors.length) { toast("Імпорт скасовано: є помилки"); return; }
+      data = prepare(d); sel = null; linkFrom = null; commit(); fit();
+      toast("Древо імпортовано: " + data.nodes.length + " вузлів");
+    }
+    row.appendChild(el("button", { "class": "on", text: "✔ Застосувати з поля", onclick: applyText }));
+    row.appendChild(el("button", { text: "Закрити", onclick: closeDlg }));
+    b.appendChild(row);
+    var row2 = el("div", { "class": "row" });
+    row2.appendChild(el("button", { "class": "danger", text: "↺ Скинути до стартового Древо", onclick: function () {
+      if (!confirm("Повернути стартове Древо, що вбудовано в редактор? Поточні зміни можна скасувати кнопкою ↶.")) return;
+      data = prepare(loadDefault()); sel = null; commit(); fit(); closeDlg();
+    } }));
+    b.appendChild(row2);
+  });
+}
+function metaDialog() {
+  openDlg(function (b) {
+    b.appendChild(el("h3", { text: "Класи й назва", style: "margin-top:0;color:var(--gold)" }));
+    var t = el("input", { value: data.title || "" });
+    b.appendChild(el("div", { "class": "row" }, [el("label", { text: "Назва Древа" }), t]));
+    t.addEventListener("change", function () { data.title = t.value; commit(); });
+    CLASS_IDS.forEach(function (c) {
+      var s = el("select");
+      s.appendChild(el("option", { value: "", text: "— не призначено —" }));
+      data.nodes.forEach(function (n) { var o = el("option", { value: n.id, text: n.id + " — " + n.name }); if (data.class_starts[c] === n.id) o.selected = true; s.appendChild(o); });
+      s.addEventListener("change", function () { if (s.value) data.class_starts[c] = s.value; else delete data.class_starts[c]; commit(); });
+      b.appendChild(el("div", { "class": "row" }, [el("label", { text: "Старт: " + CLASS_NAMES[c] }), s]));
+    });
+    b.appendChild(el("div", { style: "color:var(--dim);font-size:13px", text: "Кожен клас починає гру з відкритим стартовим вузлом; далі можна брати лише сусідні вузли." }));
+    b.appendChild(el("div", { "class": "row" }, [el("button", { text: "Закрити", onclick: closeDlg })]));
+  });
+}
+function checkDialog() {
+  openDlg(function (b) {
+    b.appendChild(el("h3", { text: "Перевірка Древа", style: "margin-top:0;color:var(--gold)" }));
+    var msgs = el("div", { id: "msgs", style: "max-height:50vh" }); b.appendChild(msgs);
+    showMsgs(msgs, validateTree(exportObj()));
+    b.appendChild(el("div", { "class": "row" }, [el("button", { text: "Закрити", onclick: closeDlg })]));
+  });
+}
+
+// ---------- Старт ----------
+document.querySelectorAll("#modes button").forEach(function (b) { b.addEventListener("click", function () { setMode(b.dataset.mode); }); });
+$("#bUndo").addEventListener("click", function () { if (!undo.length) return; redo.push(last); restore(undo.pop()); });
+$("#bRedo").addEventListener("click", function () { if (!redo.length) return; undo.push(last); restore(redo.pop()); });
+$("#bFit").addEventListener("click", fit);
+$("#bGrid").addEventListener("click", function () { snap = !snap; $("#bGrid").classList.toggle("on", snap); toast(snap ? "Сітка 10: увімкнено" : "Сітка вимкнено"); });
+$("#bIO").addEventListener("click", ioDialog);
+$("#bCheck").addEventListener("click", checkDialog);
+$("#bMeta").addEventListener("click", metaDialog);
+$("#dlg").addEventListener("pointerdown", function (e) { if (e.target === $("#dlg")) closeDlg(); });
+window.addEventListener("resize", resize);
+window.addEventListener("keydown", function (e) {
+  var tag = (e.target.tagName || "").toLowerCase(); if (tag === "input" || tag === "textarea" || tag === "select") return;
+  if ((e.ctrlKey || e.metaKey) && e.key === "z") { e.preventDefault(); $("#bUndo").click(); }
+  else if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) { e.preventDefault(); $("#bRedo").click(); }
+  else if (e.key === "Delete" && sel) { var b = document.querySelector("#side .danger"); if (b) b.click(); }
+});
+
+var saved = null;
+try { saved = localStorage.getItem(STORE); } catch (e) {}
+var start = null;
+if (saved) { try { var sd = JSON.parse(saved); if (validateTree(sd).errors.length === 0) start = sd; } catch (e) {} }
+data = prepare(start || loadDefault()); last = snapshot();
+window.__editor = { get data() { return data; }, validate: function () { return validateTree(exportObj()); }, exportText: function () { return serializeTree(exportObj()); } };
+resize(); fit(); setMode("move"); refresh();
+if (start) toast("Відновлено вашу останню роботу (автозбереження в браузері)", 3000);
+})();
+</script>
+</body>
+</html>

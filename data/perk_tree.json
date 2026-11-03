@@ -1,0 +1,1750 @@
+{
+ "format": "spohady-perk-tree",
+ "version": 1,
+ "title": "Древо звитяги (стартове)",
+ "comment": "Формат описано в docs/perk_tree_format.md. Координати x, y: у «умовних пікселях», центр (0, 0).",
+ "regions": [
+  {
+   "id": "str",
+   "name": "Сила",
+   "color": "#D8574B",
+   "angle": -90.0
+  },
+  {
+   "id": "agi",
+   "name": "Спритність",
+   "color": "#7CBF5A",
+   "angle": 30.0
+  },
+  {
+   "id": "faith",
+   "name": "Віра",
+   "color": "#3FB9B3",
+   "angle": 150.0
+  }
+ ],
+ "class_starts": {
+  "druzhynnyk": "s_t0",
+  "strilets": "a_t0",
+  "volkhv": "f_t0"
+ },
+ "nodes": [
+  {
+   "id": "s_t0",
+   "name": "Міцні руки",
+   "description": "Початок шляху.",
+   "x": 0,
+   "y": -1100,
+   "type": "start",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t1",
+   "name": "Дружинна наука",
+   "description": "",
+   "x": 0,
+   "y": -990,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t2",
+   "name": "Широкі плечі",
+   "description": "",
+   "x": 0,
+   "y": -880,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t3",
+   "name": "Серце дружини",
+   "description": "Перший великий вузол шляху.",
+   "x": 0,
+   "y": -770,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t4",
+   "name": "Загартована шкіра",
+   "description": "",
+   "x": 0,
+   "y": -660,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t5",
+   "name": "Залізний хват",
+   "description": "",
+   "x": 0,
+   "y": -550,
+   "type": "small",
+   "stats": {
+    "str": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t6",
+   "name": "Кузня предків",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": 0,
+   "y": -440,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t7",
+   "name": "Гнів Перуна",
+   "description": "",
+   "x": 0,
+   "y": -330,
+   "type": "small",
+   "stats": {
+    "str": 3,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_t8",
+   "name": "Кам'яна воля",
+   "description": "Ти стоїш, як дуб. Повільніше, але міцніше.",
+   "x": 0,
+   "y": -220,
+   "type": "keystone",
+   "stats": {
+    "hp_pct": 25,
+    "armor": 40,
+    "move_pct": -8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a1",
+   "name": "Зводи меча",
+   "description": "",
+   "x": -125,
+   "y": -960,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "armor": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a2",
+   "name": "Бойовий клич",
+   "description": "",
+   "x": -240,
+   "y": -900,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_a3",
+   "name": "Могутній удар",
+   "description": "",
+   "x": -330,
+   "y": -800,
+   "type": "skill",
+   "stats": {
+    "str": 3
+   },
+   "skill": "power_strike",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b1",
+   "name": "Вага сокири",
+   "description": "",
+   "x": 125,
+   "y": -960,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b2",
+   "name": "Дух поединку",
+   "description": "",
+   "x": 240,
+   "y": -900,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_b3",
+   "name": "Вихор лез",
+   "description": "",
+   "x": 330,
+   "y": -800,
+   "type": "skill",
+   "stats": {
+    "str": 3
+   },
+   "skill": "whirlwind",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c1",
+   "name": "Щитова стіна",
+   "description": "",
+   "x": -135,
+   "y": -650,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c2",
+   "name": "Кольчужне плетіння",
+   "description": "",
+   "x": -250,
+   "y": -570,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_c3",
+   "name": "Незламний",
+   "description": "",
+   "x": -330,
+   "y": -460,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d1",
+   "name": "Лютий порив",
+   "description": "",
+   "x": 135,
+   "y": -650,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d2",
+   "name": "Кров воїна",
+   "description": "",
+   "x": 250,
+   "y": -570,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_d3",
+   "name": "Громовий кулак",
+   "description": "",
+   "x": 330,
+   "y": -460,
+   "type": "notable",
+   "stats": {
+    "str": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_e1",
+   "name": "Біг у кольчузі",
+   "description": "",
+   "x": -130,
+   "y": -410,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_e2",
+   "name": "Витримка",
+   "description": "",
+   "x": -215,
+   "y": -310,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_f1",
+   "name": "Гарт у вогні",
+   "description": "",
+   "x": 130,
+   "y": -410,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_f2",
+   "name": "Шрами слави",
+   "description": "",
+   "x": 215,
+   "y": -310,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_g1",
+   "name": "Міцні ноги",
+   "description": "",
+   "x": -130,
+   "y": -770,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "s_g2",
+   "name": "Тверда хода",
+   "description": "",
+   "x": 130,
+   "y": -770,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "str"
+  },
+  {
+   "id": "a_t0",
+   "name": "Влучне око",
+   "description": "Початок шляху.",
+   "x": 953,
+   "y": 550,
+   "type": "start",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t1",
+   "name": "Легка рука",
+   "description": "",
+   "x": 857,
+   "y": 495,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t2",
+   "name": "Тиха хода",
+   "description": "",
+   "x": 762,
+   "y": 440,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t3",
+   "name": "Серце мисливця",
+   "description": "Перший великий вузол шляху.",
+   "x": 667,
+   "y": 385,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t4",
+   "name": "Гостре зір",
+   "description": "",
+   "x": 572,
+   "y": 330,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t5",
+   "name": "Рука без тремтіння",
+   "description": "",
+   "x": 476,
+   "y": 275,
+   "type": "small",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t6",
+   "name": "Лісова наука",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": 381,
+   "y": 220,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t7",
+   "name": "Подих Стрибога",
+   "description": "",
+   "x": 286,
+   "y": 165,
+   "type": "small",
+   "stats": {
+    "agi": 3,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_t8",
+   "name": "Вітер у спину",
+   "description": "Легкий, як вітер, але крихкий.",
+   "x": 191,
+   "y": 110,
+   "type": "keystone",
+   "stats": {
+    "move_pct": 15,
+    "atk_speed_pct": 12,
+    "hp_pct": -10
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a1",
+   "name": "Натяг тятиви",
+   "description": "",
+   "x": 894,
+   "y": 372,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a2",
+   "name": "Швидкі пальці",
+   "description": "",
+   "x": 899,
+   "y": 242,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_a3",
+   "name": "Град стріл",
+   "description": "",
+   "x": 858,
+   "y": 114,
+   "type": "skill",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "arrow_volley",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b1",
+   "name": "Стежка звіра",
+   "description": "",
+   "x": 769,
+   "y": 588,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b2",
+   "name": "Мить прицілу",
+   "description": "",
+   "x": 659,
+   "y": 658,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_b3",
+   "name": "Влучний постріл",
+   "description": "",
+   "x": 528,
+   "y": 686,
+   "type": "skill",
+   "stats": {
+    "agi": 3
+   },
+   "skill": "piercing_shot",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c1",
+   "name": "Пір'я на стрілі",
+   "description": "",
+   "x": 630,
+   "y": 208,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c2",
+   "name": "Холодна кров",
+   "description": "",
+   "x": 619,
+   "y": 68,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_c3",
+   "name": "Око яструба",
+   "description": "",
+   "x": 563,
+   "y": -56,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d1",
+   "name": "Біг по росі",
+   "description": "",
+   "x": 495,
+   "y": 442,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d2",
+   "name": "Тінь у хащі",
+   "description": "",
+   "x": 369,
+   "y": 502,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_d3",
+   "name": "Стрибок вовка",
+   "description": "",
+   "x": 233,
+   "y": 516,
+   "type": "notable",
+   "stats": {
+    "agi": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_e1",
+   "name": "Нюх мисливця",
+   "description": "",
+   "x": 420,
+   "y": 92,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_e2",
+   "name": "Гнучкість",
+   "description": "",
+   "x": 376,
+   "y": -31,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_f1",
+   "name": "Сагайдак повний",
+   "description": "",
+   "x": 290,
+   "y": 318,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_f2",
+   "name": "Швидка тятива",
+   "description": "",
+   "x": 161,
+   "y": 341,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_g1",
+   "name": "Легка хода",
+   "description": "",
+   "x": 732,
+   "y": 272,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "a_g2",
+   "name": "Спритні ноги",
+   "description": "",
+   "x": 602,
+   "y": 498,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "agi"
+  },
+  {
+   "id": "f_t0",
+   "name": "Щире слово",
+   "description": "Початок шляху.",
+   "x": -953,
+   "y": 550,
+   "type": "start",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t1",
+   "name": "Тиха молитва",
+   "description": "",
+   "x": -857,
+   "y": 495,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t2",
+   "name": "Вогонь капища",
+   "description": "",
+   "x": -762,
+   "y": 440,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t3",
+   "name": "Серце волхва",
+   "description": "Перший великий вузол шляху.",
+   "x": -667,
+   "y": 385,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "hp_pct": 5
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t4",
+   "name": "Пам'ять роду",
+   "description": "",
+   "x": -572,
+   "y": 330,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t5",
+   "name": "Глибока криниця",
+   "description": "",
+   "x": -476,
+   "y": 275,
+   "type": "small",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t6",
+   "name": "Шепіт пращурів",
+   "description": "Знання, що передаються з роду в рід.",
+   "x": -381,
+   "y": 220,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "dmg_pct": 4
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t7",
+   "name": "Мокошева нитка",
+   "description": "",
+   "x": -286,
+   "y": 165,
+   "type": "small",
+   "stats": {
+    "faith": 3,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_t8",
+   "name": "Вічне джерело",
+   "description": "Чарівна криниця без дна, а тіло тендітне.",
+   "x": -191,
+   "y": 110,
+   "type": "keystone",
+   "stats": {
+    "mana_pct": 40,
+    "mana_regen": 2,
+    "hp_pct": -10
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a1",
+   "name": "Обряд світанку",
+   "description": "",
+   "x": -769,
+   "y": 588,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a2",
+   "name": "Сила оберегу",
+   "description": "",
+   "x": -659,
+   "y": 658,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_a3",
+   "name": "Хвиля стихії",
+   "description": "",
+   "x": -528,
+   "y": 686,
+   "type": "skill",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "element_wave",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b1",
+   "name": "Теплий вогонь",
+   "description": "",
+   "x": -894,
+   "y": 372,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "move_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b2",
+   "name": "Дар Дажбога",
+   "description": "",
+   "x": -899,
+   "y": 242,
+   "type": "small",
+   "stats": {
+    "faith": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_b3",
+   "name": "Поклик пращурів",
+   "description": "",
+   "x": -858,
+   "y": 114,
+   "type": "skill",
+   "stats": {
+    "faith": 3
+   },
+   "skill": "ancestral_heal",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c1",
+   "name": "Вишиті слова",
+   "description": "",
+   "x": -495,
+   "y": 442,
+   "type": "small",
+   "stats": {
+    "armor": 12,
+    "hp_pct": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c2",
+   "name": "Чистий дух",
+   "description": "",
+   "x": -369,
+   "y": 502,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "armor": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_c3",
+   "name": "Голос богів",
+   "description": "",
+   "x": -233,
+   "y": 516,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "hp_pct": 6,
+    "armor": 12
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d1",
+   "name": "Хвиля чару",
+   "description": "",
+   "x": -630,
+   "y": 208,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "atk_speed_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d2",
+   "name": "Тиха сила",
+   "description": "",
+   "x": -619,
+   "y": 68,
+   "type": "small",
+   "stats": {
+    "hp_pct": 4,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_d3",
+   "name": "Світло Дажбога",
+   "description": "",
+   "x": -563,
+   "y": -56,
+   "type": "notable",
+   "stats": {
+    "faith": 4,
+    "dmg_pct": 6
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_e1",
+   "name": "Берегиня",
+   "description": "",
+   "x": -290,
+   "y": 318,
+   "type": "small",
+   "stats": {
+    "str": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_e2",
+   "name": "Ясна думка",
+   "description": "",
+   "x": -161,
+   "y": 341,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_f1",
+   "name": "Тепло домівки",
+   "description": "",
+   "x": -420,
+   "y": 92,
+   "type": "small",
+   "stats": {
+    "agi": 2
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_f2",
+   "name": "Благословення роду",
+   "description": "",
+   "x": -376,
+   "y": -31,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_g1",
+   "name": "Вітер чарів",
+   "description": "",
+   "x": -602,
+   "y": 498,
+   "type": "small",
+   "stats": {
+    "hp_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "f_g2",
+   "name": "Легка молитва",
+   "description": "",
+   "x": -732,
+   "y": 272,
+   "type": "small",
+   "stats": {
+    "move_pct": 3
+   },
+   "skill": "",
+   "icon": "",
+   "region": "faith"
+  },
+  {
+   "id": "core",
+   "name": "Серце роду",
+   "description": "Тут сходяться всі три шляхи: Сила, Спритність і Віра.",
+   "x": 0,
+   "y": 0,
+   "type": "core",
+   "stats": {
+    "str": 3,
+    "agi": 3,
+    "faith": 3,
+    "dmg_pct": 8
+   },
+   "skill": "",
+   "icon": "",
+   "region": "core"
+  },
+  {
+   "id": "x_sa_1",
+   "name": "Воїн і лучник",
+   "description": "",
+   "x": 388,
+   "y": -359,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_sa_2",
+   "name": "Погляд і удар",
+   "description": "",
+   "x": 447,
+   "y": -258,
+   "type": "small",
+   "stats": {
+    "str": 1,
+    "agi": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_sa_3",
+   "name": "Кров і вітер",
+   "description": "",
+   "x": 505,
+   "y": -157,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_1",
+   "name": "Подих лісу",
+   "description": "",
+   "x": 117,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "agi": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_2",
+   "name": "Шепіт і стріла",
+   "description": "",
+   "x": 0,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "agi": 1,
+    "faith": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_af_3",
+   "name": "Лісова стежка",
+   "description": "",
+   "x": -117,
+   "y": 516,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "agi": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_1",
+   "name": "Оберіг-щит",
+   "description": "",
+   "x": -505,
+   "y": -157,
+   "type": "small",
+   "stats": {
+    "faith": 2,
+    "str": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_2",
+   "name": "Вогонь чаклуна",
+   "description": "",
+   "x": -447,
+   "y": -258,
+   "type": "small",
+   "stats": {
+    "faith": 1,
+    "str": 1,
+    "crit_pct": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  },
+  {
+   "id": "x_fs_3",
+   "name": "Віра і сталь",
+   "description": "",
+   "x": -388,
+   "y": -359,
+   "type": "small",
+   "stats": {
+    "str": 2,
+    "faith": 1
+   },
+   "skill": "",
+   "icon": "",
+   "region": "mixed"
+  }
+ ],
+ "links": [
+  [
+   "s_t0",
+   "s_t1"
+  ],
+  [
+   "s_t1",
+   "s_t2"
+  ],
+  [
+   "s_t2",
+   "s_t3"
+  ],
+  [
+   "s_t3",
+   "s_t4"
+  ],
+  [
+   "s_t4",
+   "s_t5"
+  ],
+  [
+   "s_t5",
+   "s_t6"
+  ],
+  [
+   "s_t6",
+   "s_t7"
+  ],
+  [
+   "s_t7",
+   "s_t8"
+  ],
+  [
+   "s_t1",
+   "s_a1"
+  ],
+  [
+   "s_a1",
+   "s_a2"
+  ],
+  [
+   "s_a2",
+   "s_a3"
+  ],
+  [
+   "s_t1",
+   "s_b1"
+  ],
+  [
+   "s_b1",
+   "s_b2"
+  ],
+  [
+   "s_b2",
+   "s_b3"
+  ],
+  [
+   "s_t4",
+   "s_c1"
+  ],
+  [
+   "s_c1",
+   "s_c2"
+  ],
+  [
+   "s_c2",
+   "s_c3"
+  ],
+  [
+   "s_t4",
+   "s_d1"
+  ],
+  [
+   "s_d1",
+   "s_d2"
+  ],
+  [
+   "s_d2",
+   "s_d3"
+  ],
+  [
+   "s_t6",
+   "s_e1"
+  ],
+  [
+   "s_e1",
+   "s_e2"
+  ],
+  [
+   "s_t6",
+   "s_f1"
+  ],
+  [
+   "s_f1",
+   "s_f2"
+  ],
+  [
+   "s_t3",
+   "s_g1"
+  ],
+  [
+   "s_t3",
+   "s_g2"
+  ],
+  [
+   "s_t8",
+   "core"
+  ],
+  [
+   "a_t0",
+   "a_t1"
+  ],
+  [
+   "a_t1",
+   "a_t2"
+  ],
+  [
+   "a_t2",
+   "a_t3"
+  ],
+  [
+   "a_t3",
+   "a_t4"
+  ],
+  [
+   "a_t4",
+   "a_t5"
+  ],
+  [
+   "a_t5",
+   "a_t6"
+  ],
+  [
+   "a_t6",
+   "a_t7"
+  ],
+  [
+   "a_t7",
+   "a_t8"
+  ],
+  [
+   "a_t1",
+   "a_a1"
+  ],
+  [
+   "a_a1",
+   "a_a2"
+  ],
+  [
+   "a_a2",
+   "a_a3"
+  ],
+  [
+   "a_t1",
+   "a_b1"
+  ],
+  [
+   "a_b1",
+   "a_b2"
+  ],
+  [
+   "a_b2",
+   "a_b3"
+  ],
+  [
+   "a_t4",
+   "a_c1"
+  ],
+  [
+   "a_c1",
+   "a_c2"
+  ],
+  [
+   "a_c2",
+   "a_c3"
+  ],
+  [
+   "a_t4",
+   "a_d1"
+  ],
+  [
+   "a_d1",
+   "a_d2"
+  ],
+  [
+   "a_d2",
+   "a_d3"
+  ],
+  [
+   "a_t6",
+   "a_e1"
+  ],
+  [
+   "a_e1",
+   "a_e2"
+  ],
+  [
+   "a_t6",
+   "a_f1"
+  ],
+  [
+   "a_f1",
+   "a_f2"
+  ],
+  [
+   "a_t3",
+   "a_g1"
+  ],
+  [
+   "a_t3",
+   "a_g2"
+  ],
+  [
+   "a_t8",
+   "core"
+  ],
+  [
+   "f_t0",
+   "f_t1"
+  ],
+  [
+   "f_t1",
+   "f_t2"
+  ],
+  [
+   "f_t2",
+   "f_t3"
+  ],
+  [
+   "f_t3",
+   "f_t4"
+  ],
+  [
+   "f_t4",
+   "f_t5"
+  ],
+  [
+   "f_t5",
+   "f_t6"
+  ],
+  [
+   "f_t6",
+   "f_t7"
+  ],
+  [
+   "f_t7",
+   "f_t8"
+  ],
+  [
+   "f_t1",
+   "f_a1"
+  ],
+  [
+   "f_a1",
+   "f_a2"
+  ],
+  [
+   "f_a2",
+   "f_a3"
+  ],
+  [
+   "f_t1",
+   "f_b1"
+  ],
+  [
+   "f_b1",
+   "f_b2"
+  ],
+  [
+   "f_b2",
+   "f_b3"
+  ],
+  [
+   "f_t4",
+   "f_c1"
+  ],
+  [
+   "f_c1",
+   "f_c2"
+  ],
+  [
+   "f_c2",
+   "f_c3"
+  ],
+  [
+   "f_t4",
+   "f_d1"
+  ],
+  [
+   "f_d1",
+   "f_d2"
+  ],
+  [
+   "f_d2",
+   "f_d3"
+  ],
+  [
+   "f_t6",
+   "f_e1"
+  ],
+  [
+   "f_e1",
+   "f_e2"
+  ],
+  [
+   "f_t6",
+   "f_f1"
+  ],
+  [
+   "f_f1",
+   "f_f2"
+  ],
+  [
+   "f_t3",
+   "f_g1"
+  ],
+  [
+   "f_t3",
+   "f_g2"
+  ],
+  [
+   "f_t8",
+   "core"
+  ],
+  [
+   "s_d3",
+   "x_sa_1"
+  ],
+  [
+   "x_sa_1",
+   "x_sa_2"
+  ],
+  [
+   "x_sa_2",
+   "x_sa_3"
+  ],
+  [
+   "x_sa_3",
+   "a_c3"
+  ],
+  [
+   "a_d3",
+   "x_af_1"
+  ],
+  [
+   "x_af_1",
+   "x_af_2"
+  ],
+  [
+   "x_af_2",
+   "x_af_3"
+  ],
+  [
+   "x_af_3",
+   "f_c3"
+  ],
+  [
+   "f_d3",
+   "x_fs_1"
+  ],
+  [
+   "x_fs_1",
+   "x_fs_2"
+  ],
+  [
+   "x_fs_2",
+   "x_fs_3"
+  ],
+  [
+   "x_fs_3",
+   "s_c3"
+  ]
+ ]
+}

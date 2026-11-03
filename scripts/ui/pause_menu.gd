@@ -4,6 +4,8 @@ extends Control
 
 signal resume_pressed
 signal perks_pressed
+signal bag_pressed
+signal skills_pressed
 signal title_pressed
 
 var _info: Label
@@ -20,11 +22,11 @@ func _ready() -> void:
 	FolkTheme.fullscreen(center)
 	add_child(center)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", FolkTheme.panel_style(Palette.PANEL, Palette.GOLD, 4, 16))
+	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
 	panel.custom_minimum_size = Vector2(560, 0)
 	center.add_child(panel)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
+	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
 	v.add_child(OrnamentBand.new())
 	v.add_child(FolkTheme.label("Перепочинок", 40, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
@@ -40,6 +42,16 @@ func _ready() -> void:
 	FolkTheme.apply_button(b2, Palette.TURQUOISE.darkened(0.25))
 	b2.pressed.connect(func() -> void: perks_pressed.emit())
 	v.add_child(b2)
+	var b2a := Button.new()
+	b2a.text = "Сумка"
+	FolkTheme.apply_button(b2a, Palette.PANEL_LIGHT)
+	b2a.pressed.connect(func() -> void: bag_pressed.emit())
+	v.add_child(b2a)
+	var b2b := Button.new()
+	b2b.text = "Навички у швидких слотах"
+	FolkTheme.apply_button(b2b, Palette.PANEL_LIGHT)
+	b2b.pressed.connect(func() -> void: skills_pressed.emit())
+	v.add_child(b2b)
 	var b3 := Button.new()
 	b3.text = "До головного екрана"
 	FolkTheme.apply_button(b3, Palette.PANEL_LIGHT)
