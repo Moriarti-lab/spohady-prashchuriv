@@ -8,6 +8,7 @@ var skill_id := ""
 var selected := false
 var number := 0              # номер слота (1–4), 0 — без номера
 var note := ""               # напис під значком (замість назви)
+var locked := false          # ще не вивчена: тьмяний значок
 var _press_pos := Vector2.ZERO
 var _down := false
 var _d := 84.0
@@ -45,12 +46,14 @@ func _draw() -> void:
 	var base: Color = Color(def["color"]).darkened(0.45) if not def.is_empty() else Palette.PANEL_LIGHT
 	draw_circle(c, r, Color(base, 0.9))
 	if not def.is_empty():
-		var tex := FolkTheme.art_texture(Skills.icon_path(skill_id, GameState.blessing))
+		var tex := Icons.texture(Icons.skill_icon_id(skill_id, GameState.blessing))
+		var tint := Color(0.55, 0.55, 0.6, 0.8) if locked else Color.WHITE
 		if tex != null:
-			var dd := (r - 3.0) * 2.0
-			draw_texture_rect(tex, Rect2(c - Vector2(dd, dd) * 0.5, Vector2(dd, dd)), false)
+			# значок вписано в коло з відступом ~12%, щоб кінчики не обрізались маскою
+			var dd := (r - 3.0) * 2.0 * 0.88
+			draw_texture_rect(tex, Rect2(c - Vector2(dd, dd) * 0.5, Vector2(dd, dd)), false, tint)
 		else:
-			_text(str(def["short"]), c + Vector2(0, 7), int(_d * 0.24), Palette.LINEN, true)
+			_text(str(def["short"]), c + Vector2(0, 7), int(_d * 0.24), Palette.LINEN if not locked else Palette.TEXT_DIM, true)
 	else:
 		_text("—", c + Vector2(0, 8), int(_d * 0.34), Palette.TEXT_DIM, true)
 	draw_arc(c, r - 1.5, 0.0, TAU, 40, Color.WHITE if selected else Palette.GOLD, 5.0 if selected else 3.0, true)

@@ -1,11 +1,8 @@
-## Меню «Перепочинок»: продовжити, Древо, повернення до головного екрана.
+## Меню «Перепочинок»: продовжити, повернення до головного екрана. Сумка, Навички, Древо — у меню героя (портрет).
 class_name PauseMenu
 extends Control
 
 signal resume_pressed
-signal perks_pressed
-signal bag_pressed
-signal skills_pressed
 signal title_pressed
 
 var _info: Label
@@ -37,21 +34,6 @@ func _ready() -> void:
 	FolkTheme.apply_button(b1, Palette.EMBROIDERY)
 	b1.pressed.connect(func() -> void: resume_pressed.emit())
 	v.add_child(b1)
-	var b2 := Button.new()
-	b2.text = "Древо звитяги"
-	FolkTheme.apply_button(b2, Palette.TURQUOISE.darkened(0.25))
-	b2.pressed.connect(func() -> void: perks_pressed.emit())
-	v.add_child(b2)
-	var b2a := Button.new()
-	b2a.text = "Сумка"
-	FolkTheme.apply_button(b2a, Palette.PANEL_LIGHT)
-	b2a.pressed.connect(func() -> void: bag_pressed.emit())
-	v.add_child(b2a)
-	var b2b := Button.new()
-	b2b.text = "Навички у швидких слотах"
-	FolkTheme.apply_button(b2b, Palette.PANEL_LIGHT)
-	b2b.pressed.connect(func() -> void: skills_pressed.emit())
-	v.add_child(b2b)
 	var b3 := Button.new()
 	b3.text = "До головного екрана"
 	FolkTheme.apply_button(b3, Palette.PANEL_LIGHT)

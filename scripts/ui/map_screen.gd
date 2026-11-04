@@ -32,7 +32,7 @@ func _ready() -> void:
 	h.add_child(v)
 	v.add_child(FolkTheme.label("Карта долини", 30, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(OrnamentBand.new(22))
-	v.add_child(FolkTheme.label("Біла стрілка — ти.\nЗолотий ромб — Капище: там лікуються.\nЧервоні цятки — вороги, бірюзові — привиди.\nЖовті крапки — здобич.\nСіра смуга — скелі, що замикають долину.\nБірюзова брама — вихід (поки зачинений).", 19, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true))
+	v.add_child(FolkTheme.label("Біла стрілка — ти.\nЗолотий ромб — Капище: там лікуються.\nЖовті кружки — люди, квадрати — будинки.\nЧервоні цятки — вороги, бірюзові — привиди, фіолетовий — міні-бос.\nЗолоті крапки — здобич і скрині.\nБірюзова брама — вихід до іншої місцевості.", 19, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true))
 	var fill := Control.new()
 	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(fill)

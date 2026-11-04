@@ -7,7 +7,6 @@
 | Папка | Файл | Розмір | Де показується |
 |---|---|---|---|
 | `art/icons/skills/` | `power_strike`, `arrow_volley`, `stribog_dash`, `element_wave_<бог>` (perun, veles, dazhbog, mokosh, svarog) | 256×256 | кнопки навичок, слоти навичок |
-| `art/icons/skills/` | `whirlwind`, `piercing_shot`, `ancestral_heal` | 256×256 | **ще немає** — поки текстові кнопки |
 | `art/icons/perks/` | `region_str`, `region_agi`, `region_faith`, `core` | 128×128 | видатні вузли Древа за областю та центр |
 | `art/portraits/` | `hero_<клас>` | 256 | портрет героя у HUD |
 | `art/portraits/` | `blessing_<бог>`, `class_<клас>` | 512 | вибір благословення й класу |
@@ -16,3 +15,5 @@
 
 Інші іконки вузлів Древа задаються полем `icon` у `data/perk_tree.json` (ім'я файла без `.png` з `art/icons/perks/`).
 Іконки робіть так, щоб центральні 80% були значущими: у грі їх обрізає кругла маска.
+
+Іконки v0.3 (зброя, броня, речі, навички, пасивки) описані в [`docs/icons.md`](../docs/icons.md) і реєстрі `data/icons.json`.

@@ -301,7 +301,7 @@ func _pick_class(id: String) -> void:
 	for k in _cards.keys():
 		_style_card(_cards[k], Palette.LEAF.darkened(0.2), k == id)
 	var d: Dictionary = Gear.class_def(id)
-	var w: Dictionary = Items.BASES[d["weapon"]]
+	var w: Dictionary = Items.BASES[d["kit"][0]]  # перший предмет набору — зброя
 	var start: Dictionary = PerkTree.get_def(PerkTree.class_start(id))
 	_detail_title.text = d["name"]
 	_detail.text = "%s\n\nСпорядження:\n%s\n\nЗвичайна атака: %s\nСтарт на Древі: «%s», поруч із гілкою %s." % [

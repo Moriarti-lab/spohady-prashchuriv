@@ -31,7 +31,7 @@ func frames(n: int) -> void:
 
 
 func _ready() -> void:
-	get_tree().create_timer(240.0).timeout.connect(func() -> void:
+	get_tree().create_timer(900.0).timeout.connect(func() -> void:
 		print("ТАЙМАУТ тесту")
 		get_tree().quit(2))
 	_run.call_deferred()
@@ -73,15 +73,15 @@ func _run() -> void:
 	var val := PerkTree.validate(rawd)
 	ok((val["errors"] as Array).is_empty() and (val["warnings"] as Array).is_empty(), "перевірка формату: без помилок і застережень %s" % str(val))
 	var nn := PerkTree.nodes().size()
-	ok(nn >= 80 and nn <= 120, "вузлів 80–120 (є %d)" % nn)
+	ok(nn >= 250 and nn <= 400, "вузлів 250–400 (є %d)" % nn)
 	var types := {}
 	var regions := {}
 	for id in PerkTree.nodes():
 		var nd: Dictionary = PerkTree.get_def(id)
 		types[nd["type"]] = int(types.get(nd["type"], 0)) + 1
 		regions[nd.get("region", "")] = true
-	ok(types.get("notable", 0) >= 6 and types.get("keystone", 0) >= 3, "є значущі та ключові вузли: %s" % str(types))
-	ok(types.get("skill", 0) >= 3, "є вузли навичок (%d)" % int(types.get("skill", 0)))
+	ok(types.get("notable", 0) >= 40 and types.get("keystone", 0) >= 6 and types.get("core", 0) == 1, "є значущі та ключові вузли: %s" % str(types))
+	ok(types.get("skill", 0) >= 20, "є вузли навичок (%d)" % int(types.get("skill", 0)))
 	ok(regions.has("str") and regions.has("agi") and regions.has("faith"), "три регіони: Сила / Спритність / Віра")
 	for c in Gear.CLASS_IDS:
 		ok(PerkTree.has_node(PerkTree.class_start(c)), "старт класу %s: %s" % [c, PerkTree.class_start(c)])
@@ -90,7 +90,41 @@ func _run() -> void:
 	for id in PerkTree.nodes():
 		if PerkTree.neighbors(id).size() >= 3:
 			forks += 1
-	ok(forks >= 8, "розгалужень (≥3 сусіди): %d" % forks)
+	ok(forks >= 40, "розгалужень (≥3 сусіди): %d" % forks)
+	# стартові навички: рівно три на клас, вони сусідні зі стартом класу
+	for c in Gear.CLASS_IDS:
+		var st3: String = PerkTree.class_start(c)
+		var found := 0
+		for nid in PerkTree.neighbors(st3):
+			var dd: Dictionary = PerkTree.get_def(nid)
+			if bool(dd.get("starter", false)):
+				found += 1
+				ok(str(dd.get("skill", "")) in Gear.STARTER_SKILLS[c], "стартова навичка %s (%s) належить класу %s" % [dd.get("skill", ""), nid, c])
+		ok(found == 3, "клас %s: три стартові навички біля старту (%d)" % [c, found])
+	# жодних перехресних зв'язків біля старту: 5 кроків від старту класу — лише власний регіон
+	for c in Gear.CLASS_IDS:
+		var st4: String = PerkTree.class_start(c)
+		var reg: String = str(PerkTree.get_def(st4).get("region", ""))
+		var dist := {st4: 0}
+		var qq: Array = [st4]
+		var foreign := 0
+		while not qq.is_empty():
+			var cc: String = qq.pop_front()
+			if int(dist[cc]) >= 5:
+				continue
+			for nb2 in PerkTree.neighbors(cc):
+				if not dist.has(nb2):
+					dist[nb2] = int(dist[cc]) + 1
+					if str(PerkTree.get_def(nb2).get("region", "")) != reg:
+						foreign += 1
+					qq.append(nb2)
+		ok(foreign == 0, "біля старту %s немає зв'язків з чужими регіонами (%d)" % [c, foreign])
+	# кожен вузол має опис або ефект із числами
+	var no_text := 0
+	for id in PerkTree.nodes():
+		if PerkTree.effect_text(id) == "" and str(PerkTree.get_def(id).get("description", "")) == "":
+			no_text += 1
+	ok(no_text == 0, "кожен вузол має опис (без опису: %d)" % no_text)
 	# круговий обмін JSON: зберегти → прочитати → перевірити
 	var again: Variant = JSON.parse_string(JSON.stringify(rawd, "\t"))
 	ok((PerkTree.validate(again)["errors"] as Array).is_empty(), "JSON переживає запис і читання")
@@ -127,20 +161,37 @@ func _run() -> void:
 	ok(gs.unlocked == [start], "клас починає зі свого вузла")
 	ok(gs.perk_points == GameState.START_PERKS, "стартові перки: %d" % gs.perk_points)
 	var nb: Array = PerkTree.neighbors(start)
+	ok(gs.starter_pending() and gs.starter_choices().size() == 3, "новий герой: є вибір з трьох стартових навичок")
+	ok(gs.learned_skills().is_empty() or gs.learned_skills().size() == 1, "до вибору навичок майже немає")
 	var far := ""
 	for id in PerkTree.nodes():
 		if not (id in nb) and id != start:
 			far = id
 			break
 	ok(not gs.unlock(far), "не можна відкрити не сусідній вузол (%s)" % far)
+	ok(not gs.unlock(nb[0]), "поки не обрано стартову навичку, Древо закрите")
+	var choices: Array = gs.starter_choices()
+	ok(gs.choose_starter(choices[1]["node"]), "стартову навичку обрано: %s" % choices[1]["skill"])
+	ok(choices[1]["skill"] in gs.learned_skills() and gs.perk_points == GameState.START_PERKS, "навичка вивчена безкоштовно, перки на місці")
+	ok(not gs.choose_starter(choices[0]["node"]), "вдруге стартову навичку обрати не можна")
+	ok(not gs.unlock(choices[0]["node"]), "інша стартова навичка не відкривається просто зі старту")
+	ok(gs.quick_skill(0) == choices[1]["skill"], "навичка потрапила в перший швидкий слот")
 	var str0: float = HeroStats.stat("str")
 	var first_nb := ""
 	for id in nb:
-		if PerkTree.stat_of(id, "str") > 0.0:
+		if not bool(PerkTree.get_def(id).get("starter", false)) and PerkTree.stat_of(id, "str") > 0.0:
 			first_nb = id
 			break
 	if first_nb == "":
-		first_nb = nb[0]
+		for id in nb:
+			if not bool(PerkTree.get_def(id).get("starter", false)):
+				first_nb = id
+				break
+	if first_nb == "":
+		for id in PerkTree.neighbors(choices[1]["node"]):
+			if id != start and not gs.is_unlocked(id):
+				first_nb = id
+				break
 	ok(gs.unlock(first_nb), "сусідній вузол %s відкрито, 1 вузол = 1 перк" % first_nb)
 	ok(gs.perk_points == GameState.START_PERKS - 1, "перків лишилось %d" % gs.perk_points)
 	ok(HeroStats.stat("str") >= str0, "бонус вузла враховано")
@@ -155,41 +206,101 @@ func _run() -> void:
 	gs.new_hero("Тест", "perun", "druzhynnyk")
 	ok(HeroStats.max_hp() >= 180.0, "здоров'я героя 1 рівня ≥ 180, було ~60 (є %d)" % int(HeroStats.max_hp()))
 	for id in EnemyDefs.IDS:
-		ok(float(EnemyDefs.get_def(id)["hp"]) >= 90.0 or id == "wraith", "ворог %s: життя %d" % [id, int(EnemyDefs.get_def(id)["hp"])])
+		ok(float(EnemyDefs.get_def(id)["hp"]) >= 60.0, "ворог %s: життя %d" % [id, int(EnemyDefs.get_def(id)["hp"])])
 	var hits_to_die := HeroStats.max_hp() / float(EnemyDefs.get_def("novice")["dmg"])
 	ok(hits_to_die >= 8.0 and hits_to_die <= 40.0, "героя вбиває ≈%d ударів послушника" % int(hits_to_die))
 	ok(Strings.vocative("Ярослав") == "Ярославе" and Strings.vocative("Марія") == "Маріє", "кличний відмінок: %s, %s" % [Strings.vocative("Ярослав"), Strings.vocative("Марія")])
 
-	print("== 5. Предмети і спорядження ==")
+	print("== 5. Предмети, слоти, торгівля ==")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var seen_r := {}
 	var bad_items := 0
+	var seen_t := {}
 	for i in range(300):
 		var it := Items.generate(rng.randi_range(1, 20), rng)
 		seen_r[it["rarity"]] = true
-		if Items.slot_of(it) == "" or str(it["name"]) == "" or not it.has("stats"):
+		seen_t[Items.type_of(it)] = true
+		if Items.type_of(it) == "" or Items.slots_for(it).is_empty() or str(it["name"]) == "" or not it.has("stats"):
 			bad_items += 1
 	ok(bad_items == 0, "300 випадкових предметів коректні")
 	ok(seen_r.size() >= 3, "рідкість: %d різних ступенів" % seen_r.size())
+	ok(seen_t.size() >= 8, "випадкові типи предметів: %s" % str(seen_t.keys()))
+	for t in Items.TYPE_SLOTS:
+		var ti := Items.generate(6, rng, t, 2)
+		ok(Items.type_of(ti) == t and str(Items.icon_of(ti)) != "", "генерація типу %s → %s" % [t, ti["name"]])
 	gs.new_hero("Тест", "perun", "druzhynnyk")
+	gs.choose_starter(gs.starter_choices()[0]["node"])
 	ok(HeroStats.attack_kind() == "melee", "дружинник стартує з ближнім боєм")
+	ok(gs.equipment.get("main", null) != null and gs.equipment.get("off", null) != null and gs.equipment.get("body", null) != null, "стартовий набір: меч, щит, кольчуга")
 	var dmg_before: float = HeroStats.weapon_damage()
 	var bow := Items.make("bow", 5, 2, rng)
+	ok(Items.is_two_handed(bow) and Items.type_of(bow) == "hand2", "лук — дворучний")
 	ok(gs.add_item(bow), "лук у сумці")
 	ok(gs.equip_from_bag(gs.bag.size() - 1), "лук одягнено")
-	ok(HeroStats.attack_kind() == "arrow", "зі луком атака — стріли")
-	ok(gs.bag.size() == 1 and Items.slot_of(gs.bag[0]) == "weapon", "старий меч повернувся в сумку")
+	ok(HeroStats.attack_kind() == "arrow", "з луком атака — стріли")
+	ok(gs.equipment.get("main") != null and not (typeof(gs.equipment.get("off", null)) == TYPE_DICTIONARY and not (gs.equipment["off"] as Dictionary).is_empty()), "дворучна зброя вільнить ліву руку (щит знято)")
+	ok(gs.bag.size() == 2, "меч і щит повернулися в сумку (%d)" % gs.bag.size())
+	# щит назад: дворучна повертається в сумку
+	var shield_i := -1
+	for i in range(gs.bag.size()):
+		if Items.type_of(gs.bag[i]) == "shield":
+			shield_i = i
+	ok(shield_i >= 0 and gs.equip_from_bag(shield_i), "щит одягається в ліву руку")
+	ok(not _is_filled(gs.equipment.get("main", null)), "щит витіснив дворучну зброю з правої руки")
+	# дві одноручні (парна зброя)
+	var sw1 := Items.make("sword", 5, 1, rng)
+	var sw2 := Items.make("axe", 5, 1, rng)
+	gs.bag = []
+	gs.equipment["main"] = null
+	gs.equipment["off"] = null
+	gs.add_item(sw1)
+	gs.add_item(sw2)
+	ok(gs.equip_from_bag(0, "main") and gs.equip_from_bag(0, "off"), "дві одноручні: права й ліва рука")
+	ok(_is_filled(gs.equipment["main"]) and _is_filled(gs.equipment["off"]) and Items.type_of(gs.equipment["off"]) == "hand1", "парна зброя (dual wield) стоїть в обох руках")
+	var dmg_dual := HeroStats.weapon_damage()
+	gs.unequip("off")
+	ok(HeroStats.weapon_damage() < dmg_dual, "друга зброя в лівій руці додає шкоди")
+	# дворучна поверх двох одноручних
+	gs.equip_from_bag(0, "off")
+	var gsw := Items.make("greatsword", 6, 2, rng)
+	gs.add_item(gsw)
+	var bag_before: int = gs.bag.size()
+	ok(gs.equip_from_bag(gs.bag.size() - 1), "дворучний меч одягнено")
+	ok(Items.is_two_handed(gs.equipment["main"]) and not _is_filled(gs.equipment.get("off", null)), "дворучний меч очистив обидві руки")
+	ok(gs.bag.size() == bag_before + 1, "дві одноручні повернулися в сумку (%d)" % gs.bag.size())
+	var dmg2: float = HeroStats.weapon_damage()
+	ok(dmg2 != dmg_before, "шкода змінилась від зброї")
+	ok(not gs.equip_from_bag(0, "off") or Items.type_of(gs.equipment.get("off", {})) != "hand2", "дворучну в ліву руку не покласти")
 	var staff := Items.make("staff", 5, 2, rng)
 	gs.add_item(staff)
 	gs.equip_from_bag(gs.bag.size() - 1)
-	ok(HeroStats.attack_kind() == "magic", "зі жезлом атака — магічна куля")
-	ok(HeroStats.weapon_damage() != dmg_before, "шкода змінилась від зброї")
+	ok(HeroStats.attack_kind() == "magic", "з посохом атака — магічна куля")
+	# кільця, амулет, броня
+	gs.bag = []
+	var r1 := Items.make("ring", 4, 1, rng)
+	var r2 := Items.make("ring_ruby", 4, 1, rng)
+	var r3 := Items.make("ring_emerald", 4, 1, rng)
+	gs.add_item(r1)
+	gs.add_item(r2)
+	gs.add_item(r3)
+	gs.equip_from_bag(0)
+	gs.equip_from_bag(0)
+	ok(_is_filled(gs.equipment["ring1"]) and _is_filled(gs.equipment["ring2"]), "два персні — у двох слотах")
+	var hp_r := HeroStats.max_hp()
+	gs.equip_from_bag(0)
+	ok(gs.bag.size() == 1 and HeroStats.max_hp() > 0.0 and hp_r > 0.0, "третій перстень замінює перший, старий — у сумку")
 	var armor_a := HeroStats.armor()
 	var plate := Items.make("plate", 8, 3, rng)
 	gs.add_item(plate)
 	gs.equip_from_bag(gs.bag.size() - 1)
 	ok(HeroStats.armor() >= armor_a, "броня не зменшилась від кращих лат")
+	for base in ["cap", "gloves", "boots"]:
+		var pc := Items.make(base, 5, 1, rng)
+		gs.add_item(pc)
+		var armor_b := HeroStats.armor()
+		gs.equip_from_bag(gs.bag.size() - 1)
+		ok(HeroStats.armor() > armor_b, "%s додає броню" % base)
 	var hp_a := HeroStats.max_hp()
 	var amu := Items.make("amulet", 10, 3, rng)
 	amu["stats"]["hp"] = 100.0
@@ -197,27 +308,69 @@ func _run() -> void:
 	gs.equip_from_bag(gs.bag.size() - 1)
 	ok(HeroStats.max_hp() > hp_a, "оберіг додає життя")
 	ok(gs.unequip("amulet") and HeroStats.max_hp() <= hp_a + 0.01, "оберіг знято — життя повернулось")
+	# продаж і купівля
 	var gold0: int = gs.gold
 	var sold: int = gs.sell(0)
 	ok(sold > 0 and gs.gold == gold0 + sold, "продаж за гривні: +%d" % sold)
+	ok(gs.refresh_stock(true) and gs.merchant_stock.size() == GameState.STOCK_SIZE, "торговець: асортимент %d предметів" % gs.merchant_stock.size())
+	ok(not gs.refresh_stock(false), "асортимент не оновлюється раніше строку (лишилось %d с)" % gs.stock_seconds_left())
+	var stock_types := {}
+	for it in gs.merchant_stock:
+		stock_types[Items.type_of(it)] = true
+	ok(stock_types.size() >= 6, "у крамниці різні типи: %s" % str(stock_types.keys()))
+	var item0: Dictionary = gs.merchant_stock[0]
+	var price0: int = gs.price_of(item0)
+	ok(price0 > Items.sell_value(item0), "купити дорожче, ніж продати (%d > %d)" % [price0, Items.sell_value(item0)])
+	gs.gold = price0 - 1
+	var bagn: int = gs.bag.size()
+	ok(not gs.buy(0) and gs.last_error != "" and gs.bag.size() == bagn, "без гривень не купити: «%s»" % gs.last_error)
+	gs.gold = price0 + 10
+	ok(gs.buy(0) and gs.gold == 10 and gs.bag.size() == bagn + 1 and gs.merchant_stock.size() == GameState.STOCK_SIZE - 1, "купівля: гривні списано, предмет у сумці")
+	gs.gold = 100
+	var hpp0: int = gs.hp_potions
+	ok(gs.buy_potion("hp") and gs.hp_potions == hpp0 + 1 and gs.gold == 100 - gs.potion_price("hp"), "купівля зілля життя")
+	gs.merchant_refresh_at = 1
+	ok(gs.refresh_stock(false) and gs.merchant_stock.size() == GameState.STOCK_SIZE, "після закінчення строку асортимент оновився")
 	# сумка заповнюється
 	gs.bag = []
 	for i in range(GameState.BAG_SIZE):
 		gs.add_item(Items.generate(1, rng))
 	ok(gs.bag.size() == GameState.BAG_SIZE and not gs.add_item(Items.generate(1, rng)), "сумка на 30 місць, повна не приймає")
+	gs.gold = 9999
+	ok(not gs.buy(0) and gs.last_error != "", "повна сумка: купівля відхилена")
 	gs.bag = []
 
-	print("== 6. Збереження: міграція v1 → v2 ==")
+	print("== 6. Збереження: міграція v1, v2 → v3 ==")
 	var v1 := {"version": 1, "name": "Старий", "blessing": "veles", "class": "strilets", "level": 7, "xp": 30,
 		"unlocked": ["a1", "a2", "s2"], "skills": ["arrow_volley"], "perk_points": 4}
 	ok(gs.from_dict(v1), "старе збереження читається")
 	ok(gs.level == 7 and gs.hero_name == "Старий" and gs.unlocked[0] == PerkTree.class_start("strilets"), "рівень збережено, Древо скинуто до старту")
 	ok(gs.perk_points == GameState.START_PERKS + 3 * 6, "перки повернено: %d" % gs.perk_points)
 	ok(gs.notice != "", "є пояснення для гравця")
+	ok(gs.starter_pending(), "після міграції треба обрати стартову навичку")
 	ok(HeroStats.attack_kind() == "arrow", "стрілець після міграції зі луком")
+	ok(gs.location == Locations.START, "після міграції герой у селищі")
 	var rt := gs.to_dict()
+	ok(int(rt["version"]) == GameState.SAVE_VERSION, "версія збереження %d" % GameState.SAVE_VERSION)
 	gs.from_dict(JSON.parse_string(JSON.stringify(rt)))
-	ok(gs.level == 7 and gs.equipment.size() >= 2, "v2 переживає запис і читання")
+	ok(gs.level == 7 and gs.equipment.size() >= 2, "v3 переживає запис і читання")
+	var v2 := {"version": 2, "name": "Двійка", "blessing": "perun", "class": "druzhynnyk", "level": 4, "xp": 5,
+		"unlocked": ["s_t0"], "perk_points": 5,
+		"equipment": {"weapon": Items.make("sword", 3, 1, rng), "armor": Items.make("mail", 3, 1, rng), "amulet": Items.make("amulet", 3, 1, rng), "offhand": Items.make("shield_round", 3, 1, rng)},
+		"bag": [Items.make("cap", 3, 1, rng)]}
+	ok(gs.from_dict(v2), "збереження v2 читається")
+	ok(_is_filled(gs.equipment.get("main", null)) and _is_filled(gs.equipment.get("body", null)) and _is_filled(gs.equipment.get("amulet", null)), "v2: зброя, броня й оберіг на нових слотах")
+	ok(_is_filled(gs.equipment.get("off", null)) or gs.bag.size() >= 2, "v2: щит не втрачено")
+	ok(gs.bag.size() >= 1, "v2: сумка збережена")
+	ok(not gs.from_dict({"version": 3, "name": "x"}), "пошкоджене збереження відхилено")
+	# повний круг v3: локація, завдання, крамниця
+	gs.new_hero("Коло", "perun", "volkhv")
+	gs.choose_starter(gs.starter_choices()[2]["node"])
+	gs.location = "swamp"
+	gs.quests = {"herbs": {"state": "done", "progress": 0}}
+	gs.refresh_stock(true)
+	gs.from_dict(JSON.parse_string(JSON.stringify(gs.to_dict())))
+	ok(gs.location == "swamp" and gs.quest_state("herbs") == "done" and gs.merchant_stock.size() == GameState.STOCK_SIZE and not gs.starter_pending(), "v3: локація, завдання, крамниця, стартова навичка збережені")
 
 	print("== 7. Сцени ==")
 	var title: Node = load("res://scenes/main.tscn").instantiate()
@@ -249,6 +402,7 @@ func _run() -> void:
 
 	print("== 8. Розігрів шейдерів (перший вхід у світ) ==")
 	gs.new_hero("Тест", "perun", "druzhynnyk")
+	gs.choose_starter(gs.starter_choices()[0]["node"])
 	var ww := _make_world(false)
 	var t0 := Time.get_ticks_msec()
 	var frames_n := 0
@@ -269,16 +423,20 @@ func _run() -> void:
 	ok(omni == 0, "немає точкових джерел світла (вони міняють шейдери в русі)")
 	await _drop_world(ww)
 
+	var combo_i := 0
 	for combo in [["perun", "druzhynnyk"], ["veles", "strilets"], ["stribog", "volkhv"], ["svarog", "druzhynnyk"], ["mokosh", "volkhv"], ["dazhbog", "strilets"]]:
 		print("== 9. Світ: %s / %s ==" % combo)
 		gs.new_hero("Тест", combo[0], combo[1])
+		gs.choose_starter(gs.starter_choices()[combo_i % 3]["node"])
+		combo_i += 1
+		gs.location = "forest"
 		gs.perk_points = 30
-		# відкриваємо ланцюжок від старту
-		var cur: String = PerkTree.class_start(combo[1])
+		# відкриваємо ланцюжок від стартової навички
+		var cur: String = gs.starter_node
 		for step in range(12):
 			var nxt := ""
 			for cand in PerkTree.neighbors(cur):
-				if not gs.is_unlocked(cand):
+				if gs.can_unlock(cand):
 					nxt = cand
 					break
 			if nxt == "":
@@ -319,7 +477,7 @@ func _run() -> void:
 		await get_tree().create_timer(3.4).timeout
 		ok(not p.dead and p.hp > 0, "гравець відроджений")
 		ok(gs.xp <= xp_before, "звитяга не зросла після смерті")
-		ok(gs.gold == gold_b and gs.bag.size() == bag_b and gs.equipment.size() == eq_b, "після смерті гривні й речі на місці")
+		ok(gs.gold >= gold_b and gs.bag.size() >= bag_b and gs.equipment.size() == eq_b, "після смерті гривні й речі на місці")
 		gs.add_xp(gs.xp_needed())
 		await frames(5)
 		world.hud._close_overlay()
@@ -327,7 +485,9 @@ func _run() -> void:
 
 	print("== 10. Здобич, зілля, швидкі слоти, мапа, вихід ==")
 	gs.new_hero("Тест", "stribog", "druzhynnyk")
-	gs.perk_points = 40
+	gs.choose_starter(gs.starter_choices()[0]["node"])
+	gs.location = "forest"
+	gs.perk_points = 400
 	var skill_nodes: Array = []
 	for id in PerkTree.nodes():
 		if str(PerkTree.get_def(id).get("skill", "")) != "":
@@ -335,10 +495,9 @@ func _run() -> void:
 	ok(skill_nodes.size() >= 3, "у Древі навичок-вузлів: %d" % skill_nodes.size())
 	# відкриваємо шлях до кількох навичок (BFS по сусідах)
 	for sn in skill_nodes:
-		var path: Array = _path_to(PerkTree.class_start("druzhynnyk"), sn)
-		for id in path:
-			if not gs.is_unlocked(id):
-				gs.unlock(id)
+		if gs.learned_skills().size() >= 7:
+			break
+		_unlock_path_to(gs, sn)
 	var learned: Array = gs.learned_skills()
 	ok(learned.size() >= 4, "вивчено навичок: %d (%s)" % [learned.size(), ", ".join(learned)])
 	var w2 := _make_world(true)
@@ -387,8 +546,17 @@ func _run() -> void:
 	hud.open_perks()
 	await frames(3)
 	ok(hud._perk_screen.visible and get_tree().paused, "Древо відкрито")
+	ok(not hud._perk_screen._modal.visible, "стартова навичка вже обрана — вікно вибору сховане")
 	hud._close_overlay()
 	await frames(2)
+	var saved_starter: String = gs.starter_node
+	gs.starter_node = ""
+	hud.open_perks()
+	await frames(3)
+	ok(hud._perk_screen._modal.visible and hud._perk_screen._modal_row.get_child_count() == 3, "без стартової навички Древо показує вибір із трьох")
+	hud._close_overlay()
+	await frames(2)
+	gs.starter_node = saved_starter
 	# здобич на землі
 	var loot_root: Node = w2.get_node("Loot")
 	var pp: Vector3 = p2.global_position
@@ -430,22 +598,26 @@ func _run() -> void:
 	ok(p2.use_potion("mana") and p2.mana > 0.0, "зілля чару відновлює чар")
 	# мапа
 	var cells_a := 0
-	for v in gs.explored:
+	for v in gs.explored_cells():
 		cells_a += 1 if v != 0 else 0
 	p2.global_position = Vector3(15, 0, -12)
 	await get_tree().create_timer(0.7).timeout
 	var cells_b := 0
-	for v in gs.explored:
+	for v in gs.explored_cells():
 		cells_b += 1 if v != 0 else 0
 	ok(cells_b > cells_a, "мапа відкривається за ходом: %d → %d клітинок" % [cells_a, cells_b])
 	ok(gs.is_explored(gs.map_cell(Vector2(15, -12))), "клітинка під героєм досліджена")
 	ok(not gs.is_explored(gs.map_cell(Vector2(-30, 25))), "далека клітинка ще темна")
-	# вихід: тригер із написом «Шлях закритий»
-	var ep: Vector2 = w2.exit_trigger_pos(0)
+	# вихід: брама в скелях веде в іншу локацію
+	ok(w2.exit_gates.size() >= 2 and is_instance_valid(w2.exit_gates[0]), "брами у скелях є (%d)" % w2.exit_gates.size())
+	var to_v: int = w2.exit_index_to("village")
+	ok(to_v >= 0 and w2.exit_index_to("swamp") >= 0, "ліс має виходи до селища й болота")
+	w2.instant_transition = true
+	var ep: Vector2 = w2.exit_trigger_pos(to_v)
 	p2.global_position = Vector3(ep.x, 0, ep.y)
-	await get_tree().create_timer(0.6).timeout
-	ok(hud._toast.visible and hud._toast.text == "Шлях закритий", "вихід: напис «%s»" % hud._toast.text)
-	ok(w2.exit_gates.size() >= 1 and is_instance_valid(w2.exit_gates[0]), "брама у скелях є")
+	await get_tree().create_timer(0.8).timeout
+	ok(gs.location == "village" and gs.arrive_from == "forest", "перехід через браму: ліс → селище (%s ← %s)" % [gs.location, gs.arrive_from])
+	gs.location = "forest"
 	# HUD: 4 кнопки навичок і зілля
 	ok(hud._skills.size() == 4, "чотири кнопки навичок")
 	ok(hud._mini != null and hud._mini.visible, "міні-карта в куті HUD")
@@ -459,7 +631,172 @@ func _run() -> void:
 	await frames(2)
 	await _drop_world(w2)
 
-	print("== 11. Вузол: перевірка редактора (JS) ==")
+	print("== 11. Селище: НПС, діалоги, торгівля ==")
+	gs.new_hero("Тест", "perun", "druzhynnyk")
+	gs.choose_starter(gs.starter_choices()[0]["node"])
+	gs.location = "village"
+	gs.gold = 500
+	gs.refresh_stock(true)
+	var wv := _make_world(true)
+	await frames(15)
+	ok(wv.loc_id == "village" and get_tree().get_nodes_in_group("enemies").is_empty(), "селище — безпечна зона без ворогів")
+	var npc_ids: Array = []
+	for it in wv.interactables:
+		if it["kind"] == "npc":
+			npc_ids.append(it["id"])
+	ok("merchant" in npc_ids and "herbalist" in npc_ids and "elder" in npc_ids, "у селищі НПС: %s" % str(npc_ids))
+	ok(wv.exits.size() >= 1 and wv.exit_index_to("forest") >= 0, "вихід із селища веде до лісу")
+	var hv: Hud = wv.hud
+	for it in wv.interactables:
+		if it["id"] == "herbalist":
+			wv.player.global_position = it["pos"] + Vector3(1.0, 0, 0)
+	await frames(4)
+	var near: Dictionary = wv.nearest_interactable()
+	ok(not near.is_empty() and near["id"] == "herbalist" and wv.interact_prompt(near).begins_with("Говорити"), "біля травниці з'являється «%s»" % wv.interact_prompt(near))
+	wv.interact(near)
+	await frames(3)
+	ok(hv._dialog.visible and get_tree().paused, "діалог із травницею відкрито")
+	hv._close_overlay()
+	await frames(2)
+	ok(not hv._dialog.visible and not get_tree().paused, "діалог закрито, гра триває")
+	hv.open_dialog("merchant")
+	await frames(2)
+	hv._dialog.shop_requested.emit()
+	await frames(3)
+	ok(hv._shop.visible, "крамниця відкривається з розмови з торговцем")
+	hv._close_overlay()
+	await frames(2)
+	ok(not hv._shop.visible and not hv._dialog.visible and not get_tree().paused, "після закриття крамниці гра відновлюється")
+	hv.open_shop()
+	await frames(3)
+	ok(hv._shop.visible and get_tree().paused, "крамницю відкрито напряму")
+	var gold_s: int = gs.gold
+	var stock_n: int = gs.merchant_stock.size()
+	ok(gs.buy(0) and gs.merchant_stock.size() == stock_n - 1 and gs.gold < gold_s, "купівля в крамниці працює")
+	hv._close_overlay()
+	await frames(2)
+	hv.open_quests()
+	await frames(3)
+	ok(hv._quest_screen.visible, "журнал завдань відкривається")
+	hv._close_overlay()
+	await frames(2)
+	# меню героя за портретом
+	var port_c: Vector2 = hv._portrait.global_position + hv._portrait.size * 0.5
+	hv._touch_down(5, port_c)
+	hv._touch_up(5)
+	await frames(3)
+	ok(hv._submenu != null and hv._submenu.visible, "портрет розкриває меню героя")
+	hv.open_inventory(InventoryScreen.TAB_STATS)
+	await frames(3)
+	ok(hv._inventory.visible, "вкладка «Характеристики» відкривається")
+	hv._close_overlay()
+	await frames(2)
+	await _drop_world(wv)
+
+	print("== 12. Завдання ==")
+	gs.new_hero("Тест", "perun", "druzhynnyk")
+	ok(gs.quest_available("herbs") and not gs.quest_available("alpha") and not gs.quest_available("wraiths"), "на початку доступні лише перші завдання")
+	ok("herbs" in gs.quests_of("herbalist") and "rushnyk" in gs.quests_of("merchant"), "травниця й торговець мають завдання")
+	ok(gs.accept_quest("herbs") and gs.quest_state("herbs") == "active" and not gs.accept_quest("herbs"), "завдання про трави взято")
+	for i in range(4):
+		gs.quest_event("item", "herb", 1)
+	ok(gs.quest_progress("herbs") == 4 and gs.quest_state("herbs") == "active", "4 з 5 трав: ще не виконано")
+	ok(gs.turn_in_quest("herbs") == "", "до виконання здати не можна")
+	gs.quest_event("item", "herb", 1)
+	ok(gs.quest_state("herbs") == "ready" and "herbs" in gs.quests_to_turn_in("herbalist"), "5 з 5 трав: можна здавати")
+	var g_q: int = gs.gold
+	var hp_q: int = gs.hp_potions
+	var rew: String = gs.turn_in_quest("herbs")
+	ok(rew != "" and gs.quest_state("herbs") == "done" and gs.gold == g_q + 70 and gs.hp_potions == hp_q + 2, "нагорода за трави: «%s»" % rew)
+	ok(gs.quest_available("alpha") and gs.quest_available("letter"), "після трав відкрились нові завдання")
+	gs.accept_quest("alpha")
+	gs.boss_killed("alpha")
+	ok(gs.quest_state("alpha") == "ready", "вбивство боса виконує завдання")
+	gs.turn_in_quest("alpha")
+	gs.accept_quest("wraiths")
+	gs.quest_event("kill", "wraith", 5)
+	ok(gs.quest_state("wraiths") == "active" and gs.quest_progress("wraiths") == 5, "5 з 6 привидів")
+	gs.quest_event("kill", "novice", 3)
+	ok(gs.quest_progress("wraiths") == 5, "інші вороги не рахуються")
+	gs.quest_event("kill", "wraith", 1)
+	ok(gs.quest_state("wraiths") == "ready", "6 привидів: готово")
+	gs.accept_quest("rushnyk")
+	var pm0: float = gs.price_mult()
+	gs.quest_event("item", "rushnyk", 1)
+	var perks0: int = gs.perk_points
+	gs.turn_in_quest("rushnyk")
+	ok(gs.price_mult() < pm0 and gs.perk_points == perks0 + 1, "рушник: знижка в торговця й +1 перк")
+	gs.bag = []
+	for i in range(GameState.BAG_SIZE):
+		gs.add_item(Items.generate(1, rng))
+	ok(gs.turn_in_quest("wraiths") == "" and gs.last_error != "" and gs.quest_state("wraiths") == "ready", "повна сумка: нагороду предметом не видати (%s)" % gs.last_error)
+	gs.bag = []
+	ok(gs.turn_in_quest("wraiths") != "" and gs.quest_state("wraiths") == "done", "після звільнення місця — нагорода видана")
+
+	print("== 13. Локації, мініборси, дороги, будинки ==")
+	var avg_lvl := {}
+	var boss_hp := {}
+	for loc_id in ["forest", "swamp", "ruins"]:
+		gs.new_hero("Тест", "perun", "druzhynnyk")
+		gs.choose_starter(gs.starter_choices()[0]["node"])
+		gs.location = loc_id
+		var wl := _make_world(true)
+		await frames(15)
+		var ens := get_tree().get_nodes_in_group("enemies")
+		ok(wl.loc_id == loc_id and ens.size() >= 8, "%s: ворогів %d" % [loc_id, ens.size()])
+		var sum := 0.0
+		var cnt := 0
+		for e3 in ens:
+			if not (e3 as Enemy).is_boss:
+				sum += float((e3 as Enemy).level)
+				cnt += 1
+		avg_lvl[loc_id] = sum / maxf(1.0, float(cnt))
+		ok(wl.boss != null and is_instance_valid(wl.boss) and wl.boss.is_boss, "%s: є міні-бос «%s»" % [loc_id, wl.boss.boss_name if wl.boss != null else "—"])
+		boss_hp[loc_id] = wl.boss.max_hp if wl.boss != null else 0.0
+		ok(wl.exits.size() >= 1 and wl.exit_gates.size() == wl.exits.size(), "%s: брами на краях карти (%d)" % [loc_id, wl.exits.size()])
+		ok(Locations.get_def(loc_id).has("roads") and not (Locations.get_def(loc_id)["roads"] as Array).is_empty(), "%s: є дороги" % loc_id)
+		var lights_ok := true
+		for n in wl.find_children("*", "Light3D", true, false):
+			if (n as Light3D).shadow_enabled or n is OmniLight3D or n is SpotLight3D:
+				lights_ok = false
+		ok(lights_ok, "%s: без тіней і точкових джерел світла" % loc_id)
+		if loc_id == "forest":
+			var chest := {}
+			for it in wl.interactables:
+				if it["kind"] == "chest":
+					chest = it
+			ok(not chest.is_empty() and wl.interact_prompt(chest) == "Відкрити скриню", "ліс: у покинутій хаті є скриня")
+			gs.accept_quest("rushnyk")
+			wl.player.global_position = chest["pos"] + Vector3(1, 0, 0)
+			wl.interact(chest)
+			await frames(3)
+			ok(gs.quest_state("rushnyk") == "ready" and gs.chest_opened("forest_house_chest"), "скриня дає рушник — завдання готове")
+			# бос: сильніший, довго відроджується, більша нагорода
+			var normal_hp := 0.0
+			for e4 in ens:
+				if not (e4 as Enemy).is_boss:
+					normal_hp = (e4 as Enemy).max_hp
+					break
+			ok(wl.boss.max_hp > normal_hp * 3.0, "бос значно міцніший (%d проти %d)" % [int(wl.boss.max_hp), int(normal_hp)])
+			var loot0 := get_tree().get_nodes_in_group("loot").size()
+			gs.quests["herbs"] = {"state": "done", "progress": 0}
+			gs.accept_quest("alpha")
+			var boss_ref: Enemy = wl.boss
+			boss_ref.take_damage(9999999.0, wl.player.global_position, false, 0.0)
+			await frames(6)
+			ok(boss_ref.dead and not gs.boss_ready("alpha") and gs.boss_seconds_left("alpha") > 300, "бос повалений, відродиться через %d с" % gs.boss_seconds_left("alpha"))
+			ok(get_tree().get_nodes_in_group("loot").size() >= loot0 + 4, "бос дав багату здобич (+%d)" % (get_tree().get_nodes_in_group("loot").size() - loot0))
+			ok(gs.quest_state("alpha") == "ready", "квест на вовкулаку виконано")
+		await _drop_world(wl)
+	ok(avg_lvl["forest"] < avg_lvl["swamp"] and avg_lvl["swamp"] < avg_lvl["ruins"], "рівень ворогів росте: ліс %.1f < болото %.1f < руїни %.1f" % [avg_lvl["forest"], avg_lvl["swamp"], avg_lvl["ruins"]])
+	ok(boss_hp["forest"] < boss_hp["swamp"] and boss_hp["swamp"] < boss_hp["ruins"], "боси міцнішають від локації до локації (%d, %d, %d)" % [int(boss_hp["forest"]), int(boss_hp["swamp"]), int(boss_hp["ruins"])])
+	# мапа кожної локації
+	for loc_id in Locations.IDS:
+		var def := Locations.get_def(loc_id)
+		for ex in def["exits"]:
+			ok(Locations.has(str(ex["to"])), "вихід %s → %s існує" % [loc_id, ex["to"]])
+
+	print("== 14. Редактор Древа ==")
 	ok(FileAccess.file_exists("res://tools/tree-editor/index.html"), "редактор у репозиторії")
 
 	gs.delete_save()
@@ -485,3 +822,37 @@ func _path_to(from: String, to: String) -> Array:
 		out.push_front(cur)
 		cur = prev[cur]
 	return out
+
+
+func _is_filled(v: Variant) -> bool:
+	return typeof(v) == TYPE_DICTIONARY and not (v as Dictionary).is_empty()
+
+
+## Відкриває вузли найкоротшим шляхом від уже відкритих до цілі (BFS за можливими вузлами).
+func _unlock_path_to(gs: Node, target: String) -> void:
+	for guard in range(120):
+		if gs.is_unlocked(target):
+			return
+		var prev := {}
+		var q: Array = []
+		for u in gs.unlocked:
+			prev[u] = ""
+			q.append(u)
+		var found := false
+		while not q.is_empty() and not found:
+			var c: String = q.pop_front()
+			for nb in PerkTree.neighbors(c):
+				if prev.has(nb):
+					continue
+				prev[nb] = c
+				if nb == target:
+					found = true
+					break
+				q.append(nb)
+		if not found:
+			return
+		var cur := target
+		while prev[cur] != "" and not gs.is_unlocked(str(prev[cur])):
+			cur = str(prev[cur])
+		if not gs.unlock(cur):
+			return

@@ -54,4 +54,8 @@ func _draw_art(tex: Texture2D) -> void:
 	var n := maxi(1, int(round(size.x / tile_w)))
 	var w := size.x / float(n)
 	for i in range(n):
-		draw_texture_rect(small, Rect2(float(i) * w, 0, w, size.y), false)
+		# кожна друга плитка віддзеркалена: шов між повторами не видно
+		if i % 2 == 0:
+			draw_texture_rect(small, Rect2(float(i) * w, 0, w, size.y), false)
+		else:
+			draw_texture_rect(small, Rect2(float(i + 1) * w, 0, -w, size.y), false)

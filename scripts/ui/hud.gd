@@ -24,10 +24,14 @@ var _xp_bar: StatBar
 var _name_label: Label
 var _gold_label: Label
 var _portrait: Control
-var _btn_bag: Button
-var _btn_skills: Button
-var _btn_perks: Button
-var _btn_menu: Button
+var _top_panel: PanelContainer
+var _submenu: PanelContainer
+var _submenu_btns := {}
+var _btn_interact: Button
+var _interact_item: Dictionary = {}
+var _quest_panel: PanelContainer
+var _quest_label: Label
+var _loc_label: Label
 var _mini: MapView
 var _mini_frame: Panel
 var _target_panel: PanelContainer
@@ -43,6 +47,9 @@ var _perk_screen: PerkTreeScreen
 var _pause_menu: PauseMenu
 var _inventory: InventoryScreen
 var _map_screen: MapScreen
+var _dialog: DialogScreen
+var _shop: ShopScreen
+var _quest_screen: QuestScreen
 var _touches := {}      # індекс пальця -> роль ("stick", "attack", "skill0".."skill3", "potion_hp", "potion_mana")
 var _overlay_open := false
 var _toast_tween: Tween
@@ -60,6 +67,8 @@ func _ready() -> void:
 	add_child(_root)
 	_build_top_left()
 	_build_top_right()
+	_build_submenu()
+	_build_interact()
 	_build_target_frame()
 	_build_touch_controls()
 	_build_overlays()
@@ -80,12 +89,21 @@ func bind(p_player: Player, p_world: GameWorld) -> void:
 	world = p_world
 	_mini.bind(world, player)
 	_refresh_attack_label()
+	if not world.is_warmed:
+		world.warmed.connect(_maybe_starter, CONNECT_ONE_SHOT)
+
+
+## Новий герой без навичок: одразу показуємо вибір стартової навички на Древі.
+func _maybe_starter() -> void:
+	if GameState.starter_pending() and not _overlay_open and world != null and not world.skip_warmup:
+		open_perks()
 
 
 # ---------- Побудова ----------
 
 func _build_top_left() -> void:
 	var panel := PanelContainer.new()
+	_top_panel = panel
 	panel.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.82), Palette.GOLD, 2, 12))
 	panel.position = Vector2(16, 12)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -113,21 +131,73 @@ func _build_top_left() -> void:
 	v.add_child(_gold_label)
 
 
-func _top_button(text: String, color: Color, minw: float, handler: Callable) -> Button:
+func _menu_button(text: String, color: Color, handler: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	FolkTheme.apply_button(b, color, 21)
-	b.custom_minimum_size = Vector2(minw, 60)
-	b.pressed.connect(handler)
-	_root.add_child(b)
+	FolkTheme.apply_button(b, color, 24)
+	b.custom_minimum_size = Vector2(250, 58)
+	b.pressed.connect(func() -> void:
+		close_submenu()
+		handler.call())
 	return b
 
 
+## Портрет героя відкриває меню: Сумка, Навички, Характеристики, Древо, Завдання, Меню.
+func _build_submenu() -> void:
+	_submenu = PanelContainer.new()
+	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.96), Palette.GOLD, 3, 12))
+	_submenu.visible = false
+	_submenu.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.add_child(_submenu)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	_submenu.add_child(v)
+	var defs := [
+		["bag", "Сумка", Palette.EMBROIDERY, func() -> void: open_inventory(InventoryScreen.TAB_BAG)],
+		["skills", "Навички", Palette.PANEL_LIGHT, func() -> void: open_inventory(InventoryScreen.TAB_SKILLS)],
+		["stats", "Характеристики", Palette.PANEL_LIGHT, func() -> void: open_inventory(InventoryScreen.TAB_STATS)],
+		["perks", "Древо", Palette.TURQUOISE.darkened(0.25), open_perks],
+		["quests", "Завдання", Palette.EMBROIDERY.darkened(0.2), open_quests],
+		["menu", "Меню", Palette.PANEL_LIGHT, _open_pause],
+	]
+	for d in defs:
+		var b := _menu_button(d[1], d[2], d[3])
+		v.add_child(b)
+		_submenu_btns[d[0]] = b
+
+
+func toggle_submenu() -> void:
+	_submenu.visible = not _submenu.visible
+	_update_menu_badges()
+	_layout()
+
+
+func close_submenu() -> void:
+	if _submenu != null:
+		_submenu.visible = false
+
+
+func _update_menu_badges() -> void:
+	if _submenu_btns.is_empty():
+		return
+	var pts := GameState.perk_points
+	(_submenu_btns["perks"] as Button).text = "Древо" if pts <= 0 else "Древо (+%d)" % pts
+	var nq := GameState.active_quests().size()
+	(_submenu_btns["quests"] as Button).text = "Завдання" if nq <= 0 else "Завдання (%d)" % nq
+
+
+func _build_interact() -> void:
+	_btn_interact = Button.new()
+	FolkTheme.apply_button(_btn_interact, Palette.EMBROIDERY, 26)
+	_btn_interact.custom_minimum_size = Vector2(340, 70)
+	_btn_interact.visible = false
+	_btn_interact.pressed.connect(func() -> void:
+		if world != null and not _interact_item.is_empty():
+			world.interact(_interact_item))
+	_root.add_child(_btn_interact)
+
+
 func _build_top_right() -> void:
-	_btn_menu = _top_button("Меню", Palette.PANEL_LIGHT, 100, _open_pause)
-	_btn_perks = _top_button("Древо", Palette.TURQUOISE.darkened(0.25), 150, open_perks)
-	_btn_skills = _top_button("Навички", Palette.PANEL_LIGHT, 130, func() -> void: open_inventory(InventoryScreen.TAB_SKILLS))
-	_btn_bag = _top_button("Сумка", Palette.EMBROIDERY, 110, func() -> void: open_inventory(InventoryScreen.TAB_BAG))
 	_mini = MapView.new(MapView.Mode.MINI)
 	_mini.custom_minimum_size = Vector2(MINI_SIZE, MINI_SIZE)
 	_mini.size = Vector2(MINI_SIZE, MINI_SIZE)
@@ -142,6 +212,18 @@ func _build_top_right() -> void:
 	_mini_frame.add_theme_stylebox_override("panel", sb)
 	_mini_frame.size = Vector2(MINI_SIZE, MINI_SIZE)
 	_root.add_child(_mini_frame)
+	_loc_label = FolkTheme.label("", 18, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	_loc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_loc_label)
+	_quest_panel = PanelContainer.new()
+	_quest_panel.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.8), Palette.GOLD.darkened(0.2), 2, 10))
+	_quest_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_quest_panel.visible = false
+	_root.add_child(_quest_panel)
+	_quest_label = FolkTheme.label("", 17, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	_quest_label.custom_minimum_size = Vector2(250, 0)
+	_quest_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_quest_panel.add_child(_quest_label)
 
 
 func _build_target_frame() -> void:
@@ -240,13 +322,26 @@ func _build_overlays() -> void:
 	_map_screen.visible = false
 	_map_screen.closed.connect(_close_overlay)
 	add_child(_map_screen)
+	_dialog = DialogScreen.new()
+	_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	_dialog.visible = false
+	_dialog.closed.connect(_close_overlay)
+	_dialog.shop_requested.connect(open_shop)
+	add_child(_dialog)
+	_shop = ShopScreen.new()
+	_shop.process_mode = Node.PROCESS_MODE_ALWAYS
+	_shop.visible = false
+	_shop.closed.connect(_close_overlay)
+	add_child(_shop)
+	_quest_screen = QuestScreen.new()
+	_quest_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	_quest_screen.visible = false
+	_quest_screen.closed.connect(_close_overlay)
+	add_child(_quest_screen)
 	_pause_menu = PauseMenu.new()
 	_pause_menu.process_mode = Node.PROCESS_MODE_ALWAYS
 	_pause_menu.visible = false
 	_pause_menu.resume_pressed.connect(_close_overlay)
-	_pause_menu.perks_pressed.connect(open_perks)
-	_pause_menu.bag_pressed.connect(open_inventory.bind(InventoryScreen.TAB_BAG))
-	_pause_menu.skills_pressed.connect(open_inventory.bind(InventoryScreen.TAB_SKILLS))
 	_pause_menu.title_pressed.connect(_go_title)
 	add_child(_pause_menu)
 
@@ -259,14 +354,15 @@ func _layout() -> void:
 		vs = get_viewport().get_visible_rect().size
 	_mini.position = Vector2(vs.x - MINI_SIZE - 16.0, 12.0)
 	_mini_frame.position = _mini.position
-	var x := _mini.position.x - 12.0
-	for b in [_btn_menu, _btn_perks, _btn_skills, _btn_bag]:
-		var bb: Button = b
-		var w := maxf(bb.custom_minimum_size.x, bb.get_combined_minimum_size().x)
-		bb.size = Vector2(w, 60)
-		x -= w
-		bb.position = Vector2(x, 12)
-		x -= 8.0
+	_loc_label.size = Vector2(300, 26)
+	_loc_label.position = Vector2(_mini.position.x - 300.0 - 8.0, 14.0)
+	_quest_panel.position = Vector2(vs.x - 250.0 - 40.0, MINI_SIZE + 22.0)
+	_quest_panel.size = Vector2(250.0 + 24.0, 10)
+	if _top_panel != null:
+		_submenu.position = Vector2(16.0, _top_panel.position.y + _top_panel.size.y + 6.0)
+		_submenu.size = Vector2(10, 10)
+	_btn_interact.position = Vector2(vs.x * 0.5 - 170.0, vs.y - 120.0)
+	_btn_interact.size = Vector2(340, 70)
 	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 82.0)
 	_attack.place(Vector2(vs.x - MARGIN - 80.0 - 20.0, vs.y - MARGIN - 80.0 - 10.0))
 	for i in range(SKILL_COUNT):
@@ -296,12 +392,11 @@ func map_dirty() -> void:
 func _on_state_changed() -> void:
 	_name_label.text = "%s · %s %d" % [GameState.hero_name, Strings.LEVEL, GameState.level]
 	_xp_bar.set_values(float(GameState.xp), float(GameState.xp_needed()))
-	var pts := GameState.perk_points
-	_btn_perks.text = "Древо" if pts <= 0 else "Древо (+%d)" % pts
+	_update_menu_badges()
+	_update_quest_tracker()
 	_gold_label.text = "Гривні: %d" % GameState.gold
 	(_portrait as PortraitSlot).set_portrait(GameState.blessing, GameState.hero_class)
-	if _btn_perks.is_inside_tree():
-		_layout()
+	_loc_label.text = str(world.loc.get("name", "")) if world != null else Locations.get_def(GameState.location).get("name", "")
 	if player != null:
 		_refresh_attack_label()
 
@@ -327,6 +422,42 @@ func _process(_delta: float) -> void:
 	_potion_mana.usable = GameState.mana_potions > 0
 	_potion_mana.queue_redraw()
 	_update_target()
+	_update_interact()
+
+
+## Підказка-кнопка «Говорити / Відкрити», коли поруч NPC чи скриня.
+func _update_interact() -> void:
+	if world == null:
+		return
+	var it := world.nearest_interactable() if not _overlay_open else {}
+	_interact_item = it
+	_btn_interact.visible = not it.is_empty()
+	if not it.is_empty():
+		_btn_interact.text = world.interact_prompt(it)
+
+
+func _update_quest_tracker() -> void:
+	var act := GameState.active_quests()
+	_quest_panel.visible = not act.is_empty()
+	if act.is_empty():
+		return
+	var lines: Array = []
+	for id in act.slice(0, 3):
+		var d := Quests.get_def(str(id))
+		var line := "%s: %d/%d" % [d["name"], GameState.quest_progress(str(id)), int(d["need"])]
+		if GameState.quest_state(str(id)) == "ready":
+			line = "%s — віднести (%s)" % [d["name"], Locations.get_def("village")["npcs"][_npc_index(str(d["turn_in"]))]["name"]]
+		lines.append(line)
+	_quest_label.text = "Завдання\n" + "\n".join(lines)
+	_quest_panel.size = Vector2(250.0 + 24.0, 10)
+
+
+func _npc_index(npc_id: String) -> int:
+	var arr: Array = Locations.get_def("village")["npcs"]
+	for i in range(arr.size()):
+		if str(arr[i]["id"]) == npc_id:
+			return i
+	return 0
 
 
 func _update_skill_button(i: int) -> void:
@@ -347,7 +478,7 @@ func _update_skill_button(i: int) -> void:
 		b.sub_text = "%d чару" % int(def["mana"])
 		b.cooldown = player.skill_cd_ratio(i)
 		b.usable = player.mana >= float(def["mana"])
-		b.icon = FolkTheme.art_texture(Skills.icon_path(id, GameState.blessing))
+		b.icon = Icons.texture(Icons.skill_icon_id(id, GameState.blessing))
 	b.queue_redraw()
 
 
@@ -399,10 +530,26 @@ func _input(event: InputEvent) -> void:
 			player.move_input = _stick.drag(d.position)
 
 
+func _portrait_rect() -> Rect2:
+	var r := Rect2(_portrait.global_position, _portrait.size)
+	return r.grow(8.0)
+
+
 func _touch_down(index: int, pos: Vector2) -> void:
 	if _touches.has(index):
 		return
 	var vs := _root.size
+	if _submenu.visible:
+		if Rect2(_submenu.global_position, _submenu.size).has_point(pos):
+			return   # дотик на меню обробляють самі кнопки
+		if not _portrait_rect().has_point(pos):
+			close_submenu()
+			return
+	if _portrait_rect().has_point(pos):
+		_touches[index] = "portrait"
+		return
+	if _btn_interact.visible and Rect2(_btn_interact.global_position, _btn_interact.size).has_point(pos):
+		return
 	if _attack.hit(pos):
 		_touches[index] = "attack"
 		_attack.set_pressed(true)
@@ -453,6 +600,8 @@ func _touch_up(index: int) -> void:
 			_potion_mana.set_pressed(false)
 		"map":
 			open_map()
+		"portrait":
+			toggle_submenu()
 		_:
 			if role.begins_with("skill"):
 				(_skills[int(role.substr(5))] as TouchButton).set_pressed(false)
@@ -465,7 +614,7 @@ func _has_role(role: String) -> bool:
 func _release_all() -> void:
 	for idx in _touches.keys().duplicate():
 		var role: String = _touches[idx]
-		if role == "map":
+		if role == "map" or role == "portrait":
 			_touches.erase(idx)
 		else:
 			_touch_up(idx)
@@ -512,6 +661,7 @@ func toast(text: String) -> void:
 # ---------- Екрани ----------
 
 func _enter_overlay() -> void:
+	close_submenu()
 	_release_all()
 	_hide_screens()
 	_overlay_open = true
@@ -523,6 +673,9 @@ func _hide_screens() -> void:
 	_pause_menu.visible = false
 	_inventory.visible = false
 	_map_screen.visible = false
+	_dialog.visible = false
+	_shop.visible = false
+	_quest_screen.visible = false
 
 
 func open_perks() -> void:
@@ -533,6 +686,23 @@ func open_perks() -> void:
 func open_inventory(tab: int = InventoryScreen.TAB_BAG) -> void:
 	_enter_overlay()
 	_inventory.open(tab)
+
+
+func open_quests() -> void:
+	_enter_overlay()
+	_quest_screen.open()
+
+
+func open_dialog(npc_id: String) -> void:
+	if _overlay_open:
+		return
+	_enter_overlay()
+	_dialog.open(npc_id)
+
+
+func open_shop() -> void:
+	_enter_overlay()
+	_shop.open()
 
 
 func open_map() -> void:

@@ -49,7 +49,7 @@ func _rebuild_texture() -> void:
 	var n := GameState.MAP_GRID
 	if _img == null:
 		_img = Image.create(n, n, false, Image.FORMAT_RGBA8)
-	var ex := GameState.explored
+	var ex := GameState.explored_cells()
 	var ok := ex.size() == n * n
 	for y in range(n):
 		for x in range(n):
@@ -67,7 +67,7 @@ func _rebuild_texture() -> void:
 				# за межею долини земля сіра (скелі)
 				var wx := float(x - n / 2) + 0.5
 				var wy := float(y - n / 2) + 0.5
-				if Vector2(wx, wy).length() > GameWorld.ARENA_RADIUS - 0.5:
+				if Vector2(wx, wy).length() > world.arena_radius - 0.5:
 					c = Color(0.36, 0.36, 0.40, 1.0)
 			_img.set_pixel(x, y, c)
 	if _tex == null:
@@ -80,7 +80,7 @@ func _rebuild_texture() -> void:
 ## Масштаб (пікселів на метр) і центр (світові x, z, що лежать у центрі контролу).
 func _view() -> Array:
 	var cen := Vector2.ZERO
-	var scale := minf(size.x, size.y) / (2.0 * (GameWorld.ARENA_RADIUS + 5.0))
+	var scale := minf(size.x, size.y) / (2.0 * (world.arena_radius + 5.0)) if world != null else 1.0
 	if mode == Mode.MINI:
 		if player != null:
 			cen = Vector2(player.global_position.x, player.global_position.z)
@@ -107,15 +107,35 @@ func _draw() -> void:
 	draw_texture_rect(_tex, Rect2(Vector2(-half, -half), Vector2(GameState.MAP_GRID, GameState.MAP_GRID)), false)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# межа долини
-	draw_arc(to_px(Vector2.ZERO, cen, sc), GameWorld.ARENA_RADIUS * sc, 0.0, TAU, 96, Color(0.62, 0.6, 0.66, 0.9), 2.5 if mode == Mode.MINI else 4.0, true)
+	draw_arc(to_px(Vector2.ZERO, cen, sc), world.arena_radius * sc, 0.0, TAU, 96, Color(0.62, 0.6, 0.66, 0.9), 2.5 if mode == Mode.MINI else 4.0, true)
 	# вихід
-	for i in range(GameWorld.EXITS.size()):
+	for i in range(world.exits.size()):
 		var ep := to_px(world.exit_trigger_pos(i), cen, sc)
 		var er := 6.0 if mode == Mode.MINI else 11.0
 		draw_rect(Rect2(ep - Vector2(er, er * 0.7), Vector2(er * 2.0, er * 1.4)), Palette.TURQUOISE.lightened(0.2))
 		draw_rect(Rect2(ep - Vector2(er, er * 0.7), Vector2(er * 2.0, er * 1.4)), Palette.GOLD, false, 2.0)
 		if mode == Mode.FULL:
-			_label(ep + Vector2(-60, -er - 8.0), "Вихід (зачинено)", 18, Palette.LINEN)
+			_label(ep + Vector2(-70, -er - 8.0), str(world.exits[i]["label"]), 18, Palette.LINEN)
+	# будинки
+	for h in world.loc.get("houses", []):
+		var hpx := to_px(Vector2(float(h["pos"][0]), float(h["pos"][1])), cen, sc)
+		var hs := 4.0 if mode == Mode.MINI else 8.0
+		var hcol := Color("D8B070") if str(h["kind"]) != "abandoned" else Color("9A8A7A")
+		draw_rect(Rect2(hpx - Vector2(hs, hs), Vector2(hs * 2.0, hs * 2.0)), hcol)
+		if mode == Mode.FULL and str(h["kind"]) == "abandoned":
+			_label(hpx + Vector2(-50, -hs - 6.0), "Покинута хата", 16, Palette.LINEN)
+	# NPC
+	for it in world.interactables:
+		if str(it["kind"]) == "npc":
+			var npx := to_px(Vector2((it["pos"] as Vector3).x, (it["pos"] as Vector3).z), cen, sc)
+			var nr := 4.0 if mode == Mode.MINI else 7.0
+			draw_circle(npx, nr + 1.5, Palette.NIGHT)
+			draw_circle(npx, nr, Color("FFE27A"))
+			if mode == Mode.FULL:
+				_label(npx + Vector2(-30, -nr - 6.0), str(it["name"]), 17, Color("FFE27A"))
+		elif str(it["kind"]) == "chest" and not bool(it.get("opened", false)) and GameState.is_explored(GameState.map_cell(Vector2((it["pos"] as Vector3).x, (it["pos"] as Vector3).z))):
+			var cpx := to_px(Vector2((it["pos"] as Vector3).x, (it["pos"] as Vector3).z), cen, sc)
+			draw_rect(Rect2(cpx - Vector2(3, 3), Vector2(6, 6)), Palette.GOLD)
 	# Капище
 	var sp := to_px(Vector2.ZERO, cen, sc)
 	var sr := 7.0 if mode == Mode.MINI else 13.0
@@ -141,6 +161,16 @@ func _draw() -> void:
 			col = Palette.TURQUOISE.lightened(0.3)
 		draw_circle(epx, 3.5 if mode == Mode.MINI else 6.0, Palette.NIGHT)
 		draw_circle(epx, 2.5 if mode == Mode.MINI else 4.5, col)
+	# міні-бос
+	if world.boss != null and is_instance_valid(world.boss) and not world.boss.dead:
+		var bp := Vector2(world.boss.global_position.x, world.boss.global_position.z)
+		if bp.distance_to(pp) <= SEEN_RADIUS * 2.0 or GameState.is_explored(GameState.map_cell(bp)):
+			var bpx := to_px(bp, cen, sc)
+			var br := 6.0 if mode == Mode.MINI else 10.0
+			draw_circle(bpx, br + 2.0, Palette.NIGHT)
+			draw_circle(bpx, br, Color("C040E0"))
+			if mode == Mode.FULL:
+				_label(bpx + Vector2(-40, -br - 6.0), world.boss.boss_name, 17, Color("E8A0FF"))
 	# здобич
 	for d in get_tree().get_nodes_in_group("loot"):
 		var ld := d as LootDrop
