@@ -335,7 +335,7 @@ func _run() -> void:
 	gs.bag = []
 	for i in range(GameState.BAG_SIZE):
 		gs.add_item(Items.generate(1, rng))
-	ok(gs.bag.size() == GameState.BAG_SIZE and not gs.add_item(Items.generate(1, rng)), "сумка на 30 місць, повна не приймає")
+	ok(gs.bag.size() == GameState.BAG_SIZE and not gs.add_item(Items.generate(1, rng)), "сумка на 48 місць, повна не приймає")
 	gs.gold = 9999
 	ok(not gs.buy(0) and gs.last_error != "", "повна сумка: купівля відхилена")
 	gs.bag = []
@@ -471,6 +471,8 @@ func _run() -> void:
 		var bag_b: int = gs.bag.size()
 		var eq_b: int = gs.equipment.size()
 		var xp_before: int = gs.xp
+		p.invuln = 0.0
+		p.shield_hp = 0.0
 		p.take_damage(999999.0, p.global_position + Vector3(1, 0, 0), 0.0)
 		await frames(3)
 		ok(p.dead, "гравець помер")
@@ -796,6 +798,57 @@ func _run() -> void:
 		for ex in def["exits"]:
 			ok(Locations.has(str(ex["to"])), "вихід %s → %s існує" % [loc_id, ex["to"]])
 
+	print("== 13б. Нові землі, зграї, печера ==")
+	ok(Locations.IDS.size() >= 5 and Locations.has("steppe") and Locations.has("kurgan"), "є Дике поле й Чорні кургани")
+	ok(int(Locations.get_def("steppe")["levels"][0]) > int(Locations.get_def("ruins")["levels"][0]) and int(Locations.get_def("kurgan")["levels"][0]) > int(Locations.get_def("steppe")["levels"][0]), "рівень росте після Руїн")
+	ok(float(Locations.get_def("forest")["radius"]) >= 50.0, "локації більші (ліс %d)" % int(Locations.get_def("forest")["radius"]))
+	gs.new_hero("Тест", "perun", "druzhynnyk")
+	gs.choose_starter(gs.starter_choices()[0]["node"])
+	gs.level = 8
+	gs.location = "forest"
+	var wf := _make_world(true)
+	await frames(15)
+	var leaders := 0
+	for e5 in get_tree().get_nodes_in_group("enemies"):
+		if (e5 as Enemy).is_leader:
+			leaders += 1
+	ok(leaders >= 2, "зграї з ватажками (%d)" % leaders)
+	var cave_it := {}
+	for it in wf.interactables:
+		if it["kind"] == "cave":
+			cave_it = it
+	ok(not cave_it.is_empty() and wf.interact_prompt(cave_it) != "", "у лісі є вхід до печери")
+	wf.instant_transition = true
+	wf.enter_cave()
+	ok(gs.location == "cave" and gs.cave_from == "forest" and gs.cave_level >= 8, "вхід у печеру (рівень %d)" % gs.cave_level)
+	await _drop_world(wf)
+	var wc := _make_world(true)
+	await frames(15)
+	ok(wc.is_cave and wc.boss != null and wc.boss.is_cave_boss and wc.boss.level >= gs.cave_level + 3, "у печері Кощій %d рів." % (wc.boss.level if wc.boss != null else 0))
+	var kb: Enemy = wc.boss
+	kb.take_damage(kb.max_hp * 0.4, wc.player.global_position, false, 0.0)
+	await frames(2)
+	ok(kb.phase >= 2, "у Кощія змінюється фаза (%d)" % kb.phase)
+	kb.take_damage(9999999.0, wc.player.global_position, false, 0.0)
+	await frames(6)
+	var portal_it := {}
+	for it in wc.interactables:
+		if it["kind"] == "portal":
+			portal_it = it
+	ok(kb.dead and not portal_it.is_empty(), "після перемоги з'являється портал")
+	wc.instant_transition = true
+	wc.interact(portal_it)
+	ok(gs.location == "forest", "портал веде назад до лісу")
+	await _drop_world(wc)
+	gs.save_game()
+	print("== 13в. Комірки збереження ==")
+	ok(GameState.SLOT_COUNT >= 3, "комірок: %d" % GameState.SLOT_COUNT)
+	var cur_slot: int = gs.slot
+	ok(not gs.slot_info(cur_slot).is_empty(), "поточна комірка має збереження")
+	gs.select_slot(3 if cur_slot != 3 else 2)
+	ok(not gs.has_hero, "інша комірка порожня")
+	gs.select_slot(cur_slot)
+	ok(gs.has_hero and gs.hero_name == "Тест", "повернення до своєї комірки")
 	print("== 14. Редактор Древа ==")
 	ok(FileAccess.file_exists("res://tools/tree-editor/index.html"), "редактор у репозиторії")
 

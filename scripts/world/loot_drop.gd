@@ -185,6 +185,7 @@ func _pickup() -> void:
 	match kind:
 		KIND_GOLD:
 			GameState.add_gold(amount)
+			Sound.play("sfx_coins", -6.0)
 			Fx.damage_number(parent, pos, "+%d гривень" % amount, Palette.GOLD, false)
 		KIND_HP:
 			GameState.add_potion("hp", 1)
@@ -203,6 +204,9 @@ func _pickup() -> void:
 				get_tree().create_timer(2.0).timeout.connect(_rebind_player)
 				return
 			Fx.damage_number(parent, pos, label_text(), Items.rarity_color(item).lightened(0.2), true)
+			Sound.play("sfx_pickup", -3.0)
+	if kind == KIND_HP or kind == KIND_MANA:
+		Sound.play("sfx_pickup", -3.0)
 	_done = true
 	queue_free()
 

@@ -114,7 +114,9 @@ func rebuild_model() -> void:
 	_weapon_base = _current_weapon_base()
 	model = ModelFactory.hero(GameState.hero_class, accent, _base_of("main"), _base_of("off"))
 	add_child(model)
-	weapon_pivot = model.get_node("WeaponPivot")
+	weapon_pivot = model.find_child("WeaponPivot", true, false)
+	if weapon_pivot != null and weapon_pivot.has_meta("rig"):
+		weapon_pivot = null
 
 
 # ---------- Цикл ----------
@@ -212,6 +214,9 @@ func _regen(delta: float) -> void:
 func _animate(delta: float, move_amount: float) -> void:
 	if model == null:
 		return
+	if model is RigModel:
+		(model as RigModel).set_move(move_amount)
+		return
 	var bob := absf(sin(_walk_t * 2.2)) * 0.07 * clampf(move_amount * 2.0, 0.0, 1.0)
 	model.position.y = bob
 	model.rotation.x = lerpf(model.rotation.x, -0.12 * minf(move_amount, 1.0), 10.0 * delta)
@@ -282,16 +287,21 @@ func basic_attack() -> void:
 				attack_cd = 0.15
 				return
 	_face_now(dir)
+	if model is RigModel:
+		(model as RigModel).attack(kind, bool(model.get_meta("two_handed", false)))
 	attack_cd = HeroStats.attack_interval()
 	combat_timer = 0.0
 	_swing = 1.0
 	match kind:
 		"melee":
+			Sound.play("sfx_whoosh", -6.0)
 			var t := create_tween()
 			t.tween_callback(_melee_hit.bind(dir, reach)).set_delay(0.12)
 		"arrow":
+			Sound.play("sfx_arrow", -4.0)
 			_shoot(ModelFactory.arrow(), dir, 22.0, Palette.LINEN, true)
 		_:
+			Sound.play(Sound.blessing_magic(GameState.blessing), -8.0)
 			var col: Color = Blessings.get_def(GameState.blessing)["color"]
 			_shoot(ModelFactory.bolt(col), dir, 16.0, col, true)
 
@@ -403,6 +413,9 @@ func use_skill(slot: int) -> void:
 	if target != null:
 		dir = _dir_to(target.global_position)
 		_face_now(dir)
+	Sound.play(Sound.skill_sound(id, kind))
+	if model is RigModel:
+		(model as RigModel).attack("cast" if kind in ["buff", "shield", "heal", "nova"] else ("melee" if kind in ["cone", "strike", "dash"] and HeroStats.attack_kind() == "melee" else "spell"))
 	match kind:
 		"nova":
 			_cast_nova(id, p)
@@ -684,6 +697,8 @@ func _cast_dash(id: String, p: Dictionary) -> void:
 # ---------- Отримання шкоди, лікування, смерть ----------
 
 func take_damage(amount: float, from_pos: Vector3, knock_force: float = 3.0) -> void:
+	if not dead:
+		Sound.play("sfx_player_hurt", -6.0)
 	if dead or invuln > 0.0:
 		return
 	var final := maxf(1.0, amount * (1.0 - HeroStats.damage_reduction()))
@@ -712,6 +727,8 @@ func take_damage(amount: float, from_pos: Vector3, knock_force: float = 3.0) -> 
 		_knock = away.normalized() * knock_force
 	Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.2, 0), str(int(round(final))), Palette.EMBROIDERY.lightened(0.25), false)
 	ModelFactory.set_flash(model, true)
+	if model is RigModel:
+		(model as RigModel).hit()
 	_flash_t = 0.1
 	vitals_changed.emit()
 	if hp <= 0.0:
@@ -770,14 +787,19 @@ func _die() -> void:
 	dead = true
 	attack_held = false
 	move_input = Vector2.ZERO
-	var t := create_tween()
-	t.tween_property(model, "rotation:x", -PI / 2.0, 0.5).set_ease(Tween.EASE_IN)
-	t.parallel().tween_property(model, "position:y", 0.15, 0.5)
+	if model is RigModel:
+		(model as RigModel).die()
+	else:
+		var t := create_tween()
+		t.tween_property(model, "rotation:x", -PI / 2.0, 0.5).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(model, "position:y", 0.15, 0.5)
 	died.emit()
 
 
 func respawn(at: Vector3) -> void:
 	dead = false
+	if model is RigModel:
+		(model as RigModel).revive()
 	global_position = at
 	rotation.y = 0.0
 	_facing = Vector3(0, 0, -1)

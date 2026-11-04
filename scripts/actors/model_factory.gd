@@ -21,7 +21,70 @@ static func _v(x: float, y: float, z: float) -> Vector3:
 #  ГЕРОЙ
 # =====================================================================
 
+const HERO_RIGS := {"druzhynnyk": "Knight", "strilets": "Rogue_Hooded", "volkhv": "Mage"}
+## Основа предмета → меш із KayKit Fantasy Weapons Bits (CC0).
+const WEAPON_MESH := {
+	"sword": "sword_A", "axe": "axe_A", "dagger": "dagger_A", "mace": "hammer_C", "hammer": "hammer_A",
+	"wand": "wand_A", "spear": "spear_A", "greatsword": "sword_E", "greataxe": "axe_D",
+	"bow": "bow_A_withString", "longbow": "bow_B_withString", "crossbow": "bow_C_withString",
+	"staff": "staff_A", "magic_staff": "staff_C",
+	"shield_round": "shield_A", "shield_kite": "shield_C", "shield_sun": "shield_D",
+}
+static var use_rigs := true
+static var _weapon_scenes := {}
+
+
+static func weapon_mesh(base_id: String) -> Node3D:
+	if not WEAPON_MESH.has(base_id):
+		return null
+	var path := "res://models/weapons/%s.gltf" % WEAPON_MESH[base_id]
+	if not _weapon_scenes.has(path):
+		_weapon_scenes[path] = load(path) if ResourceLoader.exists(path) else null
+	if _weapon_scenes[path] == null:
+		return null
+	return (_weapon_scenes[path] as PackedScene).instantiate()
+
+
+## Герой на анімованій моделі KayKit; зброя й щит із предметів — у руках.
+static func hero_rig(class_id: String, accent: Color, weapon_base: String, off_base: String) -> Node3D:
+	var r := RigModel.create(str(HERO_RIGS.get(class_id, "Knight")), 0.78)
+	if r == null:
+		return null
+	var wp := Node3D.new()
+	wp.name = "WeaponPivot"
+	var kind := ""
+	if Items.BASES.has(weapon_base) and Items.BASES[weapon_base].has("kind"):
+		kind = str(Items.BASES[weapon_base]["kind"])
+	wp.set_meta("kind", kind)
+	wp.set_meta("rig", true)
+	var hand := r.left_hand if kind == "arrow" else r.right_hand
+	hand.add_child(wp)
+	var w := weapon_mesh(weapon_base)
+	if w != null:
+		wp.add_child(w)
+		if kind == "magic":
+			var top := 1.0 if weapon_base == "wand" else 1.9
+			var orb := LowPoly.glow_instance(LowPoly.ball(0.1, _v(0, top, 0), accent, 6), accent, 2.5)
+			orb.name = "Orb"
+			wp.add_child(orb)
+	var two := Items.BASES.has(weapon_base) and str(Items.BASES[weapon_base]["type"]) == "hand2"
+	r.set_meta("two_handed", two)
+	if two and kind == "melee":
+		r.idle_anim = "2H_Melee_Idle"
+	if Items.BASES.has(off_base) and kind != "arrow":
+		var o := weapon_mesh(off_base)
+		if o == null and str(Items.BASES[off_base]["type"]) == "hand1":
+			o = weapon_mesh(off_base)
+		if o != null:
+			r.left_hand.add_child(o)
+	return r
+
+
 static func hero(class_id: String, accent: Color, weapon_base: String = "", off_base: String = "") -> Node3D:
+	if use_rigs:
+		var rig := hero_rig(class_id, accent, weapon_base, off_base)
+		if rig != null:
+			return rig
 	var root := Node3D.new()
 	root.name = "Model"
 	var body: Array = []
@@ -190,7 +253,37 @@ static var _enemy_cache := {}
 
 ## Модель ворога. Перша збірка кладеться в кеш, далі повертаються копії зі спільними мешами
 ## (щоб поява ворога не гальмувала гру).
+const ENEMY_RIGS := {
+	"novice": ["Rogue", 0.74, ["Rogue_Cape"]], "archer": ["Rogue_Hooded", 0.74, []], "brute": ["Barbarian", 0.95, []],
+	"wraith": ["Skeleton_Mage", 0.78, []], "skel_minion": ["Skeleton_Minion", 0.76, []],
+	"skel_warrior": ["Skeleton_Warrior", 0.82, []], "skel_rogue": ["Skeleton_Rogue", 0.76, []], "skel_mage": ["Skeleton_Mage", 0.78, []],
+}
+## Зброя в руках анімованих ворогів.
+const ENEMY_WEAPONS := {
+	"novice": ["dagger", ""], "archer": ["", "bow"], "brute": ["greataxe", ""], "wraith": ["staff", ""],
+	"skel_minion": ["sword", ""], "skel_warrior": ["axe", "shield_round"], "skel_rogue": ["", "bow"], "skel_mage": ["magic_staff", ""],
+}
+
+
 static func enemy(kind: String) -> Node3D:
+	if use_rigs and ENEMY_RIGS.has(kind):
+		var e: Array = ENEMY_RIGS[kind]
+		var r := RigModel.create(str(e[0]), float(e[1]))
+		if r != null:
+			r.hide_parts(e[2])
+			var w: Array = ENEMY_WEAPONS.get(kind, ["", ""])
+			var mw := weapon_mesh(str(w[0]))
+			if mw != null:
+				r.right_hand.add_child(mw)
+			var lw := weapon_mesh(str(w[1]))
+			if lw != null:
+				r.left_hand.add_child(lw)
+			if kind.begins_with("skel") or kind == "wraith":
+				r.walk_anim = "Walking_D_Skeletons"
+				r.idle_anim = "Idle_Combat" if kind == "skel_warrior" else "Idle"
+			if kind == "wraith":
+				_ghostify(r)
+			return r
 	if not _enemy_cache.has(kind):
 		var t: Node3D = null
 		match kind:
@@ -418,3 +511,15 @@ static func _apply_overlay(node: Node, overlay: Material) -> void:
 		(node as MeshInstance3D).material_overlay = overlay
 	for c in node.get_children():
 		_apply_overlay(c, overlay)
+
+
+## Напівпрозора бірюзова «примара» з кістяка.
+static func _ghostify(n: Node) -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.6, 0.95, 1.0, 0.45)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_enabled = true
+	mat.emission = Color(0.3, 0.8, 0.9)
+	mat.emission_energy_multiplier = 0.6
+	for m in n.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).material_override = mat

@@ -51,6 +51,11 @@ var _fade_rect: ColorRect
 var _rng := RandomNumberGenerator.new()
 var is_warmed := false
 var skip_warmup := false
+var is_cave := false
+var cave_entrance := Vector3.INF
+var _music_t := 0.0
+var _pack_seq := 0
+var _cave_won := false
 
 
 func _ready() -> void:
@@ -59,6 +64,17 @@ func _ready() -> void:
 		GameState.new_hero("Мандрівник", "perun", "druzhynnyk")
 	loc_id = GameState.location if Locations.has(GameState.location) else Locations.START
 	loc = Locations.get_def(loc_id)
+	is_cave = bool(loc.get("cave", false))
+	if is_cave:
+		loc = loc.duplicate(true)
+		var cl := maxi(1, GameState.cave_level)
+		loc["levels"] = [cl, cl + 2]
+		loc["boss"]["level"] = cl + 3
+		var back := GameState.cave_from if Locations.has(GameState.cave_from) else Locations.START
+		for e in loc["exits"]:
+			if str(e["to"]) == "@back":
+				e["to"] = back
+				e["label"] = "Назовні: %s" % Locations.get_def(back)["name"]
 	arena_radius = float(loc["radius"])
 	safe = bool(loc.get("safe", false))
 	for e in loc["exits"]:
@@ -83,6 +99,7 @@ func _ready() -> void:
 	_build_npcs()
 	_build_chests()
 	_build_herbs()
+	_build_cave_entrance()
 	_build_player()
 	_build_camera()
 	hud = Hud.new()
@@ -93,6 +110,9 @@ func _ready() -> void:
 	GameState.quest_changed.connect(_on_quest_changed)
 	_spawn_initial()
 	_spawn_boss()
+	Sound.set_ambience(str(loc.get("amb", loc_id)))
+	Sound.set_combat(false)
+	Sound.start_music()
 	GameState.mark_explored(Vector2(player.position.x, player.position.z), EXPLORE_RADIUS)
 	GameState.save_game()
 	_build_fade()
@@ -428,9 +448,17 @@ func _build_npcs() -> void:
 		match str(npc["id"]):
 			"herbalist": hat = "hood"
 			"elder": hat = "beard"
-		var node := Structures.npc(Color(str(npc["color"])), hat)
+		# Мешканці села — анімовані моделі KayKit Adventurers (запасний варіант — простий меш).
+		var rig_file := "Rogue"
+		match str(npc["id"]):
+			"herbalist": rig_file = "Mage"
+			"elder": rig_file = "Barbarian"
+			"smith", "merchant", "trader": rig_file = "Knight"
+		var node: Node3D = RigModel.create(rig_file, 0.74)
+		if node == null:
+			node = Structures.npc(Color(str(npc["color"])), hat)
 		node.position = p
-		node.rotation.y = atan2(-p.x, -p.z)       # дивиться на Капище
+		node.rotation.y = atan2(-p.x, -p.z) + (PI if node is RigModel else 0.0)       # дивиться на Капище
 		add_child(node)
 		_label_over(node, "%s\n%s" % [npc["name"], npc["role"]], 2.4, Palette.GOLD)
 		if colliders != null:
@@ -487,6 +515,8 @@ func _label_over(parent: Node3D, text: String, h: float, col: Color) -> void:
 
 
 func _spawn_position() -> Vector3:
+	if GameState.arrive_from == "cave" and cave_entrance != Vector3.INF:
+		return cave_entrance - cave_entrance.normalized() * 4.0
 	if GameState.arrive_from != "":
 		var i := exit_index_to(GameState.arrive_from)
 		if i >= 0:
@@ -663,8 +693,28 @@ func _enemy_count(kind: String) -> int:
 func _spawn_initial() -> void:
 	var counts: Dictionary = loc.get("enemies", {})
 	for kind in counts.keys():
-		for i in range(int(counts[kind])):
-			_spawn_enemy(kind, false)
+		var left := int(counts[kind])
+		while left > 0:
+			var n := mini(left, _rng.randi_range(2, 4))
+			_spawn_pack(kind, n, false)
+			left -= n
+
+
+## Зграя: ватажок і кілька поплічників поруч; помітивши героя, кидаються всі разом.
+func _spawn_pack(kind: String, n: int, away: bool) -> void:
+	_pack_seq += 1
+	var leader := _spawn_enemy(kind, away)
+	leader.pack_id = _pack_seq
+	if n >= 2:
+		leader.make_leader()
+	for i in range(n - 1):
+		var a := _rng.randf() * TAU
+		var p := leader.home + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(1.8, 3.6)
+		var flat := Vector2(p.x, p.z)
+		if flat.length() > arena_radius - 3.0:
+			p = leader.home
+		var e := _spawn_enemy_at(kind, p)
+		e.pack_id = _pack_seq
 
 
 ## Рівень ворога залежить від того, наскільки глибоко він у локації (далі від входу — вищий).
@@ -688,6 +738,10 @@ func _spawn_enemy(kind: String, away_from_player: bool) -> Enemy:
 		if pos.distance_to(spawn) < 12.0:
 			continue
 		break
+	return _spawn_enemy_at(kind, pos)
+
+
+func _spawn_enemy_at(kind: String, pos: Vector3) -> Enemy:
 	var e := Enemy.new()
 	e.name = "Enemy_" + kind
 	e.setup(kind, _level_at(pos), player, pos, self)
@@ -701,13 +755,16 @@ func _spawn_boss() -> void:
 	if not loc.has("boss"):
 		return
 	var b: Dictionary = loc["boss"]
-	if not GameState.boss_ready(str(b["id"])) or (boss != null and is_instance_valid(boss) and not boss.dead):
+	if is_cave and _cave_won:
+		return
+	if not is_cave and not GameState.boss_ready(str(b["id"])) or (boss != null and is_instance_valid(boss) and not boss.dead):
 		return
 	var pos := Vector3(float(b["pos"][0]), 0, float(b["pos"][1]))
 	var e := Enemy.new()
 	e.name = "Boss_" + str(b["id"])
 	e.setup(str(b["kind"]), int(b["level"]), player, pos, self)
 	e.make_boss(str(b["id"]), str(b["name"]), float(b["scale"]), float(b.get("hp_mult", 1.0)))
+	e.is_cave_boss = bool(b.get("cave", false))
 	_enemy_root.add_child(e)
 	e.global_position = pos
 	e.died.connect(_on_enemy_died)
@@ -716,6 +773,10 @@ func _spawn_boss() -> void:
 
 func _on_enemy_died(e: Enemy) -> void:
 	GameState.add_xp(e.xp_reward)
+	if e.is_boss and e.is_cave_boss:
+		_on_cave_boss_died(e)
+		boss = null
+		return
 	if e.is_boss:
 		var ids := LootDrop.drop_from_boss(_loot_root, e.global_position, e.level, _rng)
 		GameState.boss_killed(e.boss_id)
@@ -801,11 +862,15 @@ func _physics_process(delta: float) -> void:
 			_respawn_t = 0.0
 			var counts: Dictionary = loc.get("enemies", {})
 			for kind in counts.keys():
-				if _enemy_count(kind) < int(counts[kind]):
+				var miss := int(counts[kind]) - _enemy_count(kind)
+				if miss >= 2:
+					_spawn_pack(kind, mini(miss, 3), true)
+					break
+				elif miss == 1:
 					_spawn_enemy(kind, true)
 					break
 		_boss_t += delta
-		if _boss_t >= 2.0:
+		if _boss_t >= 2.0 and not is_cave:
 			_boss_t = 0.0
 			if boss == null or not is_instance_valid(boss):
 				_try_respawn_boss()
@@ -874,6 +939,10 @@ func interact_prompt(it: Dictionary) -> String:
 			return "Говорити: %s%s" % [it["name"], mark]
 		"chest":
 			return "Відкрити скриню"
+		"cave":
+			return "Увійти до печери (рів. %d+)" % _cave_level_for_here()
+		"portal":
+			return "Портал назовні"
 	return ""
 
 
@@ -887,6 +956,10 @@ func interact(it: Dictionary) -> void:
 				hud.open_dialog(str(it["id"]))
 		"chest":
 			open_chest(it)
+		"cave":
+			enter_cave()
+		"portal":
+			leave_cave()
 
 
 func open_chest(it: Dictionary) -> void:
@@ -935,11 +1008,15 @@ func go_through_exit(i: int) -> void:
 	if _transitioning or i < 0 or i >= exits.size():
 		return
 	var to := str(exits[i]["to"])
-	_transitioning = true
 	if hud != null:
 		hud.toast(str(exits[i]["label"]))
+	_travel(to, loc_id)
+
+
+func _travel(to: String, from: String) -> void:
+	_transitioning = true
 	if instant_transition:
-		GameState.change_location(to, loc_id)
+		GameState.change_location(to, from)
 		return
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -947,7 +1024,7 @@ func go_through_exit(i: int) -> void:
 	await tw.finished
 	if not is_inside_tree():
 		return
-	GameState.change_location(to, loc_id)
+	GameState.change_location(to, from)
 	GameState.load_guard.arm()
 	get_tree().reload_current_scene()
 
@@ -960,6 +1037,17 @@ func _on_quest_changed() -> void:
 func _process(delta: float) -> void:
 	if player == null or camera == null:
 		return
+	_music_t -= delta
+	if _music_t <= 0.0:
+		_music_t = 0.5
+		var fight := false
+		if not player.dead:
+			for e in get_tree().get_nodes_in_group("enemies"):
+				var en: Enemy = e
+				if en.state != Enemy.State.IDLE and en.global_position.distance_to(player.global_position) < 26.0:
+					fight = true
+					break
+		Sound.set_combat(fight)
 	_cam_pos = _cam_pos.lerp(player.global_position, minf(1.0, 8.0 * delta))
 	_place_camera(_cam_pos)
 
@@ -1015,3 +1103,97 @@ func _on_level_up(new_level: int) -> void:
 	Fx.sparks(self, player.global_position + Vector3(0, 1.0, 0), Palette.GOLD, 18)
 	Fx.damage_number(self, player.global_position + Vector3(0, 2.8, 0), "Рівень %d!" % new_level, Palette.GOLD, true)
 	hud.show_level_up(new_level)
+
+
+# ---------- Печери ----------
+
+func _cave_level_for_here() -> int:
+	return maxi(int(loc["levels"][1]), GameState.level) + 2
+
+
+## Випадковий вхід до печери на поверхні (на новому місці при кожному приході).
+func _build_cave_entrance() -> void:
+	if not (loc_id in Locations.CAVE_HOSTS):
+		return
+	var pos := Vector3.INF
+	if GameState.cave_pos_loc == loc_id and GameState.arrive_from == "cave":
+		pos = Vector3(GameState.cave_pos.x, 0, GameState.cave_pos.y)
+	else:
+		for attempt in range(40):
+			var a := _rng.randf() * TAU
+			var r := _rng.randf_range(16.0, arena_radius - 8.0)
+			var p := Vector3(cos(a) * r, 0, sin(a) * r)
+			if _too_close(p, 3.5) or _near_exit_point(p, 12.0):
+				continue
+			pos = p
+			break
+		if pos == Vector3.INF:
+			pos = Vector3(arena_radius * 0.5, 0, 0)
+	cave_entrance = pos
+	GameState.cave_pos = Vector2(pos.x, pos.z)
+	GameState.cave_pos_loc = loc_id
+	var node := Structures.cave_mouth()
+	node.position = pos
+	node.rotation.y = atan2(-pos.x, -pos.z)
+	add_child(node)
+	_label_over(node, "Печера", 3.6, Palette.GOLD)
+	interactables.append({"kind": "cave", "id": "cave", "name": "Печера", "pos": pos - pos.normalized() * 2.2, "node": node})
+
+
+func enter_cave() -> void:
+	if _transitioning:
+		return
+	GameState.cave_from = loc_id
+	GameState.cave_level = _cave_level_for_here()
+	Sound.play("sfx_portal", -4.0)
+	if hud != null:
+		hud.toast("Печера: тут лігво Кощія")
+	_travel("cave", loc_id)
+
+
+func leave_cave() -> void:
+	if _transitioning:
+		return
+	Sound.play("sfx_portal", -2.0)
+	var back := GameState.cave_from if Locations.has(GameState.cave_from) else Locations.START
+	_travel(back, "cave")
+
+
+func _on_cave_boss_died(e: Enemy) -> void:
+	_cave_won = true
+	var lvl := e.level + 2
+	LootDrop.drop_from_boss(_loot_root, e.global_position, lvl, _rng)
+	LootDrop.drop_from_boss(_loot_root, e.global_position + Vector3(2, 0, 0), lvl, _rng)
+	LootDrop.make_drop(_loot_root, e.global_position + Vector3(-2, 0, 1), LootDrop.KIND_GOLD, 150 + 30 * lvl, {}, _rng)
+	GameState.add_xp(e.xp_reward)
+	GameState.quest_event("boss", "koshchii")
+	Fx.ring_burst(self, e.global_position, 8.0, Palette.GOLD, 0.9)
+	Fx.damage_number(self, e.global_position + Vector3(0, 4.0, 0), "%s повалений!" % e.boss_name, Palette.GOLD, true)
+	var pp := e.global_position + Vector3(0, 0, 5.0)
+	if Vector2(pp.x, pp.z).length() > arena_radius - 4.0:
+		pp = e.global_position.move_toward(Vector3.ZERO, 5.0)
+		pp.y = 0.0
+	var portal := Structures.portal()
+	portal.position = pp
+	add_child(portal)
+	interactables.append({"kind": "portal", "id": "portal", "name": "Портал", "pos": pp, "node": portal})
+	Sound.play("sfx_portal", 0.0)
+	if hud != null:
+		hud.toast("Кощія повалено! Збери здобич і ступи в портал.")
+
+
+## Фаза Кощія змінилася.
+func boss_phase(_e: Enemy, ph: int) -> void:
+	if hud != null:
+		hud.toast("Кощій лютує! (фаза %d)" % ph if ph < 3 else "Кощій кличе мерців — останній бій!")
+
+
+func boss_summon(e: Enemy, n: int) -> void:
+	if get_tree().get_nodes_in_group("enemies").size() > 24:
+		return
+	for i in range(n):
+		var a := _rng.randf() * TAU
+		var p := e.global_position + Vector3(cos(a), 0, sin(a)) * 4.0
+		var m := _spawn_enemy_at("skel_minion", p)
+		m.state = Enemy.State.CHASE
+		Fx.sparks(self, p + Vector3(0, 0.6, 0), Color("7FE0FF"), 8)

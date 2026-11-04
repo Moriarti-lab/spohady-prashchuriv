@@ -7,13 +7,18 @@ signal leveled_up(new_level: int)
 signal quest_changed
 signal location_changed
 
+## Старе (до v0.4) єдине збереження: при першому запуску переноситься в комірку 1.
 const SAVE_PATH := "user://spohady_save.json"
+const SLOT_COUNT := 3
+const SETTINGS_PATH := "user://settings.cfg"
+## Поточна комірка збереження (1..SLOT_COUNT).
+var slot := 1
 const SAVE_VERSION := 3
 const MAX_LEVEL := 50
 const PERKS_PER_LEVEL := 3
 const START_PERKS := 3
 const DEATH_XP_LOSS := 0.10
-const BAG_SIZE := 30
+const BAG_SIZE := 48
 const QUICK_SLOTS := 4
 const START_HP_POTIONS := 3
 const START_MANA_POTIONS := 2
@@ -50,6 +55,11 @@ var starter_node := ""
 var location := "village"
 ## Звідки прийшов у цю локацію (id локації; порожньо — зайшов із меню або після смерті).
 var arrive_from := ""
+## Печера: з якої локації зайшли, її рівень і де на поверхні був вхід.
+var cave_from := ""
+var cave_level := 1
+var cave_pos := Vector2.ZERO
+var cave_pos_loc := ""
 ## Завдання: {id: {state: "active"|"ready"|"done", progress: N}}.
 var quests: Dictionary = {}
 var quest_items: Dictionary = {}
@@ -74,6 +84,10 @@ func _ready() -> void:
 	add_child(load_guard)
 	InputSetup.ensure()
 	PerkTree.ensure_loaded()
+	migrate_old_save()
+	var cf := ConfigFile.new()
+	if cf.load(SETTINGS_PATH) == OK:
+		slot = clampi(int(cf.get_value("save", "slot", 1)), 1, SLOT_COUNT)
 	has_hero = load_game()
 
 
@@ -147,6 +161,7 @@ func add_xp(amount: int) -> int:
 		perk_points += PERKS_PER_LEVEL
 		gained += 1
 		leveled_up.emit(level)
+		Sound.play("sfx_levelup", 0.0, 0.0)
 	if level >= MAX_LEVEL:
 		xp = mini(xp, xp_needed() - 1)
 	changed.emit()
@@ -320,6 +335,7 @@ func add_item(item: Dictionary) -> bool:
 	if int(item.get("uid", 0)) == 0:
 		item["uid"] = _next_uid()
 	bag.append(item)
+	Sound.play("sfx_coins", -3.0)
 	changed.emit()
 	return true
 
@@ -411,6 +427,7 @@ func sell(index: int) -> int:
 	var v := Items.sell_value(bag[index])
 	bag.remove_at(index)
 	gold += v
+	Sound.play("sfx_coins", -3.0)
 	changed.emit()
 	save_game()
 	return v
@@ -495,6 +512,7 @@ func buy_potion(kind: String) -> bool:
 		return false
 	gold -= price
 	add_potion(kind, 1)
+	Sound.play("sfx_coins", -3.0)
 	save_game()
 	return true
 
@@ -756,6 +774,7 @@ func to_dict() -> Dictionary:
 		"gold": gold, "hp_potions": hp_potions, "mana_potions": mana_potions,
 		"bag": bag, "equipment": equipment, "quick": quick, "item_seq": item_seq,
 		"explored": ex, "location": location,
+		"cave_from": cave_from, "cave_level": cave_level,
 		"quests": quests, "quest_items": quest_items, "opened_chests": opened_chests,
 		"boss_killed_at": boss_killed_at, "bonus_perks": bonus_perks,
 		"merchant_stock": merchant_stock, "merchant_refresh_at": merchant_refresh_at,
@@ -865,6 +884,10 @@ func from_dict(d: Dictionary) -> bool:
 	if version >= 3:
 		var loc := str(d.get("location", Locations.START))
 		location = loc if Locations.has(loc) else Locations.START
+		cave_from = str(d.get("cave_from", ""))
+		cave_level = maxi(1, int(d.get("cave_level", 1)))
+		if location == "cave" and not Locations.has(cave_from):
+			location = Locations.START
 		var exd: Variant = d.get("explored", {})
 		if typeof(exd) == TYPE_DICTIONARY:
 			for k in exd:
@@ -902,10 +925,61 @@ func from_dict(d: Dictionary) -> bool:
 	return true
 
 
+# ---------- Комірки збереження ----------
+
+static func slot_path(i: int) -> String:
+	return "user://spohady_slot%d.json" % i
+
+
+func save_path() -> String:
+	return slot_path(slot)
+
+
+## Старе збереження (одне на гру) стає коміркою 1.
+func migrate_old_save() -> void:
+	if FileAccess.file_exists(SAVE_PATH) and not FileAccess.file_exists(slot_path(1)):
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(SAVE_PATH), ProjectSettings.globalize_path(slot_path(1)))
+
+
+## Короткі відомості про комірку для екрана вибору: {} — порожня.
+func slot_info(i: int) -> Dictionary:
+	if not FileAccess.file_exists(slot_path(i)):
+		return {}
+	var f := FileAccess.open(slot_path(i), FileAccess.READ)
+	if f == null:
+		return {}
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(d) != TYPE_DICTIONARY or not d.has("name"):
+		return {}
+	var loc := str(d.get("location", Locations.START))
+	return {"name": str(d["name"]), "class": str(d.get("class", "")), "level": int(d.get("level", 1)),
+		"location": Locations.get_def(loc).get("name", "") if Locations.has(loc) else ""}
+
+
+## Обирає комірку: завантажує героя з неї (або порожньо — для нової гри).
+func select_slot(i: int) -> void:
+	slot = clampi(i, 1, SLOT_COUNT)
+	var cf := ConfigFile.new()
+	cf.load(SETTINGS_PATH)
+	cf.set_value("save", "slot", slot)
+	cf.save(SETTINGS_PATH)
+	has_hero = load_game()
+	changed.emit()
+
+
+func delete_slot(i: int) -> void:
+	if FileAccess.file_exists(slot_path(i)):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_path(i)))
+	if i == slot:
+		has_hero = false
+		changed.emit()
+
+
 func save_game() -> bool:
 	if not has_hero:
 		return false
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(save_path(), FileAccess.WRITE)
 	if f == null:
 		push_warning("Не вдалося зберегти гру: %s" % FileAccess.get_open_error())
 		return false
@@ -915,9 +989,9 @@ func save_game() -> bool:
 
 
 func load_game() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path()):
 		return false
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var f := FileAccess.open(save_path(), FileAccess.READ)
 	if f == null:
 		return false
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
@@ -928,8 +1002,8 @@ func load_game() -> bool:
 
 
 func delete_save() -> void:
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	if FileAccess.file_exists(save_path()):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path()))
 	has_hero = false
 	changed.emit()
 

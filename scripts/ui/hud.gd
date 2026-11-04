@@ -151,12 +151,15 @@ func _menu_button(text: String, color: Color, handler: Callable) -> Button:
 ## Портрет героя відкриває меню: Сумка, Навички, Характеристики, Древо, Завдання, Меню.
 func _build_submenu() -> void:
 	_submenu = PanelContainer.new()
-	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.96), Palette.GOLD, 3, 12))
+	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 1.0), Palette.GOLD, 3, 12))
 	_submenu.visible = false
 	_submenu.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_submenu)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
+	# Дві колонки: меню коротке й не залазить на лівий джойстик.
+	var v := GridContainer.new()
+	v.columns = 2
+	v.add_theme_constant_override("h_separation", 6)
+	v.add_theme_constant_override("v_separation", 6)
 	_submenu.add_child(v)
 	var defs := [
 		["bag", "Сумка", Palette.EMBROIDERY, func() -> void: open_inventory(InventoryScreen.TAB_BAG)],
@@ -369,7 +372,7 @@ func _layout() -> void:
 		_submenu.size = Vector2(10, 10)
 	_btn_interact.position = Vector2(vs.x * 0.5 - 170.0, vs.y - 120.0)
 	_btn_interact.size = Vector2(340, 70)
-	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 82.0)
+	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 6.0)
 	_attack.place(Vector2(vs.x - MARGIN - 80.0 - 20.0, vs.y - MARGIN - 80.0 - 10.0))
 	for i in range(SKILL_COUNT):
 		var a := deg_to_rad(float(SKILL_ANGLES[i]))
@@ -497,7 +500,8 @@ func _update_target() -> void:
 	if t.kind != _target_kind:
 		_target_kind = t.kind
 		_target_art.texture = FolkTheme.art_texture("res://art/enemies/%s.png" % t.kind)
-	_target_name.text = "%s · рів. %d" % [t.def.get("name", "Ворог"), t.level]
+	var tn: String = t.boss_name if t.is_boss else str(t.def.get("name", "Ворог")) + (" (ватажок)" if t.is_leader else "")
+	_target_name.text = "%s · рів. %d" % [tn, t.level]
 	_target_bar.set_values(t.hp, t.max_hp)
 
 

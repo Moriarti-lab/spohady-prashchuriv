@@ -31,6 +31,12 @@ static func apply_button(b: Button, base: Color = Palette.EMBROIDERY, font_size:
 	b.add_theme_color_override("font_disabled_color", Palette.TEXT_DIM.darkened(0.3))
 	b.add_theme_font_size_override("font_size", font_size)
 	b.custom_minimum_size.y = maxf(b.custom_minimum_size.y, 64.0)
+	if not b.pressed.is_connected(_click):
+		b.pressed.connect(_click)
+
+
+static func _click() -> void:
+	Sound.play("sfx_click", -4.0, 0.03)
 
 
 static func label(text: String, size: int = 24, color: Color = Palette.LINEN,

@@ -49,9 +49,18 @@ func _draw() -> void:
 		var tex := Icons.texture(Icons.skill_icon_id(skill_id, GameState.blessing))
 		var tint := Color(0.55, 0.55, 0.6, 0.8) if locked else Color.WHITE
 		if tex != null:
-			# значок вписано в коло з відступом ~12%, щоб кінчики не обрізались маскою
-			var dd := (r - 3.0) * 2.0 * 0.88
-			draw_texture_rect(tex, Rect2(c - Vector2(dd, dd) * 0.5, Vector2(dd, dd)), false, tint)
+			# значок вирізано по колу
+			var rr := r - 3.0
+			var pts := PackedVector2Array()
+			var uvs := PackedVector2Array()
+			var cols := PackedColorArray()
+			for i in range(40):
+				var a := TAU * float(i) / 40.0
+				var dir := Vector2(cos(a), sin(a))
+				pts.append(c + dir * rr)
+				uvs.append(Vector2(0.5, 0.5) + dir * 0.5)
+				cols.append(tint)
+			draw_polygon(pts, cols, uvs, tex)
 		else:
 			_text(str(def["short"]), c + Vector2(0, 7), int(_d * 0.24), Palette.LINEN if not locked else Palette.TEXT_DIM, true)
 	else:

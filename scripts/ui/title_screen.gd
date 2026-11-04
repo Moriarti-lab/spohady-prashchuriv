@@ -34,6 +34,12 @@ func _ready() -> void:
 	FolkTheme.apply_button(nb, Palette.TURQUOISE.darkened(0.25) if GameState.has_hero else Palette.EMBROIDERY, 28)
 	nb.pressed.connect(_new_game)
 	v.add_child(nb)
+	var sb := Button.new()
+	sb.name = "SlotsButton"
+	sb.text = "Збереження (комірка %d)" % GameState.slot
+	FolkTheme.apply_button(sb, Palette.PANEL_LIGHT, 24)
+	sb.pressed.connect(_open_slots)
+	v.add_child(sb)
 	if not OS.has_feature("android") and not OS.has_feature("ios"):
 		var qb := Button.new()
 		qb.text = "Вийти"
@@ -43,6 +49,7 @@ func _ready() -> void:
 	var ver := FolkTheme.label("%s · без реклами · без інтернету" % Strings.VERSION, 18, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER)
 	v.add_child(ver)
 	_build_confirm()
+	_build_slots()
 
 
 func _build_confirm() -> void:
@@ -65,7 +72,7 @@ func _build_confirm() -> void:
 	v.custom_minimum_size = Vector2(620, 0)
 	panel.add_child(v)
 	v.add_child(FolkTheme.label("Почати спочатку?", 36, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(FolkTheme.label("Збереженого героя буде замінено новим.", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true))
+	v.add_child(FolkTheme.label("Героя в комірці %d буде замінено новим. Щоб зберегти його, обери іншу комірку в «Збереженнях»." % GameState.slot, 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true))
 	var yes := Button.new()
 	yes.text = "Так, нова гра"
 	FolkTheme.apply_button(yes, Palette.EMBROIDERY)
@@ -128,3 +135,111 @@ func _new_game() -> void:
 
 func _go_create() -> void:
 	get_tree().change_scene_to_file("res://scenes/create_hero.tscn")
+
+
+# ---------- Комірки збереження ----------
+
+var _slots: Control
+var _slots_box: VBoxContainer
+var _del_confirm: Control
+var _del_label: Label
+var _del_slot := 0
+
+
+func _overlay() -> Array:
+	var root := Control.new()
+	FolkTheme.fullscreen(root)
+	root.visible = false
+	add_child(root)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.75)
+	FolkTheme.fullscreen(dim)
+	root.add_child(dim)
+	var cc := CenterContainer.new()
+	FolkTheme.fullscreen(cc)
+	root.add_child(cc)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", FolkTheme.panel_style(Palette.PANEL, Palette.EMBROIDERY, 4, 16))
+	cc.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	v.custom_minimum_size = Vector2(760, 0)
+	panel.add_child(v)
+	return [root, v]
+
+
+func _build_slots() -> void:
+	var o := _overlay()
+	_slots = o[0]
+	_slots.name = "Slots"
+	var v: VBoxContainer = o[1]
+	v.add_child(FolkTheme.label("Збереження", 36, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	_slots_box = VBoxContainer.new()
+	_slots_box.add_theme_constant_override("separation", 10)
+	v.add_child(_slots_box)
+	var back := Button.new()
+	back.text = "Назад"
+	FolkTheme.apply_button(back, Palette.PANEL_LIGHT)
+	back.pressed.connect(func() -> void: _slots.visible = false)
+	v.add_child(back)
+	var o2 := _overlay()
+	_del_confirm = o2[0]
+	var v2: VBoxContainer = o2[1]
+	v2.add_child(FolkTheme.label("Видалити збереження?", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	_del_label = FolkTheme.label("", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
+	v2.add_child(_del_label)
+	var yes := Button.new()
+	yes.text = "Так, видалити назавжди"
+	FolkTheme.apply_button(yes, Palette.EMBROIDERY)
+	yes.pressed.connect(func() -> void:
+		GameState.delete_slot(_del_slot)
+		_del_confirm.visible = false
+		_refresh_slots())
+	v2.add_child(yes)
+	var no := Button.new()
+	no.text = "Ні, лишити"
+	FolkTheme.apply_button(no, Palette.PANEL_LIGHT)
+	no.pressed.connect(func() -> void: _del_confirm.visible = false)
+	v2.add_child(no)
+
+
+func _open_slots() -> void:
+	_refresh_slots()
+	_slots.visible = true
+
+
+func _refresh_slots() -> void:
+	for c in _slots_box.get_children():
+		c.queue_free()
+	for i in range(1, GameState.SLOT_COUNT + 1):
+		var info := GameState.slot_info(i)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		_slots_box.add_child(row)
+		var txt := "Комірка %d: порожньо" % i
+		if not info.is_empty():
+			txt = "Комірка %d: %s, %s, рів. %d · %s" % [i, info["name"], Gear.class_def(str(info["class"])).get("name", ""), int(info["level"]), info["location"]]
+		var lb := FolkTheme.label(txt + ("  ◆" if i == GameState.slot else ""), 22, Palette.GOLD if i == GameState.slot else Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+		lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(lb)
+		var play := Button.new()
+		play.text = "Грати" if not info.is_empty() else "Нова гра"
+		FolkTheme.apply_button(play, Palette.EMBROIDERY, 22)
+		var idx := i
+		var empty := info.is_empty()
+		play.pressed.connect(func() -> void:
+			GameState.select_slot(idx)
+			if empty:
+				_go_create()
+			else:
+				_continue())
+		row.add_child(play)
+		if not empty:
+			var del := Button.new()
+			del.text = "Видалити"
+			FolkTheme.apply_button(del, Palette.PANEL_LIGHT, 22)
+			del.pressed.connect(func() -> void:
+				_del_slot = idx
+				_del_label.text = "Комірка %d: %s. Цього не можна скасувати." % [idx, info["name"]]
+				_del_confirm.visible = true)
+			row.add_child(del)

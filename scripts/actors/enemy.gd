@@ -37,6 +37,12 @@ var _strafe := 1.0
 var _flash_t := 0.0
 var _world_root: Node = null
 var is_boss := false
+var is_cave_boss := false
+var pack_id := -1
+var is_leader := false
+var phase := 1
+var _special_t := 6.0
+var _special_busy := false
 var boss_id := ""
 var boss_name := ""
 var scale_mult := 1.0
@@ -75,6 +81,19 @@ func make_boss(p_id: String, p_name: String, p_scale: float, p_hp_mult: float = 
 	xp_reward *= 8
 	body_radius *= p_scale
 	speed *= 1.05
+
+
+## Ватажок зграї: трохи більший, міцніший і цінніший.
+func make_leader() -> void:
+	is_leader = true
+	scale_mult = 1.15
+	max_hp *= 1.6
+	hp = max_hp
+	dmg *= 1.2
+	xp_reward *= 2
+	if is_inside_tree() and _model != null:
+		_model.scale = _base_scale()
+		_bar.position.y = float(def["height"]) * scale_mult + 0.45
 
 
 func apply_stun(t: float) -> void:
@@ -201,8 +220,14 @@ func _physics_process(delta: float) -> void:
 	_desired = Vector3.ZERO
 	if stun_t > 0.0:
 		state = State.CHASE if state == State.WINDUP else state
+	elif _special_busy:
+		pass
 	else:
 		_run_state(delta, ok, dist, dir)
+		if is_cave_boss and ok and state == State.CHASE:
+			_special_t -= delta
+			if _special_t <= 0.0:
+				_cave_special(dist)
 	if slow_t > 0.0:
 		_desired *= (1.0 - slow_f)
 	_post_move(delta, ok, dist, dir)
@@ -243,6 +268,11 @@ func _post_move(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	if face.length() > 0.1:
 		rotation.y = lerp_angle(rotation.y, atan2(-face.x, -face.z), minf(1.0, 10.0 * delta))
 	var moving := _desired.length() > 0.3
+	if _model is RigModel:
+		(_model as RigModel).set_move(clampf(_desired.length() / maxf(speed, 0.1), 0.0, 1.0))
+		if kind == "wraith":
+			_model.position.y = 0.35 + sin(_t * 2.4) * 0.18
+		return
 	if kind == "wraith":
 		_model.position.y = 0.35 + sin(_t * 2.4) * 0.18
 	else:
@@ -258,6 +288,7 @@ func _base_scale() -> Vector3:
 func _do_idle(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	if ok and dist < float(def["aggro"]):
 		state = State.CHASE
+		_on_aggro()
 		return
 	_wander_t -= delta
 	var off_home := home - global_position
@@ -300,12 +331,19 @@ func _do_chase(_delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 func _begin_windup() -> void:
 	state = State.WINDUP
 	_state_t = float(def["windup"])
+	if _model is RigModel:
+		var rk := "melee"
+		if bool(def["ranged"]):
+			rk = "arrow" if kind in ["archer", "skel_rogue"] else "spell"
+		(_model as RigModel).attack(rk, kind in ["brute", "archer", "skel_rogue"])
 
 
 func _do_windup(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	_state_t -= delta
 	# «Натяжка» удару: тіло стискається, потім пружинить.
 	var k := 1.0 - clampf(_state_t / maxf(float(def["windup"]), 0.01), 0.0, 1.0)
+	if _model is RigModel:
+		k *= 0.3
 	_model.scale = _base_scale() * Vector3(1.0 + 0.1 * k, 1.0 - 0.12 * k, 1.0 + 0.1 * k)
 	if _state_t > 0.0:
 		return
@@ -375,6 +413,8 @@ func _become_beast() -> void:
 # ---------- Шкода й смерть ----------
 
 func take_damage(amount: float, from_pos: Vector3, crit: bool = false, knock_force: float = 3.0) -> void:
+	if not dead:
+		Sound.play("sfx_hit_melee" if randf() < 0.5 else "sfx_enemy_hit", -5.0)
 	if dead:
 		return
 	hp -= amount
@@ -397,15 +437,28 @@ func take_damage(amount: float, from_pos: Vector3, crit: bool = false, knock_for
 	# ворог одразу помічає героя
 	if state == State.IDLE:
 		state = State.CHASE
+		_on_aggro()
 	if hp <= 0.0:
 		_die()
 		return
+	if is_cave_boss:
+		var want := 1 if hp > max_hp * 0.66 else (2 if hp > max_hp * 0.33 else 3)
+		if want > phase:
+			phase = want
+			dmg *= 1.2
+			speed *= 1.15
+			_special_t = 1.0
+			Sound.play("sfx_roar_big", 0.0)
+			Fx.ring_burst(_fx_parent(), global_position, 7.0, Color("7FE0FF"), 0.7)
+			if _world_root != null and _world_root.has_method("boss_phase"):
+				_world_root.boss_phase(self, phase)
 	if kind == "werewolf" and not is_beast and state != State.TRANSFORM and hp <= max_hp * 0.5:
 		state = State.TRANSFORM
 		_state_t = 0.8
 
 
 func _die() -> void:
+	Sound.play("sfx_roar_big" if is_cave_boss else ("sfx_roar" if is_boss else "sfx_death"), -2.0 if is_boss else -6.0)
 	dead = true
 	remove_from_group("enemies")
 	collision_layer = 0
@@ -415,6 +468,114 @@ func _die() -> void:
 	Fx.damage_number(_fx_parent(), global_position + Vector3(0, float(def["height"]) * scale_mult + 1.0, 0), "+%d" % xp_reward, Palette.XP_COLOR.lightened(0.2), true)
 	died.emit(self)
 	var tw := create_tween()
+	if _model is RigModel:
+		(_model as RigModel).die()
+		tw.tween_interval(1.3)
+		tw.tween_property(_model, "position:y", -1.2, 0.6).set_ease(Tween.EASE_IN)
+		tw.tween_callback(queue_free)
+		return
 	tw.set_parallel(true)
 	tw.tween_property(_model, "scale", Vector3(1.0, 0.05, 1.0), 0.5).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(queue_free)
+
+
+## Ворог помітив героя: бос гарчить, зграя кидається разом із ним.
+func _on_aggro() -> void:
+	if is_boss:
+		Sound.play("sfx_roar_big" if is_cave_boss else "sfx_roar", -2.0, 0.03)
+	if pack_id >= 0:
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if e != self and e is Enemy and (e as Enemy).pack_id == pack_id and not (e as Enemy).dead \
+					and (e as Enemy).state == State.IDLE:
+				(e as Enemy).state = State.CHASE
+
+
+# ---------- Кощій: особливі удари з попередженням ----------
+
+## Червоне коло на землі — попередження, куди вдарить бос.
+func _telegraph(at: Vector3, radius: float, t: float) -> void:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = radius
+	cm.bottom_radius = radius
+	cm.height = 0.04
+	cm.radial_segments = 32
+	mi.mesh = cm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(1.0, 0.15, 0.1, 0.18)
+	mi.material_override = mat
+	_fx_parent().add_child(mi)
+	mi.global_position = Vector3(at.x, 0.06, at.z)
+	mi.scale = Vector3(0.2, 1, 0.2)
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ONE, t * 0.8)
+	tw.parallel().tween_property(mat, "albedo_color:a", 0.5, t)
+	tw.tween_callback(mi.queue_free)
+
+
+func _cave_special(dist: float) -> void:
+	_special_busy = true
+	_special_t = [0.0, 7.5, 6.0, 4.5][phase]
+	Sound.play("sfx_telegraph", -2.0)
+	var roll := randi() % phase
+	if roll == 0 or dist < 4.0:
+		# Удар об землю навколо себе
+		var r := 5.5
+		_telegraph(global_position, r, 1.3)
+		if _model is RigModel:
+			(_model as RigModel).play_once("2H_Melee_Attack_Spin", 1.0)
+		await get_tree().create_timer(1.3, false).timeout
+		if dead or not is_inside_tree():
+			return
+		Fx.ring_burst(_fx_parent(), global_position, r, Color("FF5A3A"), 0.5)
+		Sound.play("sfx_hit_metal", 0.0)
+		if target != null and is_instance_valid(target) and not target.dead \
+				and target.global_position.distance_to(global_position) < r:
+			target.take_damage(dmg * 1.6, global_position, 9.0)
+	elif roll == 1:
+		# Кільце крижаних куль на всі боки
+		_telegraph(global_position, 2.5, 0.9)
+		if _model is RigModel:
+			(_model as RigModel).play_once("Spellcast_Raise", 1.0)
+		await get_tree().create_timer(0.9, false).timeout
+		if dead or not is_inside_tree():
+			return
+		Sound.play("sfx_magic_ice", 0.0)
+		var n := 10 + 2 * phase
+		for i in range(n):
+			var a := TAU * float(i) / float(n) + randf() * 0.2
+			_fire_boss_bolt(Vector3(cos(a), 0, sin(a)))
+	else:
+		# Кощій кличе мерців
+		if _model is RigModel:
+			(_model as RigModel).play_once("Spellcast_Summon", 1.0)
+		for i in range(3):
+			var a := randf() * TAU
+			_telegraph(global_position + Vector3(cos(a), 0, sin(a)) * 4.0, 1.2, 1.0)
+		await get_tree().create_timer(1.0, false).timeout
+		if dead or not is_inside_tree():
+			return
+		Sound.play("sfx_magic_holy", -2.0, 0.0)
+		if _world_root != null and _world_root.has_method("boss_summon"):
+			_world_root.boss_summon(self, 3)
+	_special_busy = false
+
+
+func _fire_boss_bolt(dir: Vector3) -> void:
+	var pr := Projectile.new()
+	pr.team = "enemy"
+	var col := Color("7FE0FF")
+	pr.add_child(ModelFactory.bolt(col, 1.4))
+	pr.velocity = dir * 8.0
+	pr.life = 3.5
+	pr.radius = 0.5
+	pr.spark_color = col
+	var d := dmg * 0.7
+	var from := global_position
+	pr.hit_callback = func(t: Node) -> void:
+		if is_instance_valid(t):
+			(t as Player).take_damage(d, from, 3.0)
+	_fx_parent().add_child(pr)
+	pr.global_position = global_position + Vector3(0, 1.2, 0) + dir * 1.2

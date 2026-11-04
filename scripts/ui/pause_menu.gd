@@ -39,6 +39,8 @@ func _ready() -> void:
 	FolkTheme.apply_button(b3, Palette.PANEL_LIGHT)
 	b3.pressed.connect(func() -> void: title_pressed.emit())
 	v.add_child(b3)
+	v.add_child(_slider("Музика", Sound.music_volume, func(x: float) -> void: Sound.set_music_volume(x)))
+	v.add_child(_slider("Звуки", Sound.sfx_volume, func(x: float) -> void: Sound.set_sfx_volume(x)))
 	v.add_child(FolkTheme.label("Гра зберігається сама.", 18, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(OrnamentBand.new())
 
@@ -52,3 +54,29 @@ func open() -> void:
 		Strings.stat_name("agi"), HeroStats.stat_shown("agi"),
 		Strings.stat_name("faith"), HeroStats.stat_shown("faith")]
 	visible = true
+
+
+## Повзунок гучності (0..100 %), значення одразу зберігається.
+func _slider(title: String, value: float, cb: Callable) -> Control:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	var lb := FolkTheme.label(title, 24, Palette.LINEN)
+	lb.custom_minimum_size.x = 120
+	h.add_child(lb)
+	var sl := HSlider.new()
+	sl.name = "Slider_" + title
+	sl.min_value = 0.0
+	sl.max_value = 1.0
+	sl.step = 0.05
+	sl.value = value
+	sl.custom_minimum_size = Vector2(300, 48)
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(sl)
+	var pct := FolkTheme.label("%d%%" % int(round(value * 100.0)), 22, Palette.TEXT_DIM)
+	pct.custom_minimum_size.x = 70
+	h.add_child(pct)
+	sl.value_changed.connect(func(x: float) -> void:
+		pct.text = "%d%%" % int(round(x * 100.0))
+		cb.call(x))
+	return h

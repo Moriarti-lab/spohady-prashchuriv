@@ -56,8 +56,18 @@ func _draw() -> void:
 			tint = Color(0.45, 0.45, 0.5, 1.0)
 		elif pressed:
 			tint = Color(1.25, 1.25, 1.25, 1.0)
-		var d := (radius - 3.0) * 2.0
-		draw_texture_rect(icon, Rect2(c - Vector2(d, d) * 0.5, Vector2(d, d)), false, tint)
+		# Іконка вирізана по колу (текстурований багатокутник), без квадратних кутів.
+		var r := radius - 3.0
+		var pts := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		var cols := PackedColorArray()
+		for i in range(40):
+			var a := TAU * float(i) / 40.0
+			var dir := Vector2(cos(a), sin(a))
+			pts.append(c + dir * r)
+			uvs.append(Vector2(0.5, 0.5) + dir * 0.5)
+			cols.append(tint)
+		draw_polygon(pts, cols, uvs, icon)
 	draw_arc(c, radius - 2.0, 0.0, TAU, 40, Palette.GOLD if not empty else Palette.TEXT_DIM.darkened(0.3), 4.0)
 	draw_arc(c, radius - 10.0, 0.0, TAU, 36, Color(Palette.LINEN, 0.25), 2.0)
 	var font := ThemeDB.fallback_font

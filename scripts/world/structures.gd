@@ -168,3 +168,43 @@ static func npc(color: Color, hat: String = "") -> Node3D:
 			p.append(LowPoly.ball(0.22, Vector3(0, 1.72, 0.03), Color("6B4A2E"), 6, Vector3(1, 0.6, 1)))
 	root.add_child(LowPoly.instance(p))
 	return root
+
+
+## Вхід до печери: купа каміння з темним проходом.
+static func cave_mouth() -> Node3D:
+	var root := Node3D.new()
+	var p: Array = []
+	var st := Color("6E6A62")
+	p.append(LowPoly.ball(2.2, Vector3(0, 0.9, -0.6), st, 7))
+	p.append(LowPoly.ball(1.3, Vector3(-1.9, 0.6, 0.1), st.darkened(0.1), 6))
+	p.append(LowPoly.ball(1.2, Vector3(1.9, 0.55, 0.2), st.lightened(0.05), 6))
+	p.append(LowPoly.box(Vector3(1.9, 1.9, 0.3), Vector3(0, 0.95, 1.45), Color("0B0A09")))
+	p.append(LowPoly.box(Vector3(2.6, 0.35, 0.6), Vector3(0, 2.0, 1.4), st.darkened(0.2), Vector3(0, 0, 4)))
+	root.add_child(LowPoly.instance(p))
+	root.add_child(LowPoly.glow_instance(LowPoly.ball(0.12, Vector3(-1.2, 1.6, 1.6), Color("FFB347"), 5), Color("FFB347"), 2.5))
+	root.add_child(LowPoly.glow_instance(LowPoly.ball(0.12, Vector3(1.2, 1.6, 1.6), Color("FFB347"), 5), Color("FFB347"), 2.5))
+	return root
+
+
+## Портал назовні після перемоги над Кощієм.
+static func portal() -> Node3D:
+	var root := Node3D.new()
+	var p: Array = []
+	for i in range(10):
+		var a := PI * float(i) / 9.0
+		p.append(LowPoly.box(Vector3(0.5, 0.5, 0.4), Vector3(cos(a) * 1.6, sin(a) * 1.6 + 0.3, 0), Color("6E6A62"), Vector3(0, 0, rad_to_deg(a))))
+	root.add_child(LowPoly.instance(p))
+	var disc := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 1.35
+	cm.bottom_radius = 1.35
+	cm.height = 0.05
+	disc.mesh = cm
+	disc.rotation_degrees.x = 90
+	disc.position.y = 1.4
+	disc.material_override = LowPoly.glow_material(Color("7FE0FF"), 3.0, 0.75)
+	root.add_child(disc)
+	var tw := disc.create_tween().set_loops()
+	tw.tween_property(disc, "scale", Vector3(1.08, 1, 1.08), 0.7)
+	tw.tween_property(disc, "scale", Vector3.ONE, 0.7)
+	return root

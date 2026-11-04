@@ -1,7 +1,7 @@
 ## Вороги Ордену Єдиного: моторошна темна казка.
 class_name EnemyDefs
 
-const IDS := ["novice", "werewolf", "wraith", "hound", "archer", "brute"]
+const IDS := ["novice", "werewolf", "wraith", "hound", "archer", "brute", "skel_minion", "skel_warrior", "skel_rogue", "skel_mage"]
 
 const DATA := {
 	"novice": {
@@ -34,6 +34,27 @@ const DATA := {
 		"aggro": 9.0, "range": 2.2, "cooldown": 1.9, "windup": 0.7, "radius": 0.65,
 		"ranged": false, "height": 2.7,
 	},
+	# ---- нежить (руїни, печери) ----
+	"skel_minion": {
+		"name": "Мрець", "hp": 85.0, "dmg": 9.0, "speed": 3.3, "xp": 16.0,
+		"aggro": 11.0, "range": 1.7, "cooldown": 1.1, "windup": 0.4, "radius": 0.45,
+		"ranged": false, "height": 2.0,
+	},
+	"skel_warrior": {
+		"name": "Кістяний вій", "hp": 210.0, "dmg": 16.0, "speed": 2.8, "xp": 36.0,
+		"aggro": 10.0, "range": 2.0, "cooldown": 1.5, "windup": 0.55, "radius": 0.55,
+		"ranged": false, "height": 2.2,
+	},
+	"skel_rogue": {
+		"name": "Кістяний стрілець", "hp": 75.0, "dmg": 12.0, "speed": 3.0, "xp": 24.0,
+		"aggro": 14.0, "range": 12.0, "cooldown": 1.9, "windup": 0.5, "radius": 0.42,
+		"ranged": true, "height": 2.0, "keep_min": 6.0, "keep_max": 10.0, "mana_drain": 0.0, "bolt": "D8D0B0",
+	},
+	"skel_mage": {
+		"name": "Мертвий чаклун", "hp": 90.0, "dmg": 13.0, "speed": 2.5, "xp": 30.0,
+		"aggro": 13.0, "range": 11.0, "cooldown": 2.2, "windup": 0.6, "radius": 0.42,
+		"ranged": true, "height": 2.1, "keep_min": 5.5, "keep_max": 9.0, "mana_drain": 5.0, "bolt": "9BFF7A",
+	},
 }
 
 ## Рівень ворога в локації: від мінімального до максимального, залежно від відстані до входу (0..1) і трохи випадково.
@@ -41,7 +62,9 @@ static func level_in(loc: Dictionary, t: float, rng: RandomNumberGenerator) -> i
 	var lo := int(loc["levels"][0])
 	var hi := int(loc["levels"][1])
 	var x := clampf(t + rng.randf_range(-0.2, 0.2), 0.0, 1.0)
-	return clampi(lo + int(round(x * float(hi - lo))), lo, hi)
+	var base := clampi(lo + int(round(x * float(hi - lo))), lo, hi)
+	# вороги ростуть разом із героєм: max(рівень місцини, рівень героя) + 0..2
+	return maxi(base, GameState.level) + rng.randi_range(0, 2)
 
 
 static func get_def(id: String) -> Dictionary:

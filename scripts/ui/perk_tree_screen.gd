@@ -238,7 +238,7 @@ func _refresh(keep_status: bool = false) -> void:
 	var desc := str(d.get("description", ""))
 	if desc != "":
 		fx += ("\n\n" if fx != "" else "") + desc
-	_effect.text = fx
+	_effect.text = PerkTree.dedupe_text(fx)
 	var reason := GameState.unlock_block_reason(_selected)
 	_unlock_btn.disabled = reason != ""
 	if not keep_status:

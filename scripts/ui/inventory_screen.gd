@@ -167,7 +167,15 @@ func _build_bag_page() -> Control:
 	grid.columns = COLUMNS
 	grid.add_theme_constant_override("h_separation", 6)
 	grid.add_theme_constant_override("v_separation", 6)
-	mid.add_child(grid)
+	# Сумка більша за екран: гортається пальцем (плавно, з інерцією).
+	var bag_sc := ScrollContainer.new()
+	bag_sc.name = "BagScroll"
+	bag_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	bag_sc.custom_minimum_size = Vector2(COLUMNS * 80.0 + 14.0, 80.0 * 5.0)
+	bag_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	mid.add_child(bag_sc)
+	bag_sc.add_child(grid)
+	TouchScroll.attach(bag_sc)
 	for i in range(GameState.BAG_SIZE):
 		var sl2 := ItemSlot.new(74.0)
 		sl2.index = i
@@ -180,29 +188,47 @@ func _build_bag_page() -> Control:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.custom_minimum_size = Vector2(250, 0)
 	h.add_child(right)
-	_detail_name = FolkTheme.label("Торкнись предмета", 26, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
-	right.add_child(_detail_name)
-	_detail_body = FolkTheme.label("", 21, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
-	right.add_child(_detail_body)
-	_detail_cmp = FolkTheme.label("", 17, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
-	right.add_child(_detail_cmp)
-	var fill := Control.new()
-	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(fill)
+	# Опис гортається, кнопки завжди внизу.
+	var dsc := ScrollContainer.new()
+	dsc.name = "DetailScroll"
+	dsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	dsc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dsc.custom_minimum_size = Vector2(250, 120)
+	right.add_child(dsc)
+	TouchScroll.attach(dsc)
+	var dv := VBoxContainer.new()
+	dv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dv.add_theme_constant_override("separation", 6)
+	dsc.add_child(dv)
+	_detail_name = FolkTheme.label("Торкнись предмета", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_child(_detail_name)
+	_detail_body = FolkTheme.label("", 19, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_child(_detail_body)
+	_detail_cmp = FolkTheme.label("", 16, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_child(_detail_cmp)
+	var btns := HBoxContainer.new()
+	btns.add_theme_constant_override("separation", 6)
+	right.add_child(btns)
 	_btn_equip = Button.new()
 	_btn_equip.text = "Одягти"
-	FolkTheme.apply_button(_btn_equip, Palette.EMBROIDERY, 24)
+	FolkTheme.apply_button(_btn_equip, Palette.EMBROIDERY, 19)
+	_btn_equip.custom_minimum_size.y = 52
+	_btn_equip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_btn_equip.pressed.connect(_on_equip)
-	right.add_child(_btn_equip)
+	btns.add_child(_btn_equip)
 	_btn_equip2 = Button.new()
-	FolkTheme.apply_button(_btn_equip2, Palette.PANEL_LIGHT, 21)
+	FolkTheme.apply_button(_btn_equip2, Palette.PANEL_LIGHT, 17)
+	_btn_equip2.custom_minimum_size.y = 52
+	_btn_equip2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_btn_equip2.pressed.connect(func() -> void: _on_equip(true))
-	right.add_child(_btn_equip2)
+	btns.add_child(_btn_equip2)
 	_btn_sell = Button.new()
 	_btn_sell.text = "Продати"
-	FolkTheme.apply_button(_btn_sell, Palette.PANEL_LIGHT, 22)
+	FolkTheme.apply_button(_btn_sell, Palette.PANEL_LIGHT, 18)
+	_btn_sell.custom_minimum_size.y = 52
+	_btn_sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_btn_sell.pressed.connect(_on_sell)
-	right.add_child(_btn_sell)
+	btns.add_child(_btn_sell)
 	return h
 
 

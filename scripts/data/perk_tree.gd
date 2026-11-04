@@ -456,3 +456,27 @@ static func color_of(id: String) -> Color:
 	for i in range(1, parts.size()):
 		c = c.lerp(parts[i], 0.5)
 	return c
+
+
+## Прибирає повтори: речення/рядки, які вже є вище в тексті (опис навички, ефект і опис вузла часто збігаються).
+static func dedupe_text(t: String) -> String:
+	var seen := ""
+	var out_lines: Array = []
+	for para in t.split("\n"):
+		var kept: Array = []
+		var rx := RegEx.create_from_string("[^.!?]+[.!?]*")
+		for m in rx.search_all(para):
+			var sent := m.get_string().strip_edges()
+			if sent == "":
+				continue
+			var key := sent.to_lower().rstrip(".!? ")
+			var core := key.substr(key.find(":") + 1).strip_edges() if key.find(":") >= 0 else key
+			if key.length() > 3 and (seen.find(key) >= 0 or (core.length() > 12 and seen.find(core) >= 0)):
+				continue
+			seen += " " + key + " | "
+			kept.append(sent)
+		out_lines.append(" ".join(kept))
+	var res := "\n".join(out_lines)
+	while res.find("\n\n\n") >= 0:
+		res = res.replace("\n\n\n", "\n\n")
+	return res.strip_edges()
