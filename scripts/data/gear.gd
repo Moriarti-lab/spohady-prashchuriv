@@ -3,19 +3,27 @@ class_name Gear
 
 const CLASS_IDS := ["druzhynnyk", "strilets", "volkhv"]
 
+## Три стартові навички класу (одну з них гравець обирає безкоштовно при першому вході в Древо).
+## Гілки: a — по площі (слабша шкода), b — потужний одиночний удар (довге відновлення), c — швидка атака (більше Чару).
+const STARTER_SKILLS := {
+	"druzhynnyk": ["power_strike", "shield_bash", "triple_slash"],
+	"strilets": ["arrow_volley", "piercing_shot", "rapid_shot"],
+	"volkhv": ["element_wave", "sun_beam", "ice_shards"],
+}
+
 const CLASSES := {
 	"druzhynnyk": {
-		"name": "Дружинник", "weapon": "sword", "offhand": "Щит", "armor": "plate",
+		"name": "Дружинник", "kit": ["sword", "shield_round", "mail"],
 		"start_near": "Сили", "region": "str",
 		"desc": "Воїн ближнього бою. Бʼє мечем, ховається за щитом.",
 	},
 	"strilets": {
-		"name": "Стрілець", "weapon": "bow", "offhand": "Сагайдак", "armor": "mail",
+		"name": "Стрілець", "kit": ["bow", "leather"],
 		"start_near": "Спритності", "region": "agi",
 		"desc": "Влучний мисливець. Стріляє по найближчому ворогові.",
 	},
 	"volkhv": {
-		"name": "Волхв", "weapon": "staff", "offhand": "", "armor": "cloth",
+		"name": "Волхв", "kit": ["staff", "cloth"],
 		"start_near": "Віри", "region": "faith",
 		"desc": "Заклинач. Магічний снаряд має стихію твого бога.",
 	},
@@ -31,9 +39,7 @@ static func start_node(class_id: String) -> String:
 
 static func kit_text(class_id: String) -> String:
 	var c: Dictionary = class_def(class_id)
-	var w: Dictionary = Items.BASES[c["weapon"]]
-	var a: Dictionary = Items.BASES[c["armor"]]
-	var s: String = w["name"]
-	if c["offhand"] != "":
-		s += " + " + str(c["offhand"]).to_lower()
-	return s + "\n" + a["name"]
+	var names: Array = []
+	for id in c.get("kit", []):
+		names.append(str(Items.BASES[id]["name"]))
+	return "\n".join(names)

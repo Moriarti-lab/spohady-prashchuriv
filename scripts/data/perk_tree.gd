@@ -1,10 +1,11 @@
 ## Древо звитяги. Дані живуть у res://data/perk_tree.json (формат: docs/perk_tree_format.md).
 ## Той самий формат пише редактор tools/tree-editor/index.html.
-## Вузли: id, name, description, x, y, type, stats{}, skill, icon, region. Зв'язки: пари id.
+## Вузли: id, name, description, x, y, type, stats{}, skill, icon, region, [starter], [mod_skill + mods{}]. Зв'язки: пари id.
 class_name PerkTree
 
 const FORMAT := "spohady-perk-tree"
-const VERSION := 1
+const VERSION := 2
+const SUPPORTED_VERSIONS := [1, 2]
 const TREE_PATH := "res://data/perk_tree.json"
 const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]
 ## Ключ бонусу -> шаблон тексту (%s — число зі знаком).
@@ -15,9 +16,14 @@ const STAT_TEXT := {
 	"armor": "%s до броні", "dmg_pct": "%s%% до шкоди",
 	"atk_speed_pct": "%s%% до швидкості атаки", "crit_pct": "%s%% до шансу крита",
 	"move_pct": "%s%% до швидкості руху", "xp_pct": "%s%% до звитяги",
+	"lifesteal_pct": "%s%% шкоди повертається життям", "thorns_pct": "%s%% отриманої шкоди вертається ворогові",
+	"cdr_pct": "%s%% до швидкості відновлення навичок", "crit_dmg_pct": "%s%% до шкоди крита",
+	"hp_regen_pct": "%s%% життя за секунду", "gold_pct": "%s%% до здобичі гривень",
+	"drop_pct": "%s%% до шансу здобичі", "dr_pct": "%s%% менше отриманої шкоди",
 }
 const STAT_ORDER := ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "armor",
-	"dmg_pct", "atk_speed_pct", "crit_pct", "move_pct", "xp_pct"]
+	"dmg_pct", "atk_speed_pct", "crit_pct", "crit_dmg_pct", "cdr_pct", "lifesteal_pct", "thorns_pct",
+	"hp_regen_pct", "dr_pct", "move_pct", "gold_pct", "drop_pct", "xp_pct"]
 
 static var _loaded := false
 static var _data: Dictionary = {}
@@ -27,6 +33,7 @@ static var _starts: Dictionary = {}
 static var _regions: Array = []
 static var _links: Array = []
 static var load_errors: Array = []
+static var is_fallback := false
 
 
 # ---------- Завантаження ----------
@@ -38,29 +45,87 @@ static func ensure_loaded() -> void:
 
 
 ## Читає res://data/perk_tree.json. Повертає список помилок (порожній — усе гаразд).
+## Якщо файл зіпсований — вмикається вбудоване запасне Древо (is_fallback == true).
 static func load_from_file(path: String = TREE_PATH) -> Array:
 	_loaded = true
+	is_fallback = false
 	var parsed: Variant = null
 	if FileAccess.file_exists(path):
 		parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(parsed) != TYPE_DICTIONARY:
 		load_errors = ["Не вдалося прочитати %s" % path]
 		push_error(load_errors[0])
-		_apply({"nodes": [], "links": [], "class_starts": {}, "regions": []})
+		_use_fallback()
 		return load_errors
 	return apply_data(parsed)
 
 
 ## Застосовує словник (наприклад, з тесту). Помилки валідації повертає й записує в load_errors.
+## Якщо є помилки — використовується запасне Древо, щоб гра не ламалась.
 static func apply_data(data: Dictionary) -> Array:
 	_loaded = true
+	is_fallback = false
 	var res := validate(data)
 	load_errors = res["errors"]
 	if not load_errors.is_empty():
 		for e in load_errors:
 			push_error("Древо: " + str(e))
+		_use_fallback()
+		return load_errors
 	_apply(data)
 	return load_errors
+
+
+static func _use_fallback() -> void:
+	is_fallback = true
+	_apply(default_tree())
+
+
+## Вбудоване запасне Древо: старт, три стартові навички на клас, короткі гілки й серце.
+static func default_tree() -> Dictionary:
+	var regions := [
+		{"id": "str", "name": "Сила", "color": "#D8574B", "angle": -90.0},
+		{"id": "agi", "name": "Спритність", "color": "#7CBF5A", "angle": 30.0},
+		{"id": "faith", "name": "Віра", "color": "#3FB9B3", "angle": 150.0},
+	]
+	var pref := {"str": "s", "agi": "a", "faith": "f"}
+	var kits := {
+		"str": ["power_strike", "shield_bash", "triple_slash"],
+		"agi": ["arrow_volley", "piercing_shot", "rapid_shot"],
+		"faith": ["element_wave", "sun_beam", "ice_shards"],
+	}
+	var nodes: Array = []
+	var links: Array = []
+	var starts := {}
+	for rg in regions:
+		var rid: String = rg["id"]
+		var p: String = pref[rid]
+		var ang := deg_to_rad(float(rg["angle"]))
+		var dirv := Vector2(cos(ang), sin(ang))
+		var side := Vector2(-dirv.y, dirv.x)
+		var sid := p + "_t0"
+		nodes.append({"id": sid, "name": "Початок шляху", "description": "Початок шляху.", "x": dirv.x * 900.0, "y": dirv.y * 900.0,
+			"type": "start", "stats": {rid: 2}, "skill": "", "icon": "", "region": rid})
+		for i in range(3):
+			var kid := "%s_k%d" % [p, i]
+			var pos := dirv * 740.0 + side * (float(i) - 1.0) * 150.0
+			var sk: String = kits[rid][i]
+			nodes.append({"id": kid, "name": str(Skills.get_def(sk).get("name", sk)), "description": "Стартова навичка.", "x": pos.x, "y": pos.y,
+				"type": "skill", "stats": {}, "skill": sk, "icon": "", "region": rid, "starter": true})
+			links.append([sid, kid])
+			var prev := kid
+			for j in range(3):
+				var pid := "%s_p%d%d" % [p, i, j]
+				var pp := dirv * (600.0 - 140.0 * j) + side * (float(i) - 1.0) * (150.0 - 40.0 * j)
+				nodes.append({"id": pid, "name": "Міць предків", "description": "", "x": pp.x, "y": pp.y, "type": "small",
+					"stats": {rid: 1, "hp": 8}, "skill": "", "icon": "", "region": rid})
+				links.append([prev, pid])
+				prev = pid
+			links.append([prev, "core"])
+		starts[{"str": "druzhynnyk", "agi": "strilets", "faith": "volkhv"}[rid]] = sid
+	nodes.append({"id": "core", "name": "Серце роду", "description": "Тут сходяться всі три шляхи.", "x": 0.0, "y": 0.0, "type": "core",
+		"stats": {"str": 3, "agi": 3, "faith": 3, "dmg_pct": 8}, "skill": "ancestors_wrath", "icon": "", "region": "core"})
+	return {"format": FORMAT, "version": VERSION, "title": "Запасне Древо", "regions": regions, "class_starts": starts, "nodes": nodes, "links": links}
 
 
 static func _apply(data: Dictionary) -> void:
@@ -85,6 +150,16 @@ static func _apply(data: Dictionary) -> void:
 		d["skill"] = str(d.get("skill", ""))
 		d["icon"] = str(d.get("icon", ""))
 		d["description"] = str(d.get("description", ""))
+		d["region"] = str(d.get("region", ""))
+		d["starter"] = bool(d.get("starter", false))
+		d["mod_skill"] = str(d.get("mod_skill", ""))
+		var mods: Dictionary = {}
+		var rawm: Variant = d.get("mods", {})
+		if typeof(rawm) == TYPE_DICTIONARY:
+			for k in rawm.keys():
+				if Skills.MOD_TEXT.has(str(k)):
+					mods[str(k)] = float(rawm[k])
+		d["mods"] = mods
 		_nodes[str(d["id"])] = d
 		_adj[str(d["id"])] = []
 	for l in data.get("links", []):
@@ -114,8 +189,8 @@ static func validate(data: Variant) -> Dictionary:
 	var d: Dictionary = data
 	if str(d.get("format", "")) != FORMAT:
 		errors.append("Поле format має бути «%s»." % FORMAT)
-	if typeof(d.get("version", null)) not in [TYPE_INT, TYPE_FLOAT] or int(d.get("version", 0)) != VERSION:
-		errors.append("Поле version має бути %d." % VERSION)
+	if typeof(d.get("version", null)) not in [TYPE_INT, TYPE_FLOAT] or not (int(d.get("version", 0)) in SUPPORTED_VERSIONS):
+		errors.append("Поле version має бути 1 або 2 (поточна — %d)." % VERSION)
 	var nodes: Variant = d.get("nodes", null)
 	if typeof(nodes) != TYPE_ARRAY or (nodes as Array).is_empty():
 		errors.append("Список nodes порожній або відсутній.")
@@ -161,6 +236,24 @@ static func validate(data: Variant) -> Dictionary:
 			errors.append("%s: невідома навичка «%s»." % [tag, sk])
 		if typ == "skill" and sk == "":
 			errors.append("%s: тип skill потребує поля skill." % tag)
+		if nd.has("starter") and typeof(nd["starter"]) != TYPE_BOOL:
+			errors.append("%s: starter має бути true або false." % tag)
+		elif bool(nd.get("starter", false)) and (typ != "skill" or sk == ""):
+			errors.append("%s: starter доречний лише для вузла-навички." % tag)
+		var msk := str(nd.get("mod_skill", ""))
+		var mm: Variant = nd.get("mods", {})
+		if msk != "" and not Skills.DATA.has(msk):
+			errors.append("%s: mod_skill — невідома навичка «%s»." % [tag, msk])
+		if typeof(mm) != TYPE_DICTIONARY:
+			errors.append("%s: mods має бути об'єктом." % tag)
+		else:
+			if not (mm as Dictionary).is_empty() and msk == "":
+				errors.append("%s: mods потребує поля mod_skill." % tag)
+			for k in (mm as Dictionary).keys():
+				if not Skills.MOD_TEXT.has(str(k)):
+					errors.append("%s: невідоме поліпшення «%s»." % [tag, str(k)])
+				elif typeof(mm[k]) not in [TYPE_INT, TYPE_FLOAT]:
+					errors.append("%s: поліпшення «%s» має бути числом." % [tag, str(k)])
 		if typeof(nd.get("x", null)) in [TYPE_INT, TYPE_FLOAT] and typeof(nd.get("y", null)) in [TYPE_INT, TYPE_FLOAT]:
 			var key := "%d,%d" % [int(round(float(nd["x"]))), int(round(float(nd["y"])))]
 			if coords.has(key):
@@ -324,6 +417,8 @@ static func effect_text(id: String) -> String:
 			parts.append(stat_line(k, float(d["stats"][k])))
 	if d["skill"] != "" and Skills.DATA.has(d["skill"]):
 		parts.append("Навичка: " + str(Skills.get_def(d["skill"])["name"]))
+	if d["mod_skill"] != "" and Skills.DATA.has(d["mod_skill"]):
+		parts.append("«%s»: %s" % [str(Skills.get_def(d["mod_skill"])["name"]), Skills.mods_text(d["mods"])])
 	return "\n".join(parts)
 
 

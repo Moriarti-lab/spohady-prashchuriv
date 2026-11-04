@@ -14,7 +14,8 @@ const errs = (d) => ctx.validateTree(d).errors.length;
 ok(JSON.stringify(embedded) === JSON.stringify(file), "вбудоване Древо == data/perk_tree.json");
 const v = ctx.validateTree(file);
 ok(v.errors.length === 0 && v.warnings.length === 0, "data/perk_tree.json проходить перевірку редактора " + JSON.stringify(v));
-ok(file.nodes.length >= 80 && file.nodes.length <= 120, "вузлів 80–120: " + file.nodes.length);
+ok(file.nodes.length >= 250 && file.nodes.length <= 350, "вузлів 250–350: " + file.nodes.length);
+ok(file.version === 2 && file.nodes.filter(n => n.starter).length === 9, "версія 2 і по три стартові навички на клас");
 // експорт того, що читає редактор, дає той самий файл
 const exported = JSON.parse(ctx.serializeTree({ format: file.format, version: file.version, title: file.title, comment: file.comment,
   regions: file.regions, class_starts: file.class_starts, nodes: file.nodes.map(ctx.normalizeNode), links: file.links }));
@@ -37,7 +38,13 @@ d = clone(file); d.nodes[3].x = "ліворуч"; ok(errs(d) > 0, "нечисл�
 d = clone(file); d.nodes[3].name = "  "; ok(errs(d) > 0, "порожня назва відхилена");
 d = clone(file); d.nodes[3].id = "вузол 1"; ok(errs(d) > 0, "id з кирилицею/пробілом відхилено");
 d = clone(file); d.format = "щось"; ok(errs(d) > 0, "хибний format відхилено");
-d = clone(file); d.version = 2; ok(errs(d) > 0, "хибна version відхилена");
+d = clone(file); d.version = 3; ok(errs(d) > 0, "хибна version відхилена");
+d = clone(file); const up = d.nodes.find(n => n.mod_skill); up.mod_skill = "літати"; ok(errs(d) > 0, "невідома mod_skill відхилена");
+d = clone(file); d.nodes.find(n => n.mod_skill).mods = { літати: 3 }; ok(errs(d) > 0, "невідоме поліпшення відхилено");
+d = clone(file); d.nodes.find(n => n.mod_skill).mods = { dmg_pct: "багато" }; ok(errs(d) > 0, "нечислове поліпшення відхилено");
+d = clone(file); d.nodes.find(n => n.type === "small" && !n.mod_skill).mods = { dmg_pct: 5 }; ok(errs(d) > 0, "mods без mod_skill відхилено");
+d = clone(file); d.nodes.find(n => n.type === "small" && !n.mod_skill).starter = true; ok(errs(d) > 0, "starter на не-навичці відхилено");
+d = clone(file); d.nodes.find(n => n.type === "small" && !n.mod_skill).starter = "так"; ok(errs(d) > 0, "starter не-булів відхилено");
 ok(errs("текст") > 0 && errs(null) > 0 && errs([]) > 0, "не-об'єкт відхилено");
 d = clone(file); d.nodes = []; ok(errs(d) > 0, "порожній список вузлів відхилено");
 d = clone(file); d.nodes.push({ id: "island", name: "Острів", x: 5000, y: 5000, type: "small", stats: { str: 1 } });
