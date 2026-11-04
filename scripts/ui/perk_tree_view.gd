@@ -4,11 +4,11 @@ extends Control
 
 signal node_selected(id: String)
 
-const ZOOM_MIN := 0.22
+const ZOOM_MIN := 0.12
 const ZOOM_MAX := 1.7
 const TAP_SLOP := 14.0
 const RADIUS := {"small": 22.0, "notable": 31.0, "keystone": 42.0, "skill": 35.0, "start": 38.0, "core": 50.0}
-const REGION_ICONS := {"str": "region_str", "agi": "region_agi", "faith": "region_faith"}
+const REGION_ICONS := {"str": "perk_region_str", "agi": "perk_region_agi", "faith": "perk_region_faith"}
 
 var selected := ""
 var zoom := 0.5
@@ -178,18 +178,14 @@ func _icon_for(id: String) -> Texture2D:
 		return _icon_cache[ck]
 	var tex: Texture2D = null
 	if key != "":
-		tex = FolkTheme.art_texture(FolkTheme.ICON_DIR + "perks/%s.png" % key)
-		if tex == null:
-			tex = FolkTheme.art_texture(FolkTheme.ICON_DIR + "skills/%s.png" % key)
+		tex = Icons.texture(key)
 	if tex == null:
 		if type == "core":
-			tex = FolkTheme.art_texture(FolkTheme.ICON_DIR + "perks/core.png")
+			tex = Icons.texture("perk_core")
 		elif type == "skill" and str(d.get("skill", "")) != "":
-			tex = FolkTheme.art_texture(Skills.icon_path(str(d["skill"]), GameState.blessing))
+			tex = Icons.texture(Icons.skill_icon_id(str(d["skill"]), GameState.blessing))
 		if tex == null and type in ["notable", "keystone", "start", "skill"]:
-			var rk := str(REGION_ICONS.get(str(d.get("region", "")), ""))
-			if rk != "":
-				tex = FolkTheme.art_texture(FolkTheme.ICON_DIR + "perks/%s.png" % rk)
+			tex = Icons.texture(str(REGION_ICONS.get(str(d.get("region", "")), "")))
 	_icon_cache[ck] = tex
 	return tex
 
@@ -271,9 +267,10 @@ func _draw_node(id: String, p: Vector2) -> void:
 	var tex := _icon_for(id)
 	var dim := 1.0 if state > 0 else 0.45
 	if tex != null:
-		var dd := r * 2.0
+		var ir := r * 0.88   # значок на ~12% менший за коло: кінчики не зрізаються маскою
+		var dd := ir * 2.0
 		draw_circle(p, r + 2.0, Color(Palette.NIGHT, 0.9))
-		draw_texture_rect(tex, Rect2(p - Vector2(r, r), Vector2(dd, dd)), false, Color(dim, dim, dim, 1.0) if state > 0 else Color(0.38, 0.38, 0.42, 1.0))
+		draw_texture_rect(tex, Rect2(p - Vector2(ir, ir), Vector2(dd, dd)), false, Color(dim, dim, dim, 1.0) if state > 0 else Color(0.38, 0.38, 0.42, 1.0))
 	else:
 		var fill := col.darkened(0.15) if state == 2 else Palette.PANEL_LIGHT.lerp(col, 0.2)
 		if state == 0:

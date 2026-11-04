@@ -361,6 +361,14 @@ static func neighbors(id: String) -> Array:
 	return _adj.get(id, [])
 
 
+static func is_class_start(node_id: String) -> bool:
+	ensure_loaded()
+	for v in _starts.values():
+		if str(v) == node_id:
+			return true
+	return false
+
+
 static func class_start(class_id: String) -> String:
 	ensure_loaded()
 	return str(_starts.get(class_id, ""))

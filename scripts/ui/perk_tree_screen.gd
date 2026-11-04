@@ -13,6 +13,8 @@ var _stats: Label
 var _icon: TextureRect
 var _unlock_btn: Button
 var _selected := ""
+var _modal: Control
+var _modal_row: HBoxContainer
 
 
 func _ready() -> void:
@@ -59,7 +61,11 @@ func _ready() -> void:
 	cb.pressed.connect(_focus_start)
 	tools.add_child(cb)
 	var hint := FolkTheme.label("Тягни — рухати · щипок — масштаб", 18, Palette.TEXT_DIM)
-	hint.position = Vector2(86, 12)
+	hint.position = Vector2(14, 0)
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	hint.position.y -= 34.0
+	hint.position.x = 14.0
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.add_child(hint)
 
 	var panel := PanelContainer.new()
@@ -103,10 +109,86 @@ func _ready() -> void:
 	FolkTheme.apply_button(close, Palette.PANEL_LIGHT)
 	close.pressed.connect(func() -> void: closed.emit())
 	v.add_child(close)
+	_build_starter_modal()
+
+
+func _build_starter_modal() -> void:
+	_modal = Control.new()
+	FolkTheme.fullscreen(_modal)
+	_modal.mouse_filter = Control.MOUSE_FILTER_STOP
+	_modal.visible = false
+	add_child(_modal)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.82)
+	FolkTheme.fullscreen(dim)
+	_modal.add_child(dim)
+	var c := CenterContainer.new()
+	FolkTheme.fullscreen(c)
+	_modal.add_child(c)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	c.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	p.add_child(v)
+	v.add_child(FolkTheme.label("Обери стартову навичку", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(FolkTheme.label("Одну з трьох: безкоштовно, один раз. Решту навичок відкриєш на Древі.", 21, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(OrnamentBand.new(24))
+	_modal_row = HBoxContainer.new()
+	_modal_row.add_theme_constant_override("separation", 14)
+	v.add_child(_modal_row)
+
+
+func _show_starter_modal() -> void:
+	for ch in _modal_row.get_children():
+		_modal_row.remove_child(ch)
+		ch.queue_free()
+	for c in GameState.starter_choices():
+		var sid: String = c["skill"]
+		var node_id: String = c["node"]
+		var d: Dictionary = Skills.get_def(sid)
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(300, 0)
+		card.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.95), Palette.GOLD.darkened(0.2), 2, 10))
+		var cv := VBoxContainer.new()
+		cv.add_theme_constant_override("separation", 6)
+		card.add_child(cv)
+		var chip := SkillChip.new(92.0, 4.0)
+		chip.set_skill(sid)
+		chip.note = " "
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cc := CenterContainer.new()
+		cc.add_child(chip)
+		cv.add_child(cc)
+		cv.add_child(FolkTheme.label(str(d["name"]), 26, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+		cv.add_child(FolkTheme.label(Skills.role_name(sid), 20, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER, true))
+		var tx := FolkTheme.label(Skills.describe(sid), 19, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
+		tx.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		cv.add_child(tx)
+		var b := Button.new()
+		b.text = "Обрати"
+		FolkTheme.apply_button(b, Palette.EMBROIDERY, 24)
+		b.custom_minimum_size = Vector2(0, 56)
+		b.pressed.connect(func() -> void: _on_starter_picked(node_id))
+		cv.add_child(b)
+		_modal_row.add_child(card)
+	_modal.visible = true
+
+
+func _on_starter_picked(node_id: String) -> void:
+	if GameState.choose_starter(node_id):
+		_modal.visible = false
+		_selected = node_id
+		_view.selected = node_id
+		_refresh()
+		_status.text = "Навичку обрано. Далі відкривай вузли Древа."
 
 
 func open() -> void:
 	visible = true
+	_modal.visible = false
+	if GameState.starter_pending():
+		_show_starter_modal()
 	_selected = ""
 	_view.selected = ""
 	_focus_start()
@@ -150,6 +232,9 @@ func _refresh(keep_status: bool = false) -> void:
 	_title.text = str(d["name"])
 	_icon.texture = _view._icon_for(_selected)
 	var fx := PerkTree.effect_text(_selected)
+	if str(d.get("skill", "")) != "" and Skills.has(str(d["skill"])):
+		var sk: String = str(d["skill"])
+		fx += ("\n\n" if fx != "" else "") + Skills.describe(sk)
 	var desc := str(d.get("description", ""))
 	if desc != "":
 		fx += ("\n\n" if fx != "" else "") + desc
