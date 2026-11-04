@@ -63,8 +63,15 @@ var last_error := ""
 var notice := ""
 
 
+var load_guard: LoadGuard
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	LoadGuard.install()
+	load_guard = LoadGuard.new()
+	load_guard.name = "LoadGuard"
+	add_child(load_guard)
 	InputSetup.ensure()
 	PerkTree.ensure_loaded()
 	has_hero = load_game()
@@ -925,3 +932,11 @@ func delete_save() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	has_hero = false
 	changed.emit()
+
+
+## Перехід у світ із запобіжником: якщо світ не з'явиться, гравець побачить повідомлення, а не чорний екран.
+func go_to_world() -> void:
+	load_guard.arm()
+	var err := get_tree().change_scene_to_file("res://scenes/world.tscn")
+	if err != OK:
+		load_guard.show_failure("Не вдалося відкрити сцену світу (код %d)." % err)

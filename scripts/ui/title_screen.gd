@@ -116,7 +116,7 @@ func _draw_band(y: float, w: float) -> void:
 
 
 func _continue() -> void:
-	get_tree().change_scene_to_file("res://scenes/world.tscn")
+	GameState.go_to_world()
 
 
 func _new_game() -> void:

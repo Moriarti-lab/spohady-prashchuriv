@@ -23,5 +23,14 @@ grep -v "^  ok" /tmp/smoke.log | grep -v "^ERROR: \(Pages in use\|.*were never f
 if grep -q "FAIL" /tmp/smoke.log; then fail=1; fi
 grep -E "Підсумок" /tmp/smoke.log
 
+echo "== Гра: справжній шлях нового гравця (створення героя → світ) =="
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 res://tests/flow_test.tscn > /tmp/flow.log 2>&1 || fail=1
+else
+  "$GODOT" --headless --path . res://tests/flow_test.tscn > /tmp/flow.log 2>&1 || fail=1
+fi
+grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR|TIMEOUT" /tmp/flow.log
+if grep -q "FAIL\|SCRIPT ERROR\|TIMEOUT" /tmp/flow.log; then fail=1; fi
+
 [ $fail -eq 0 ] && echo "ВСЕ ГАРАЗД" || echo "Є ПОМИЛКИ"
 exit $fail

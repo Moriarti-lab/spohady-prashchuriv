@@ -123,7 +123,7 @@ func _on_next() -> void:
 
 func _finish() -> void:
 	GameState.new_hero(hero_name, blessing, hero_class)
-	get_tree().change_scene_to_file("res://scenes/world.tscn")
+	GameState.go_to_world()
 
 
 # ---------- Кроки ----------

@@ -95,6 +95,12 @@ func bind(p_player: Player, p_world: GameWorld) -> void:
 
 ## Новий герой без навичок: одразу показуємо вибір стартової навички на Древі.
 func _maybe_starter() -> void:
+	# Спершу даємо заслоні зникнути, а вже потім ставимо гру на паузу й відкриваємо Древо.
+	await get_tree().create_timer(0.55, true).timeout
+	if not is_inside_tree():
+		return
+	if world != null and world._fade_rect != null and is_instance_valid(world._fade_rect):
+		world._fade_rect.modulate.a = 0.0
 	if GameState.starter_pending() and not _overlay_open and world != null and not world.skip_warmup:
 		open_perks()
 

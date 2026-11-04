@@ -532,6 +532,7 @@ func _build_fade() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 95
 	layer.name = "Fade"
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_fade_rect = ColorRect.new()
 	_fade_rect.color = Palette.NIGHT
 	FolkTheme.fullscreen(_fade_rect)
@@ -544,8 +545,25 @@ func _build_fade() -> void:
 func _fade_in() -> void:
 	if _fade_rect == null or _fade_rect.modulate.a <= 0.0:
 		return
+	# Заслона має зникати й тоді, коли гра на паузі (наприклад, одразу відкрилося Древо з вибором
+	# стартової навички). Без цього в 0.3.0 новий герой бачив чорний екран.
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_fade_rect, "modulate:a", 0.0, 0.45)
+
+
+## Світ показано гравцеві: прогрів завершено, заслона прибрана або зникає.
+func is_ready_for_play() -> bool:
+	return is_warmed and _fade_rect != null and is_instance_valid(_fade_rect)
+
+
+## Аварійно прибрати всі заслони (запобіжник завантаження).
+func force_reveal() -> void:
+	if _fade_rect != null and is_instance_valid(_fade_rect):
+		_fade_rect.modulate.a = 0.0
+	for ch in get_children():
+		if ch is CanvasLayer and ch.layer == 90:
+			ch.queue_free()
 
 
 # ---------- Прогрів: усі вигляди, що зʼявляються пізніше, показуємо заздалегідь ----------
@@ -924,11 +942,13 @@ func go_through_exit(i: int) -> void:
 		GameState.change_location(to, loc_id)
 		return
 	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_fade_rect, "modulate:a", 1.0, 0.35)
 	await tw.finished
 	if not is_inside_tree():
 		return
 	GameState.change_location(to, loc_id)
+	GameState.load_guard.arm()
 	get_tree().reload_current_scene()
 
 
