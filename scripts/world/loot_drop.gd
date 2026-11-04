@@ -24,24 +24,42 @@ var _done := false
 const GOLD_CHANCE := 0.70
 const HP_CHANCE := 0.14
 const MANA_CHANCE := 0.09
-const ITEM_CHANCE := {"novice": 0.20, "werewolf": 0.28, "wraith": 0.24}
+const ITEM_CHANCE := {"novice": 0.20, "werewolf": 0.28, "wraith": 0.24, "hound": 0.14, "archer": 0.26, "brute": 0.42}
 
 
 ## Кидає здобич із ворога. Повертає масив створених LootDrop.
 static func drop_from_enemy(parent: Node, pos: Vector3, enemy_kind: String, level: int, rng: RandomNumberGenerator) -> Array:
 	var out: Array = []
+	var gm := HeroStats.gold_mult()
+	var dm := HeroStats.drop_mult()
 	if rng.randf() < GOLD_CHANCE:
 		var base := rng.randi_range(3, 8)
 		var mult := 1.0 + 0.25 * float(level - 1)
-		if enemy_kind == "werewolf":
+		if enemy_kind == "werewolf" or enemy_kind == "archer":
 			mult *= 1.4
-		out.append(make_drop(parent, pos, KIND_GOLD, maxi(1, int(round(base * mult))), {}, rng))
-	if rng.randf() < HP_CHANCE:
+		elif enemy_kind == "brute":
+			mult *= 2.2
+		out.append(make_drop(parent, pos, KIND_GOLD, maxi(1, int(round(base * mult * gm))), {}, rng))
+	if rng.randf() < HP_CHANCE * dm:
 		out.append(make_drop(parent, pos, KIND_HP, 1, {}, rng))
-	if rng.randf() < MANA_CHANCE:
+	if rng.randf() < MANA_CHANCE * dm:
 		out.append(make_drop(parent, pos, KIND_MANA, 1, {}, rng))
-	if rng.randf() < float(ITEM_CHANCE.get(enemy_kind, 0.2)):
+	if rng.randf() < float(ITEM_CHANCE.get(enemy_kind, 0.2)) * dm:
 		out.append(make_drop(parent, pos, KIND_ITEM, 1, Items.generate(level, rng), rng))
+	return out
+
+
+## Велика нагорода за міні-боса: багато гривень, зілля й два предмети не нижче «Рідкісного».
+static func drop_from_boss(parent: Node, pos: Vector3, level: int, rng: RandomNumberGenerator) -> Array:
+	var out: Array = []
+	var gold := int(round(float(rng.randi_range(90, 140)) * (1.0 + 0.2 * float(level)) * HeroStats.gold_mult()))
+	for i in range(3):
+		out.append(make_drop(parent, pos, KIND_GOLD, gold / 3, {}, rng))
+	out.append(make_drop(parent, pos, KIND_HP, 1, {}, rng))
+	out.append(make_drop(parent, pos, KIND_MANA, 1, {}, rng))
+	for i in range(2):
+		var it := Items.generate(level + 1, rng, "", 2 if i == 0 else rng.randi_range(2, 3))
+		out.append(make_drop(parent, pos, KIND_ITEM, 1, it, rng))
 	return out
 
 
@@ -86,13 +104,16 @@ func _build_visual() -> void:
 			_visual.add_child(LowPoly.glow_instance(LowPoly.ball(0.12, Vector3(0, 0.25, 0), c, 5), c, 1.6))
 		_:
 			var col := Items.rarity_color(item)
-			var slot := Items.slot_of(item)
+			var typ := Items.type_of(item)
 			var parts3: Array = []
-			match slot:
-				"weapon":
+			match typ:
+				"hand1", "hand2":
 					parts3.append(LowPoly.box(Vector3(0.1, 0.55, 0.05), Vector3(0, 0.3, 0), col, Vector3(0, 0, 55)))
 					parts3.append(LowPoly.box(Vector3(0.24, 0.05, 0.07), Vector3(-0.1, 0.15, 0), Palette.GOLD, Vector3(0, 0, 55)))
-				"armor":
+				"shield":
+					parts3.append(LowPoly.cyl(0.26, 0.26, 0.06, Vector3(0, 0.3, 0), col, 8, Vector3(90, 0, 0)))
+					parts3.append(LowPoly.ball(0.07, Vector3(0, 0.3, 0.05), Palette.GOLD, 5))
+				"head", "hands", "feet", "body":
 					parts3.append(LowPoly.cyl(0.2, 0.26, 0.34, Vector3(0, 0.25, 0), col, 6))
 					parts3.append(LowPoly.cyl(0.27, 0.27, 0.05, Vector3(0, 0.1, 0), Palette.GOLD, 6))
 				"amulet":

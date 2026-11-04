@@ -46,6 +46,9 @@ var potion_cd := 0.0
 var last_target: Enemy = null
 var last_target_t := 0.0
 var _weapon_base := ""
+var shield_hp := 0.0
+var shield_t := 0.0
+var _dash_speed := DASH_SPEED
 
 
 func _ready() -> void:
@@ -83,9 +86,13 @@ func _on_state_changed() -> void:
 	vitals_changed.emit()
 
 
-func _current_weapon_base() -> String:
-	var w: Variant = GameState.equipment.get("weapon", null)
+func _base_of(slot: String) -> String:
+	var w: Variant = GameState.equipment.get(slot, null)
 	return str(w.get("base", "")) if typeof(w) == TYPE_DICTIONARY else ""
+
+
+func _current_weapon_base() -> String:
+	return _base_of("main") + "|" + _base_of("off")
 
 
 func facing_vec2() -> Vector2:
@@ -105,7 +112,7 @@ func rebuild_model() -> void:
 		model.queue_free()
 	var accent: Color = Blessings.get_def(GameState.blessing)["color"]
 	_weapon_base = _current_weapon_base()
-	model = ModelFactory.hero(GameState.hero_class, accent, _weapon_base)
+	model = ModelFactory.hero(GameState.hero_class, accent, _base_of("main"), _base_of("off"))
 	add_child(model)
 	weapon_pivot = model.get_node("WeaponPivot")
 
@@ -121,6 +128,12 @@ func _physics_process(delta: float) -> void:
 	if last_target_t > 0.0:
 		last_target_t -= delta
 	invuln = maxf(0.0, invuln - delta)
+	HeroStats.tick_buffs(delta)
+	if shield_t > 0.0:
+		shield_t -= delta
+		if shield_t <= 0.0:
+			shield_hp = 0.0
+			vitals_changed.emit()
 	for k in cooldowns.keys():
 		cooldowns[k] = maxf(0.0, float(cooldowns[k]) - delta)
 	if _flash_t > 0.0:
@@ -146,7 +159,7 @@ func _physics_process(delta: float) -> void:
 	_knock = _knock.move_toward(Vector3.ZERO, 30.0 * delta)
 	if _dash_t > 0.0:
 		_dash_t -= delta
-		vel = _dash_dir * DASH_SPEED
+		vel = _dash_dir * _dash_speed
 	velocity = vel + _knock
 	move_and_slide()
 	position.y = 0.0
@@ -183,9 +196,13 @@ func _regen(delta: float) -> void:
 		mana = minf(HeroStats.max_mana(), mana + HeroStats.mana_regen() * delta)
 		changed = true
 	# повільне відновлення життя поза боєм
-	if combat_timer > 6.0 and hp < HeroStats.max_hp():
-		heal(HeroStats.max_hp() * 0.01 * delta, false)
-		changed = true
+	if hp < HeroStats.max_hp():
+		var rate := HeroStats.hp_regen()
+		if combat_timer > 6.0:
+			rate += HeroStats.max_hp() * 0.01
+		if rate > 0.0:
+			heal(rate * delta, false)
+			changed = true
 	_regen_acc += delta
 	if changed and _regen_acc > 0.1:
 		_regen_acc = 0.0
@@ -307,17 +324,19 @@ func _melee_hit(dir: Vector3, reach: float) -> void:
 		Fx.sparks(_fx_parent(), global_position + dir * 1.4 + Vector3(0, 1.0, 0), Palette.GOLD, 6)
 
 
-func _shoot(visual: Node3D, dir: Vector3, spd: float, spark: Color, basic: bool, dmg_override: float = -1.0) -> Projectile:
+func _shoot(visual: Node3D, dir: Vector3, spd: float, spark: Color, basic: bool, dmg_override: float = -1.0, life_t: float = -1.0, on_hit: Callable = Callable(), knock: float = 2.5) -> Projectile:
 	var pr := Projectile.new()
 	pr.add_child(visual)
 	pr.velocity = dir * spd
-	pr.life = (float(HeroStats.weapon_def()["range"]) if basic else 14.0) / spd + 0.25
+	pr.life = life_t if life_t > 0.0 else (float(HeroStats.weapon_def()["range"]) if basic else 14.0) / spd + 0.25
 	pr.spark_color = spark
 	var base := HeroStats.weapon_damage() if dmg_override < 0.0 else dmg_override
 	var r := _roll_damage(base)
 	pr.hit_callback = func(target: Node) -> void:
 		if is_instance_valid(target) and is_instance_valid(self):
-			deal_damage(target as Enemy, r[0], r[1], basic, 2.5)
+			deal_damage(target as Enemy, r[0], r[1], basic, knock)
+			if on_hit.is_valid():
+				on_hit.call(target)
 	_fx_parent().add_child(pr)
 	pr.global_position = global_position + Vector3(0, 1.1, 0) + dir * 0.6
 	pr.look_at(pr.global_position + dir, Vector3.UP)
@@ -332,6 +351,9 @@ func deal_damage(enemy: Enemy, amount: float, crit: bool, basic: bool, knock_for
 	last_target = enemy
 	last_target_t = 5.0
 	enemy.take_damage(amount, global_position, crit, knock_force)
+	var ls := HeroStats.lifesteal()
+	if ls > 0.0 and amount > 0.0:
+		heal(amount * ls, false)
 	# Громова мітка Перуна: кожен 5-й звичайний удар б'є блискавкою
 	if basic and GameState.blessing == "perun":
 		_hit_counter += 1
@@ -358,37 +380,51 @@ func use_skill(slot: int) -> void:
 	if dead:
 		return
 	var id := skill_id(slot)
-	if id == "":
+	if id == "" or not Skills.has(id):
 		return
-	var def: Dictionary = Skills.get_def(id)
 	if float(cooldowns.get(id, 0.0)) > 0.0:
 		return
-	var cost := float(def["mana"])
+	var p := HeroStats.skill_params(id)
+	var kind := str(p["kind"])
+	var cost := float(p["mana"])
 	if mana < cost:
 		Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.3, 0), "Мало чару", Palette.MANA_COLOR, false)
 		return
+	var target := nearest_enemy(14.0)
+	if kind == "strike" or kind == "chain":
+		var reach := float(p["range"]) + (0.0 if kind == "chain" or bool(p.get("ranged", false)) else 0.6)
+		target = nearest_enemy(reach)
+		if target == null:
+			Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.3, 0), "Немає цілі", Palette.TEXT_DIM, false)
+			return
 	mana -= cost
 	combat_timer = 0.0
-	var target := nearest_enemy(14.0)
 	var dir := _facing
 	if target != null:
 		dir = _dir_to(target.global_position)
-	match id:
-		"power_strike":
-			_cast_power_strike()
-		"arrow_volley":
-			_cast_volley(dir)
-		"element_wave":
-			_cast_wave()
-		"stribog_dash":
-			_cast_dash()
-		"whirlwind":
-			_cast_whirlwind()
-		"piercing_shot":
-			_cast_piercing(dir)
-		"ancestral_heal":
-			_cast_ancestral_heal()
-	var cd := float(def["cd"])
+		_face_now(dir)
+	match kind:
+		"nova":
+			_cast_nova(id, p)
+		"cone":
+			_cast_cone(id, p, dir)
+		"strike":
+			_cast_strike(id, p, target)
+		"volley":
+			_cast_volley(id, p, dir)
+		"zone":
+			_cast_zone(id, p, dir, target)
+		"chain":
+			_cast_chain(id, p, target)
+		"buff":
+			_cast_buff(id, p)
+		"shield":
+			_cast_shield(id, p)
+		"heal":
+			_cast_ancestral_heal(p)
+		"dash":
+			_cast_dash(id, p)
+	var cd := float(p["cd"])
 	if GameState.blessing == "mokosh" and randf() < 0.10:
 		cd = 0.0
 		Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.6, 0), "Нитка долі!", Color("D7A8FF"), false)
@@ -399,96 +435,250 @@ func use_skill(slot: int) -> void:
 	vitals_changed.emit()
 
 
-func _cast_power_strike() -> void:
-	var def: Dictionary = Skills.get_def("power_strike")
-	var radius := float(def["radius"])
-	Fx.ring_burst(_fx_parent(), global_position, radius, def["color"], 0.4)
+## Один удар навички по ворогові: шкода з критом, відкидання, приголомшення й сповільнення.
+func _skill_hit(en: Enemy, id: String, p: Dictionary, knock_default: float = 3.0, stun_on: bool = true) -> void:
+	if en == null or en.dead:
+		return
+	var r := _roll_damage(HeroStats.skill_damage(id))
+	deal_damage(en, r[0], r[1], false, float(p.get("knock", knock_default)))
+	if en.dead:
+		return
+	var st := float(p.get("stun", 0.0))
+	if stun_on and st > 0.0:
+		en.apply_stun(st)
+	if float(p.get("slow", 0.0)) > 0.0:
+		en.apply_slow(float(p["slow"]), float(p.get("slow_t", 1.5)))
+
+
+func _enemies_in_circle(center: Vector3, radius: float) -> Array:
+	var out: Array = []
 	for e in _enemies():
 		var en: Enemy = e
 		if en.dead:
 			continue
-		if _flat_dist(en.global_position) <= radius + en.body_radius:
-			var r := _roll_damage(HeroStats.skill_damage("power_strike"))
-			deal_damage(en, r[0], r[1], false, 9.0)
+		var off := en.global_position - center
+		off.y = 0.0
+		if off.length() <= radius + en.body_radius:
+			out.append(en)
+	return out
 
 
-func _cast_volley(dir: Vector3) -> void:
-	var def: Dictionary = Skills.get_def("arrow_volley")
-	var n := int(def["count"])
-	for i in range(n):
-		var ang := deg_to_rad(lerpf(-28.0, 28.0, float(i) / float(n - 1)))
-		var d := dir.rotated(Vector3.UP, ang)
-		_shoot(ModelFactory.arrow(), d, 22.0, Palette.LINEN, false, HeroStats.skill_damage("arrow_volley"))
-
-
-func _cast_wave() -> void:
-	var def: Dictionary = Skills.get_def("element_wave")
-	var radius := float(def["radius"])
-	var col: Color = Blessings.get_def(GameState.blessing)["color"]
-	Fx.ring_burst(_fx_parent(), global_position, radius, col, 0.5)
-	Fx.sparks(_fx_parent(), global_position + Vector3(0, 0.8, 0), col, 14)
-	for e in _enemies():
-		var en: Enemy = e
-		if en.dead:
-			continue
-		if _flat_dist(en.global_position) <= radius + en.body_radius:
-			var r := _roll_damage(HeroStats.skill_damage("element_wave"))
-			deal_damage(en, r[0], r[1], false, 5.0)
-
-
-func _cast_whirlwind() -> void:
-	var def: Dictionary = Skills.get_def("whirlwind")
-	var ticks := int(def["ticks"])
-	var radius := float(def["radius"])
+func _cast_nova(id: String, p: Dictionary) -> void:
+	var radius := float(p["radius"])
+	var ticks := maxi(1, int(p.get("ticks", 1)))
+	var col: Color = p["color"] if id != "element_wave" else Blessings.get_def(GameState.blessing)["color"]
 	for i in range(ticks):
-		var t := create_tween()
-		t.tween_callback(_whirl_tick.bind(radius, def["color"])).set_delay(0.22 * float(i))
+		if i == 0:
+			_nova_tick(id, p, radius, col, true)
+		else:
+			var t := create_tween()
+			t.tween_callback(_nova_tick.bind(id, p, radius, col, false)).set_delay(float(p.get("tick", 0.22)) * float(i))
 
 
-func _whirl_tick(radius: float, col: Color) -> void:
+func _nova_tick(id: String, p: Dictionary, radius: float, col: Color, first: bool) -> void:
 	if dead:
 		return
 	_swing = 1.0
-	Fx.ring_burst(_fx_parent(), global_position, radius, col, 0.25)
+	Fx.ring_burst(_fx_parent(), global_position, radius, col, 0.3 if int(p.get("ticks", 1)) > 1 else 0.45)
+	if first and bool(p.get("ultimate", false)):
+		Fx.sparks(_fx_parent(), global_position + Vector3(0, 0.8, 0), col, 20)
+	for en in _enemies_in_circle(global_position, radius):
+		_skill_hit(en, id, p, 4.0, first)
+
+
+func _cast_cone(id: String, p: Dictionary, dir: Vector3) -> void:
+	var n := maxi(1, int(p["count"]))
+	for i in range(n):
+		var t := create_tween()
+		t.tween_callback(_cone_hit.bind(id, p, i)).set_delay(float(p.get("delay", 0.13)) * float(i) + 0.05)
+
+
+func _cone_hit(id: String, p: Dictionary, _i: int) -> void:
+	if dead:
+		return
+	_swing = 1.0
+	var reach := float(p["range"])
+	var half := deg_to_rad(float(p["arc"]) * 0.5)
+	var dir := _facing
+	var near := nearest_enemy(reach + 1.5)
+	if near != null:
+		dir = _dir_to(near.global_position)
+		_face_now(dir)
+	var any := false
 	for e in _enemies():
 		var en: Enemy = e
 		if en.dead:
 			continue
-		if _flat_dist(en.global_position) <= radius + en.body_radius:
-			var r := _roll_damage(HeroStats.skill_damage("whirlwind"))
-			deal_damage(en, r[0], r[1], false, 3.5)
+		var off := en.global_position - global_position
+		off.y = 0.0
+		var d := off.length()
+		if d > reach + en.body_radius:
+			continue
+		if d > 0.6 and absf(dir.angle_to(off.normalized())) > half:
+			continue
+		_skill_hit(en, id, p, 3.0, _i == 0)
+		any = true
+	Fx.sparks(_fx_parent(), global_position + dir * minf(reach, 3.0) * 0.6 + Vector3(0, 1.0, 0), p["color"], 7 if any else 4)
 
 
-func _cast_piercing(dir: Vector3) -> void:
-	var pr := _shoot(ModelFactory.arrow(), dir, 30.0, Skills.get_def("piercing_shot")["color"], false, HeroStats.skill_damage("piercing_shot"))
-	if pr != null:
+func _cast_strike(id: String, p: Dictionary, target: Enemy) -> void:
+	if target == null:
+		return
+	if bool(p.get("ranged", false)):
+		Fx.lightning(_fx_parent(), target.global_position)
+	Fx.ring_burst(_fx_parent(), target.global_position, 1.6, p["color"], 0.35)
+	Fx.sparks(_fx_parent(), target.global_position + Vector3(0, 1.0, 0), p["color"], 10)
+	_skill_hit(target, id, p, 8.0)
+
+
+func _cast_volley(id: String, p: Dictionary, dir: Vector3) -> void:
+	var n := maxi(1, int(p["count"]))
+	var spread := float(p.get("spread", 0.0))
+	var delay := float(p.get("delay", 0.0))
+	var col: Color = p["color"]
+	for i in range(n):
+		var ang := 0.0
+		if spread >= 359.0:
+			ang = TAU * float(i) / float(n)
+		elif n > 1:
+			ang = deg_to_rad(lerpf(-spread * 0.5, spread * 0.5, float(i) / float(n - 1)))
+		var d := dir.rotated(Vector3.UP, ang)
+		if delay > 0.0:
+			var t := create_tween()
+			t.tween_callback(_volley_shot.bind(id, p, d, col)).set_delay(delay * float(i))
+		else:
+			_volley_shot(id, p, d, col)
+
+
+func _volley_shot(id: String, p: Dictionary, d: Vector3, col: Color) -> void:
+	if dead:
+		return
+	var magic := bool(p.get("magic", false))
+	var visual: Node3D = ModelFactory.bolt(col) if magic else ModelFactory.arrow()
+	var spd := float(p.get("speed", 22.0))
+	var life := float(p.get("life", 0.9))
+	var slow := float(p.get("slow", 0.0))
+	var slow_t := float(p.get("slow_t", 1.5))
+	var stun := float(p.get("stun", 0.0))
+	var cb := func(t: Node) -> void:
+		var en := t as Enemy
+		if en != null and not en.dead:
+			if slow > 0.0:
+				en.apply_slow(slow, slow_t)
+			if stun > 0.0:
+				en.apply_stun(stun)
+	var pr := _shoot(visual, d, spd, col if magic else Palette.LINEN, false, HeroStats.skill_damage(id), life, cb, float(p.get("knock", 2.5)))
+	if pr != null and bool(p.get("pierce", false)):
 		pr.pierce = true
-		pr.life = 0.9
+	if pr != null and bool(p.get("big", false)):
 		pr.scale = Vector3(1.4, 1.4, 1.4)
+	_swing = 1.0
 
 
-func _cast_ancestral_heal() -> void:
-	var def: Dictionary = Skills.get_def("ancestral_heal")
-	var amount := HeroStats.max_hp() * float(def["heal_pct"]) + HeroStats.stat("faith") * 1.5
-	Fx.ring_burst(_fx_parent(), global_position, 3.0, def["color"], 0.5)
-	Fx.sparks(_fx_parent(), global_position + Vector3(0, 0.8, 0), def["color"], 14)
+func _cast_zone(id: String, p: Dictionary, dir: Vector3, target: Enemy) -> void:
+	var at := str(p.get("at", "target"))
+	var center := global_position
+	match at:
+		"target":
+			if target != null and _flat_dist(target.global_position) <= float(p.get("range", 12.0)) + 1.0:
+				center = target.global_position
+			else:
+				center = global_position + dir * minf(6.0, float(p.get("range", 12.0)))
+		"ahead":
+			center = global_position + dir * 4.0
+			if target != null and _flat_dist(target.global_position) <= 6.0:
+				center = target.global_position
+	center.y = 0.0
+	var radius := float(p["radius"])
+	var delay := float(p.get("delay", 0.0))
+	var ticks := maxi(1, int(p.get("ticks", 1)))
+	var tick := float(p.get("tick", 0.5))
+	var col: Color = p["color"]
+	var follow := at == "self"
+	Fx.ring_burst(_fx_parent(), center, radius, col.darkened(0.1), maxf(0.25, delay if delay > 0.0 else 0.3))
+	for i in range(ticks):
+		var t := create_tween()
+		t.tween_callback(_zone_tick.bind(id, p, center, radius, col, i == 0, follow)).set_delay(delay + tick * float(i))
+
+
+func _zone_tick(id: String, p: Dictionary, center: Vector3, radius: float, col: Color, first: bool, follow: bool) -> void:
+	if dead:
+		return
+	var c := global_position if follow else center
+	c.y = 0.0
+	Fx.ring_burst(_fx_parent(), c, radius, col, 0.3)
+	for en in _enemies_in_circle(c, radius):
+		_skill_hit(en, id, p, 1.5, first)
+
+
+func _cast_chain(id: String, p: Dictionary, target: Enemy) -> void:
+	var hit := {}
+	var cur := target
+	var n := maxi(1, int(p["count"]))
+	var jump := float(p.get("jump", 6.0))
+	for i in range(n):
+		if cur == null or cur.dead:
+			break
+		hit[cur.get_instance_id()] = true
+		var en := cur
+		var t := create_tween()
+		t.tween_callback(_chain_hit.bind(id, p, en)).set_delay(0.08 * float(i))
+		var nxt: Enemy = null
+		var bd := jump
+		for e in _enemies():
+			var o: Enemy = e
+			if o.dead or hit.has(o.get_instance_id()):
+				continue
+			var d := Vector2(o.global_position.x - cur.global_position.x, o.global_position.z - cur.global_position.z).length()
+			if d < bd:
+				bd = d
+				nxt = o
+		cur = nxt
+
+
+func _chain_hit(id: String, p: Dictionary, en: Enemy) -> void:
+	if en == null or not is_instance_valid(en) or en.dead:
+		return
+	Fx.lightning(_fx_parent(), en.global_position)
+	_skill_hit(en, id, p, 2.0)
+
+
+func _cast_buff(id: String, p: Dictionary) -> void:
+	HeroStats.add_buff(id, p["buff"], float(p["dur"]))
+	Fx.ring_burst(_fx_parent(), global_position, 3.0, p["color"], 0.5)
+	Fx.sparks(_fx_parent(), global_position + Vector3(0, 1.0, 0), p["color"], 12)
+	Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.4, 0), str(p["name"]), p["color"], false)
+	GameState.changed.emit()
+
+
+func _cast_shield(_id: String, p: Dictionary) -> void:
+	shield_hp = float(p["absorb"]) + float(p["per_faith"]) * HeroStats.stat("faith")
+	shield_t = float(p["dur"])
+	Fx.ring_burst(_fx_parent(), global_position, 2.2, p["color"], 0.5)
+	Fx.sparks(_fx_parent(), global_position + Vector3(0, 1.0, 0), p["color"], 12)
+	Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.4, 0), "Щит %d" % int(shield_hp), p["color"], false)
+
+
+func _cast_ancestral_heal(p: Dictionary) -> void:
+	var amount := HeroStats.max_hp() * float(p["heal_pct"]) + HeroStats.stat("faith") * 1.5
+	Fx.ring_burst(_fx_parent(), global_position, 3.0, p["color"], 0.5)
+	Fx.sparks(_fx_parent(), global_position + Vector3(0, 0.8, 0), p["color"], 14)
 	heal(amount)
 
 
-func _cast_dash() -> void:
+func _cast_dash(id: String, p: Dictionary) -> void:
 	var iv := _input_vec()
 	var mv := Vector3(iv.x, 0, iv.y)
 	_dash_dir = mv.normalized() if mv.length() > 0.1 else _facing
 	_dash_t = DASH_TIME
+	_dash_speed = float(p.get("dist", 6.0)) / DASH_TIME
 	invuln = DASH_TIME + 0.1
-	var col: Color = Skills.get_def("stribog_dash")["color"]
-	Fx.ring_burst(_fx_parent(), global_position, 3.5, col, 0.4)
-	for e in _enemies():
-		var en: Enemy = e
-		if en.dead:
-			continue
-		if _flat_dist(en.global_position) <= 3.5:
-			en.take_damage(0.0, global_position, false, 12.0)
+	var radius := float(p.get("radius", 3.5))
+	Fx.ring_burst(_fx_parent(), global_position, radius, p["color"], 0.4)
+	for en in _enemies_in_circle(global_position, radius):
+		(en as Enemy).take_damage(0.0, global_position, false, float(p.get("knock", 12.0)))
+		if float(p.get("stun", 0.0)) > 0.0:
+			(en as Enemy).apply_stun(float(p["stun"]))
 
 
 # ---------- Отримання шкоди, лікування, смерть ----------
@@ -497,6 +687,22 @@ func take_damage(amount: float, from_pos: Vector3, knock_force: float = 3.0) -> 
 	if dead or invuln > 0.0:
 		return
 	var final := maxf(1.0, amount * (1.0 - HeroStats.damage_reduction()))
+	if shield_hp > 0.0:
+		var soak := minf(shield_hp, final)
+		shield_hp -= soak
+		final -= soak
+		if shield_hp <= 0.0:
+			shield_t = 0.0
+		if final <= 0.0:
+			invuln = 0.1
+			Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.2, 0), "Щит", Color("F5E3A8"), false)
+			vitals_changed.emit()
+			return
+	var th := HeroStats.thorns()
+	if th > 0.0:
+		for en in _enemies_in_circle(from_pos, 2.0):
+			(en as Enemy).take_damage(amount * th, global_position, false, 0.0)
+			break
 	hp = maxf(0.0, hp - final)
 	combat_timer = 0.0
 	invuln = 0.12
@@ -577,6 +783,9 @@ func respawn(at: Vector3) -> void:
 	_facing = Vector3(0, 0, -1)
 	_knock = Vector3.ZERO
 	cooldowns.clear()
+	HeroStats.clear_buffs()
+	shield_hp = 0.0
+	shield_t = 0.0
 	potion_cd = 0.0
 	model.rotation.x = 0.0
 	model.position.y = 0.0

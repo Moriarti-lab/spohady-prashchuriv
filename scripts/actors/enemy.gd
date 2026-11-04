@@ -36,6 +36,13 @@ var _t := randf() * 10.0
 var _strafe := 1.0
 var _flash_t := 0.0
 var _world_root: Node = null
+var is_boss := false
+var boss_id := ""
+var boss_name := ""
+var scale_mult := 1.0
+var stun_t := 0.0
+var slow_t := 0.0
+var slow_f := 0.0
 
 
 ## Викликати ДО додавання в сцену.
@@ -56,6 +63,38 @@ func setup(p_kind: String, p_level: int, p_target: Player, p_home: Vector3, p_wo
 	_strafe = 1.0 if randf() < 0.5 else -1.0
 
 
+## Робить ворога мінібосом: більший, міцніший, велика нагорода. Викликати після setup(), до додавання в сцену.
+func make_boss(p_id: String, p_name: String, p_scale: float, p_hp_mult: float = 1.0) -> void:
+	is_boss = true
+	boss_id = p_id
+	boss_name = p_name
+	scale_mult = p_scale
+	max_hp *= 7.0 * p_hp_mult
+	hp = max_hp
+	dmg *= 1.5
+	xp_reward *= 8
+	body_radius *= p_scale
+	speed *= 1.05
+
+
+func apply_stun(t: float) -> void:
+	if dead:
+		return
+	var tt := t * (0.4 if is_boss else 1.0)
+	stun_t = maxf(stun_t, tt)
+	if state == State.WINDUP:
+		state = State.CHASE
+		_model.scale = _base_scale()
+	Fx.sparks(_fx_parent(), global_position + Vector3(0, float(def["height"]) * scale_mult + 0.3, 0), Color("FFE07A"), 4)
+
+
+func apply_slow(f: float, t: float) -> void:
+	if dead:
+		return
+	slow_f = maxf(slow_f if slow_t > 0.0 else 0.0, f * (0.5 if is_boss else 1.0))
+	slow_t = maxf(slow_t, t)
+
+
 func _ready() -> void:
 	add_to_group("enemies")
 	if kind == "wraith":
@@ -67,21 +106,25 @@ func _ready() -> void:
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	var cs := CollisionShape3D.new()
 	var sh := CapsuleShape3D.new()
-	sh.radius = body_radius * 0.9
+	sh.radius = body_radius * 0.9 if not is_boss else body_radius * 0.8
 	sh.height = 1.7
 	cs.shape = sh
 	cs.position.y = 0.9
 	add_child(cs)
 	_model = ModelFactory.enemy(kind)
 	add_child(_model)
+	_model.scale = _base_scale()
 	_build_bar()
+	if is_boss:
+		_bar.visible = true
+		_build_boss_label()
 	rotation.y = randf() * TAU
 	_wander_t = randf() * 2.0
 
 
 func _build_bar() -> void:
 	_bar = Node3D.new()
-	_bar.position = Vector3(0, float(def["height"]) + 0.45, 0)
+	_bar.position = Vector3(0, float(def["height"]) * scale_mult + 0.45, 0)
 	_bar.visible = false
 	add_child(_bar)
 	var bg := Sprite3D.new()
@@ -108,6 +151,19 @@ func _build_bar() -> void:
 	_bar.add_child(_bar_fill)
 
 
+func _build_boss_label() -> void:
+	var l := Label3D.new()
+	l.text = boss_name
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.pixel_size = 0.012
+	l.font_size = 40
+	l.outline_size = 10
+	l.modulate = Palette.GOLD
+	l.position = Vector3(0, 0.55, 0)
+	_bar.add_child(l)
+
+
 func _fx_parent() -> Node:
 	return _world_root if _world_root != null else get_parent()
 
@@ -120,6 +176,10 @@ func _physics_process(delta: float) -> void:
 	_t += delta
 	_attack_cd = maxf(0.0, _attack_cd - delta)
 	_knock = _knock.move_toward(Vector3.ZERO, 22.0 * delta)
+	if slow_t > 0.0:
+		slow_t -= delta
+	if stun_t > 0.0:
+		stun_t -= delta
 	if _flash_t > 0.0:
 		_flash_t -= delta
 		if _flash_t <= 0.0:
@@ -139,6 +199,16 @@ func _physics_process(delta: float) -> void:
 	var dir := to_t.normalized() if dist > 0.01 else Vector3.ZERO
 
 	_desired = Vector3.ZERO
+	if stun_t > 0.0:
+		state = State.CHASE if state == State.WINDUP else state
+	else:
+		_run_state(delta, ok, dist, dir)
+	if slow_t > 0.0:
+		_desired *= (1.0 - slow_f)
+	_post_move(delta, ok, dist, dir)
+
+
+func _run_state(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	match state:
 		State.IDLE:
 			_do_idle(delta, ok, dist, dir)
@@ -149,6 +219,8 @@ func _physics_process(delta: float) -> void:
 		State.TRANSFORM:
 			_do_transform(delta)
 
+
+func _post_move(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	# відштовхування від інших ворогів
 	var push := Vector3.ZERO
 	for o in get_tree().get_nodes_in_group("enemies"):
@@ -180,7 +252,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _base_scale() -> Vector3:
-	return Vector3.ONE * (1.1 if is_beast else 1.0)
+	return Vector3.ONE * (1.1 if is_beast else 1.0) * scale_mult
 
 
 func _do_idle(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
@@ -244,31 +316,38 @@ func _do_windup(delta: float, ok: bool, dist: float, dir: Vector3) -> void:
 	if not ok:
 		return
 	if bool(def["ranged"]):
-		_fire_wraith(dir)
+		_fire_bolt(dir)
 	else:
 		if dist <= float(def["range"]) + 0.7:
 			target.take_damage(dmg, global_position, 6.0 if is_beast else 4.0)
 			_knock = dir * 4.0   # короткий випад уперед
 
 
-func _fire_wraith(dir: Vector3) -> void:
+func _fire_bolt(dir: Vector3) -> void:
 	var pr := Projectile.new()
 	pr.team = "enemy"
-	pr.add_child(ModelFactory.bolt(Color("A8F0FF"), 1.2))
-	pr.velocity = dir * 7.5
+	var col := Color(str(def.get("bolt", "A8F0FF")))
+	if kind == "archer":
+		pr.add_child(ModelFactory.arrow())
+	else:
+		pr.add_child(ModelFactory.bolt(col, 1.2))
+	pr.velocity = dir * (11.0 if kind == "archer" else 7.5)
 	pr.life = 3.0
 	pr.radius = 0.4
-	pr.spark_color = Color("A8F0FF")
+	pr.spark_color = col
 	var d := dmg
-	var drain := float(def["mana_drain"])
+	var drain := float(def.get("mana_drain", 0.0))
 	var from := global_position
 	pr.hit_callback = func(t: Node) -> void:
 		if is_instance_valid(t):
 			var pl := t as Player
 			pl.take_damage(d, from, 2.0)
-			pl.drain_mana(drain)
+			if drain > 0.0:
+				pl.drain_mana(drain)
 	_fx_parent().add_child(pr)
 	pr.global_position = global_position + Vector3(0, 1.4, 0) + dir * 0.6
+	if kind == "archer":
+		pr.look_at(pr.global_position + dir, Vector3.UP)
 
 
 func _do_transform(delta: float) -> void:
@@ -307,7 +386,7 @@ func take_damage(amount: float, from_pos: Vector3, crit: bool = false, knock_for
 		var txt := str(int(round(amount)))
 		if crit:
 			txt += "!"
-		Fx.damage_number(_fx_parent(), global_position + Vector3(0, float(def["height"]) + 0.5, 0), txt,
+		Fx.damage_number(_fx_parent(), global_position + Vector3(0, float(def["height"]) * scale_mult + 0.5, 0), txt,
 				Palette.GOLD if crit else Palette.LINEN, crit)
 	ModelFactory.set_flash(_model, true)
 	_flash_t = 0.08
@@ -333,7 +412,7 @@ func _die() -> void:
 	collision_mask = 0
 	_bar.visible = false
 	Fx.sparks(_fx_parent(), global_position + Vector3(0, 1.0, 0), Palette.TURQUOISE if kind == "wraith" else Palette.ASH, 12)
-	Fx.damage_number(_fx_parent(), global_position + Vector3(0, float(def["height"]) + 1.0, 0), "+%d" % xp_reward, Palette.XP_COLOR.lightened(0.2), true)
+	Fx.damage_number(_fx_parent(), global_position + Vector3(0, float(def["height"]) * scale_mult + 1.0, 0), "+%d" % xp_reward, Palette.XP_COLOR.lightened(0.2), true)
 	died.emit(self)
 	var tw := create_tween()
 	tw.set_parallel(true)

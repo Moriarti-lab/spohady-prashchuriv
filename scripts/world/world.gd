@@ -1,44 +1,53 @@
-## Єдина локація пробної версії: долина навколо Капища, обгороджена скелями, де блукають вороги Ордену.
+## Ігровий світ однієї локації: селище або бойова долина в кільці скель. Локацію задає GameState.location;
+## перехід між локаціями перезавантажує сцену (меші землі й моделі кешуються, тож це швидко).
 class_name GameWorld
 extends Node3D
 
 signal player_died_signal
 signal warmed
 
-const ARENA_RADIUS := 42.0
 const CAM_YAW_DEG := 45.0
 const CAM_PITCH_DEG := -52.0
 const CAM_DISTANCE := 17.0
 const DEATH_DELAY := 2.6
 const RESPAWN_CHECK := 4.0
-const TARGET_COUNTS := {"novice": 6, "werewolf": 4, "wraith": 3}
 const AUTOSAVE_SECONDS := 20.0
 const EXPLORE_RADIUS := 9.0
 const CLIFF_STEP := 3.3
-## Виходи з долини. Поки зачинені: торкнувшись тригера, гравець бачить «Шлях закритий».
-## angle_deg — напрям від Капища на площині (x, z); цей напрям на екрані дивиться «вгору».
-const EXITS := [
-	{"id": "forest_path", "name": "Стежка до лісу", "angle_deg": 225.0, "closed": true},
-]
 const EXIT_GAP_DEG := 8.0
 const EXIT_TRIGGER_R := 3.4
-const EXIT_TRIGGER_DIST := 38.6
-const CLOSED_TEXT := "Шлях закритий"
+const INTERACT_R := 3.4
+const HERB_PICKUP_R := 1.5
+
+## Види, які вже «прогріті» в цьому запуску: шейдери скомпільовано, повторно не чекаємо.
+static var warmed_kinds := {}
 
 var player: Player
 var camera: Camera3D
 var hud: Hud
 var shrine: Shrine
 var exit_gates: Array = []
+var loc_id := "village"
+var loc: Dictionary = {}
+var arena_radius := 42.0
+var safe := false
+var exits: Array = []                 # [{id, to, label, angle_deg, dir: Vector2}]
+var interactables: Array = []         # [{kind: npc|chest, id, name, pos: Vector3, node: Node3D, ...}]
+var herbs: Array = []                 # [{node, pos}]
+var boss: Enemy = null
+var instant_transition := false       # у тестах: без затемнення й перезавантаження сцени
 var _tree_points: Array = []
 var _respawn_t := 0.0
+var _boss_t := 0.0
 var _cam_pos := Vector3.ZERO
 var _enemy_root: Node3D
 var _loot_root: Node3D
 var _death_running := false
 var _save_t := 0.0
 var _explore_t := 0.0
-var _exit_cd := 0.0
+var _exit_cd := 1.5
+var _transitioning := false
+var _fade_rect: ColorRect
 var _rng := RandomNumberGenerator.new()
 var is_warmed := false
 var skip_warmup := false
@@ -48,14 +57,20 @@ func _ready() -> void:
 	_rng.randomize()
 	if not GameState.has_hero:
 		GameState.new_hero("Мандрівник", "perun", "druzhynnyk")
+	loc_id = GameState.location if Locations.has(GameState.location) else Locations.START
+	loc = Locations.get_def(loc_id)
+	arena_radius = float(loc["radius"])
+	safe = bool(loc.get("safe", false))
+	for e in loc["exits"]:
+		var ex: Dictionary = (e as Dictionary).duplicate()
+		var a := deg_to_rad(float(ex["angle_deg"]))
+		ex["dir"] = Vector2(cos(a), sin(a))
+		exits.append(ex)
 	_build_environment()
-	var dirs: Array = []
-	for e in EXITS:
-		var a := deg_to_rad(float(e["angle_deg"]))
-		dirs.append(Vector2(cos(a), sin(a)))
-	add_child(Terrain.build(ARENA_RADIUS, dirs))
+	add_child(Terrain.build(loc_id))
 	_build_props()
 	_build_exits()
+	_build_houses()
 	shrine = Shrine.new()
 	shrine.name = "Shrine"
 	add_child(shrine)
@@ -65,6 +80,9 @@ func _ready() -> void:
 	_loot_root = Node3D.new()
 	_loot_root.name = "Loot"
 	add_child(_loot_root)
+	_build_npcs()
+	_build_chests()
+	_build_herbs()
 	_build_player()
 	_build_camera()
 	hud = Hud.new()
@@ -72,19 +90,29 @@ func _ready() -> void:
 	add_child(hud)
 	hud.bind(player, self)
 	GameState.leveled_up.connect(_on_level_up)
+	GameState.quest_changed.connect(_on_quest_changed)
 	_spawn_initial()
+	_spawn_boss()
 	GameState.mark_explored(Vector2(player.position.x, player.position.z), EXPLORE_RADIUS)
 	GameState.save_game()
+	_build_fade()
 	if skip_warmup:
 		is_warmed = true
 		warmed.emit()
+		_fade_in()
 	else:
 		_warm_up.call_deferred()
+	if GameState.notice != "":
+		var msg := GameState.notice
+		GameState.notice = ""
+		hud.toast.call_deferred(msg)
 
 
 func _exit_tree() -> void:
 	if GameState.leveled_up.is_connected(_on_level_up):
 		GameState.leveled_up.disconnect(_on_level_up)
+	if GameState.quest_changed.is_connected(_on_quest_changed):
+		GameState.quest_changed.disconnect(_on_quest_changed)
 
 
 # ---------- Побудова світу ----------
@@ -92,13 +120,13 @@ func _exit_tree() -> void:
 func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("1F2A25")
+	env.background_color = loc["bg"]
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("B7B3B0")
 	env.ambient_light_energy = 0.95
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color("2D3A33")
+	env.fog_light_color = loc["fog"]
 	env.fog_density = 0.010
 	var we := WorldEnvironment.new()
 	we.environment = env
@@ -113,17 +141,24 @@ func _build_environment() -> void:
 
 
 func exit_dir(i: int) -> Vector2:
-	var a := deg_to_rad(float(EXITS[i]["angle_deg"]))
-	return Vector2(cos(a), sin(a))
+	return exits[i]["dir"]
 
 
 ## Точка перед брамою, де спрацьовує тригер (x, z).
 func exit_trigger_pos(i: int) -> Vector2:
-	return exit_dir(i) * EXIT_TRIGGER_DIST
+	return exit_dir(i) * (arena_radius - EXIT_TRIGGER_R)
+
+
+## Номер виходу, що веде в локацію `to` (-1, якщо немає).
+func exit_index_to(to: String) -> int:
+	for i in range(exits.size()):
+		if str(exits[i]["to"]) == to:
+			return i
+	return -1
 
 
 func _near_exit(a: float) -> bool:
-	for e in EXITS:
+	for e in exits:
 		var d := absf(wrapf(a - deg_to_rad(float(e["angle_deg"])), -PI, PI))
 		if d < deg_to_rad(EXIT_GAP_DEG):
 			return true
@@ -132,7 +167,7 @@ func _near_exit(a: float) -> bool:
 
 func _build_props() -> void:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 777
+	rng.seed = 777 + loc_id.hash() % 5000
 	var pines0: Array = []
 	var pines1: Array = []
 	var birches: Array = []
@@ -144,9 +179,10 @@ func _build_props() -> void:
 	var colliders := StaticBody3D.new()
 	colliders.name = "Colliders"
 	add_child(colliders)
+	var R := arena_radius
 
-	# --- межа: суцільне кільце скель (без прогалин, крім брами) ---
-	var ring_r := ARENA_RADIUS + 1.6
+	# --- межа: суцільне кільце скель (без прогалин, крім брам) ---
+	var ring_r := R + 1.6
 	var n := int(ceil(TAU * ring_r / CLIFF_STEP))
 	for i in range(n):
 		var a := TAU * float(i) / float(n) + rng.randf_range(-0.02, 0.02)
@@ -155,7 +191,6 @@ func _build_props() -> void:
 		var rr := ring_r + rng.randf_range(-0.6, 0.9)
 		var s := rng.randf_range(1.15, 1.7)
 		cliffs.append(LowPoly.xf(Vector3(cos(a) * rr, 0, sin(a) * rr), Vector3(0, rng.randf() * 360.0, 0), Vector3(s, s * rng.randf_range(0.9, 1.5), s)))
-	# другий ряд скель, щоб не було просвітів
 	for i in range(n):
 		var a2 := TAU * (float(i) + 0.5) / float(n)
 		if _near_exit(a2):
@@ -163,76 +198,84 @@ func _build_props() -> void:
 		var rr2 := ring_r + 3.0 + rng.randf_range(0.0, 1.5)
 		var s2 := rng.randf_range(1.4, 2.0)
 		cliffs.append(LowPoly.xf(Vector3(cos(a2) * rr2, 0, sin(a2) * rr2), Vector3(0, rng.randf() * 360.0, 0), Vector3(s2, s2 * rng.randf_range(1.0, 1.6), s2)))
-	# купи каміння при підніжжі
 	for i in range(int(n * 0.9)):
 		var a3 := rng.randf() * TAU
 		if _near_exit(a3):
 			continue
-		var r3 := ARENA_RADIUS - rng.randf_range(0.2, 1.8)
+		var r3 := R - rng.randf_range(0.2, 1.8)
 		var s3 := rng.randf_range(0.9, 1.6)
 		stones.append(LowPoly.xf(Vector3(cos(a3) * r3, 0, sin(a3) * r3), Vector3(0, rng.randf() * 360.0, 0), Vector3(s3, s3, s3)))
 	# щільний ліс за скелями
-	for i in range(240):
+	for i in range(200):
 		var a4 := rng.randf() * TAU
 		if _near_exit(a4):
 			continue
-		var r4 := rng.randf_range(ARENA_RADIUS + 4.5, ARENA_RADIUS + 16.0)
+		var r4 := rng.randf_range(R + 4.5, R + 16.0)
 		var t4 := LowPoly.xf(Vector3(cos(a4) * r4, 0, sin(a4) * r4), Vector3(0, rng.randf() * 360.0, 0), Vector3.ONE * rng.randf_range(1.1, 1.8))
 		if rng.randf() < 0.6:
 			pines0.append(t4)
 		else:
 			pines1.append(t4)
-	# стіна дерев безпосередньо за скелями — ще густіше, ніж далі
-	for i in range(110):
+	for i in range(100):
 		var a5 := rng.randf() * TAU
 		if _near_exit(a5):
 			continue
-		var r5 := rng.randf_range(ARENA_RADIUS + 2.4, ARENA_RADIUS + 5.0)
+		var r5 := rng.randf_range(R + 2.4, R + 5.0)
 		pines1.append(LowPoly.xf(Vector3(cos(a5) * r5, 0, sin(a5) * r5), Vector3(0, rng.randf() * 360.0, 0), Vector3.ONE * rng.randf_range(1.2, 1.7)))
 
+	# --- місця, що лишаємо вільними: будинки, NPC, скрині, бос ---
+	var reserved: Array = []
+	for h in loc.get("houses", []):
+		reserved.append([Vector3(float(h["pos"][0]), 0, float(h["pos"][1])), 6.0])
+	for c in loc.get("chests", []):
+		reserved.append([Vector3(float(c["pos"][0]), 0, float(c["pos"][1])), 3.0])
+	for npc in loc.get("npcs", []):
+		reserved.append([Vector3(float(npc["pos"][0]), 0, float(npc["pos"][1])), 3.0])
+	if loc.has("boss"):
+		reserved.append([Vector3(float(loc["boss"]["pos"][0]), 0, float(loc["boss"]["pos"][1])), 5.0])
+
 	# --- дерева й каміння в долині (з колізією) ---
+	var tree_target := int(loc.get("trees", 50))
+	var mix: Array = loc.get("tree_mix", [0.4, 0.32, 0.18, 0.1])
 	var placed := 0
 	var guard := 0
-	var exit_clear: Array = []
-	for i in range(EXITS.size()):
-		exit_clear.append(exit_trigger_pos(i))
-	while placed < 52 and guard < 900:
+	while placed < tree_target and guard < tree_target * 20:
 		guard += 1
 		var a6 := rng.randf() * TAU
-		var r6 := rng.randf_range(9.0, ARENA_RADIUS - 5.0)
+		var r6 := rng.randf_range(9.0, R - 5.0)
 		var p := Vector3(cos(a6) * r6, 0, sin(a6) * r6)
-		if _too_close(p, 4.0) or _near_exit_point(p, 9.0):
+		if _too_close(p, 4.0) or _near_exit_point(p, 9.0) or _near_reserved(p, reserved):
 			continue
 		_tree_points.append(p)
 		placed += 1
 		var t := LowPoly.xf(p, Vector3(0, rng.randf() * 360.0, 0), Vector3.ONE * rng.randf_range(0.85, 1.3))
 		var pick := rng.randf()
-		if pick < 0.40:
+		if pick < float(mix[0]):
 			pines0.append(t)
-		elif pick < 0.72:
+		elif pick < float(mix[0]) + float(mix[1]):
 			pines1.append(t)
-		elif pick < 0.90:
+		elif pick < float(mix[0]) + float(mix[1]) + float(mix[2]):
 			birches.append(t)
 		else:
 			deads.append(t)
 		_add_collider(colliders, p, 0.5, 3.0)
 	var rplaced := 0
 	guard = 0
-	while rplaced < 16 and guard < 400:
+	var rock_target := int(loc.get("rocks", 12))
+	while rplaced < rock_target and guard < 400:
 		guard += 1
 		var a7 := rng.randf() * TAU
-		var r7 := rng.randf_range(8.0, ARENA_RADIUS - 4.0)
+		var r7 := rng.randf_range(8.0, R - 4.0)
 		var p3 := Vector3(cos(a7) * r7, 0, sin(a7) * r7)
-		if _too_close(p3, 2.4) or _near_exit_point(p3, 8.0):
+		if _too_close(p3, 2.4) or _near_exit_point(p3, 8.0) or _near_reserved(p3, reserved):
 			continue
 		_tree_points.append(p3)
 		rplaced += 1
 		rocks.append(LowPoly.xf(p3, Vector3(0, rng.randf() * 360.0, 0), Vector3.ONE * rng.randf_range(0.8, 1.6)))
 		_add_collider(colliders, p3, 0.8, 1.2)
-	# трава — тільки одна тонка зелена трава, без квітів
-	for i in range(220):
+	for i in range(int(loc.get("grass", 200))):
 		var a8 := rng.randf() * TAU
-		var r8 := rng.randf_range(5.0, ARENA_RADIUS - 2.0)
+		var r8 := rng.randf_range(5.0, R - 2.0)
 		grass.append(LowPoly.xf(Vector3(cos(a8) * r8, 0, sin(a8) * r8), Vector3(0, rng.randf() * 360.0, 0), Vector3.ONE * rng.randf_range(0.8, 1.5)))
 
 	var root := Node3D.new()
@@ -244,6 +287,42 @@ func _build_props() -> void:
 	for s in sets:
 		if (s[1] as Array).size() > 0:
 			root.add_child(Props.multimesh(s[0], s[1]))
+	# болото: калюжі; руїни: уламки стін
+	var puddles := int(loc.get("puddles", 0))
+	for i in range(puddles):
+		var pa := rng.randf() * TAU
+		var pr := rng.randf_range(6.0, R - 5.0)
+		var pp := Vector3(cos(pa) * pr, 0.0, sin(pa) * pr)
+		if _near_exit_point(pp, 6.0) or _near_reserved(pp, reserved):
+			continue
+		var pu := Structures.puddle()
+		pu.position = pp
+		pu.rotation.y = rng.randf() * TAU
+		pu.scale = Vector3.ONE * rng.randf_range(0.8, 1.7)
+		root.add_child(pu)
+	var walls := int(loc.get("ruin_walls", 0))
+	guard = 0
+	while walls > 0 and guard < 300:
+		guard += 1
+		var wa := rng.randf() * TAU
+		var wr := rng.randf_range(8.0, R - 5.0)
+		var wp := Vector3(cos(wa) * wr, 0.0, sin(wa) * wr)
+		if _too_close(wp, 4.0) or _near_exit_point(wp, 9.0) or _near_reserved(wp, reserved):
+			continue
+		_tree_points.append(wp)
+		walls -= 1
+		var rw := Structures.ruin_wall()
+		rw.position = wp
+		rw.rotation.y = rng.randf() * TAU
+		root.add_child(rw)
+		_add_box_collider(colliders, wp, Vector3(3.4, 2.0, 0.8), rw.rotation.y)
+
+
+func _near_reserved(p: Vector3, reserved: Array) -> bool:
+	for r in reserved:
+		if (r[0] as Vector3).distance_to(p) < float(r[1]):
+			return true
+	return false
 
 
 func _add_collider(parent: StaticBody3D, p: Vector3, r: float, h: float) -> void:
@@ -256,10 +335,19 @@ func _add_collider(parent: StaticBody3D, p: Vector3, r: float, h: float) -> void
 	parent.add_child(cs)
 
 
+func _add_box_collider(parent: StaticBody3D, p: Vector3, size: Vector3, yaw: float) -> void:
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = size
+	cs.shape = sh
+	cs.position = p + Vector3(0, size.y * 0.5, 0)
+	cs.rotation.y = yaw
+	parent.add_child(cs)
+
+
 func _near_exit_point(p: Vector3, d: float) -> bool:
-	for i in range(EXITS.size()):
+	for i in range(exits.size()):
 		var tp := exit_trigger_pos(i)
-		# коридор від Капища до брами
 		var dir := exit_dir(i)
 		var flat := Vector2(p.x, p.z)
 		var along := flat.dot(dir)
@@ -279,18 +367,18 @@ func _too_close(p: Vector3, d: float) -> bool:
 
 
 func _build_exits() -> void:
-	for i in range(EXITS.size()):
+	for i in range(exits.size()):
 		var g := ExitGate.new()
-		g.name = "Gate_" + str(EXITS[i]["id"])
+		g.name = "Gate_" + str(exits[i]["id"])
+		g.label_text = str(exits[i]["label"])
 		add_child(g)
 		var dir := exit_dir(i)
-		g.position = Vector3(dir.x, 0, dir.y) * (ARENA_RADIUS + 1.3)
+		g.position = Vector3(dir.x, 0, dir.y) * (arena_radius + 1.3)
 		g.rotation.y = atan2(-dir.x, -dir.y)
 		exit_gates.append(g)
-		# валуни по боках брами
 		for sx: float in [-1.0, 1.0]:
 			var side := Vector2(-dir.y, dir.x) * sx
-			var pos := dir * (ARENA_RADIUS + 1.0) + side * 4.3
+			var pos := dir * (arena_radius + 1.0) + side * 4.3
 			var mesh := MeshInstance3D.new()
 			mesh.mesh = Props.cliff_mesh()
 			mesh.material_override = LowPoly.vc_material()
@@ -298,6 +386,113 @@ func _build_exits() -> void:
 			mesh.position = Vector3(pos.x, 0, pos.y)
 			mesh.scale = Vector3(1.5, 1.35, 1.5)
 			add_child(mesh)
+		# вказівник біля дороги: куди веде вихід
+		var sp := dir * (arena_radius - 9.0) + Vector2(-dir.y, dir.x) * 3.2
+		var sign := Structures.signpost("→ " + str(exits[i]["label"]).replace("До ", ""))
+		sign.position = Vector3(sp.x, 0, sp.y)
+		sign.rotation.y = atan2(-dir.x, -dir.y)
+		add_child(sign)
+
+
+## Будинки: живі в селищі, покинуті з потертим дахом у бойових локаціях. Мають колізію.
+func _build_houses() -> void:
+	var colliders := get_node_or_null("Colliders") as StaticBody3D
+	for h in loc.get("houses", []):
+		var m := Structures.house(str(h["kind"]))
+		var p := Vector3(float(h["pos"][0]), 0, float(h["pos"][1]))
+		m.position = p
+		m.rotation.y = deg_to_rad(float(h.get("yaw", 0.0)))
+		add_child(m)
+		_tree_points.append(p)
+		var big := 1.25 if str(h["kind"]) == "elder" else 1.0
+		if colliders != null:
+			_add_box_collider(colliders, p, Vector3(4.5 * big, 3.0, 3.7 * big), m.rotation.y)
+		if str(h["kind"]) == "abandoned":
+			var l := Label3D.new()
+			l.text = str(h.get("name", "Покинута хата"))
+			l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			l.font_size = 30
+			l.pixel_size = 0.011
+			l.outline_size = 10
+			l.modulate = Palette.LINEN.darkened(0.15)
+			l.outline_modulate = Palette.NIGHT
+			l.position = p + Vector3(0, 5.2, 0)
+			add_child(l)
+
+
+func _build_npcs() -> void:
+	var colliders := get_node_or_null("Colliders") as StaticBody3D
+	for npc in loc.get("npcs", []):
+		var p := Vector3(float(npc["pos"][0]), 0, float(npc["pos"][1]))
+		var hat := "cap"
+		match str(npc["id"]):
+			"herbalist": hat = "hood"
+			"elder": hat = "beard"
+		var node := Structures.npc(Color(str(npc["color"])), hat)
+		node.position = p
+		node.rotation.y = atan2(-p.x, -p.z)       # дивиться на Капище
+		add_child(node)
+		_label_over(node, "%s\n%s" % [npc["name"], npc["role"]], 2.4, Palette.GOLD)
+		if colliders != null:
+			_add_collider(colliders, p, 0.45, 1.8)
+		interactables.append({"kind": "npc", "id": str(npc["id"]), "name": str(npc["name"]), "pos": p, "node": node})
+
+
+func _build_chests() -> void:
+	for c in loc.get("chests", []):
+		var id := str(c["id"])
+		var p := Vector3(float(c["pos"][0]), 0, float(c["pos"][1]))
+		var opened := GameState.chest_opened(id)
+		var node := Structures.chest(opened)
+		node.position = p
+		node.rotation.y = deg_to_rad(float(c.get("yaw", 0.0)))
+		add_child(node)
+		var d := {"kind": "chest", "id": id, "name": "Скриня", "pos": p, "node": node, "def": c, "opened": opened}
+		interactables.append(d)
+
+
+func _build_herbs() -> void:
+	var count := int(loc.get("herbs", 0))
+	if count <= 0 or GameState.quest_state("herbs") == "done":
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var tries := 0
+	while herbs.size() < count and tries < 400:
+		tries += 1
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(10.0, arena_radius - 5.0)
+		var p := Vector3(cos(a) * r, 0, sin(a) * r)
+		if _too_close(p, 2.5) or _near_exit_point(p, 8.0):
+			continue
+		var node := Structures.herb()
+		node.position = p
+		add_child(node)
+		_tree_points.append(p)
+		herbs.append({"node": node, "pos": p})
+
+
+func _label_over(parent: Node3D, text: String, h: float, col: Color) -> void:
+	var l := Label3D.new()
+	l.text = text
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 30
+	l.pixel_size = 0.0095
+	l.outline_size = 10
+	l.modulate = col
+	l.outline_modulate = Palette.NIGHT
+	l.position = Vector3(0, h + 0.4, 0)
+	l.no_depth_test = false
+	parent.add_child(l)
+
+
+func _spawn_position() -> Vector3:
+	if GameState.arrive_from != "":
+		var i := exit_index_to(GameState.arrive_from)
+		if i >= 0:
+			var d := exit_dir(i)
+			return Vector3(d.x, 0, d.y) * (arena_radius - 8.5)
+	return Vector3(0, 0, 5.5)
 
 
 func _build_player() -> void:
@@ -305,7 +500,7 @@ func _build_player() -> void:
 	player.name = "Player"
 	add_child(player)
 	player.set_world_root(self)
-	player.position = Vector3(0, 0, 5.5)
+	player.position = _spawn_position()
 	player.input_yaw = -deg_to_rad(CAM_YAW_DEG)
 	player.rotation.y = 0.0
 	player.died.connect(_on_player_died)
@@ -331,12 +526,45 @@ func _place_camera(focus: Vector3) -> void:
 	camera.rotation = Vector3(pitch, yaw, 0)
 
 
+# ---------- Затемнення при переході ----------
+
+func _build_fade() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 95
+	layer.name = "Fade"
+	_fade_rect = ColorRect.new()
+	_fade_rect.color = Palette.NIGHT
+	FolkTheme.fullscreen(_fade_rect)
+	_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade_rect.modulate.a = 0.0 if skip_warmup else 1.0
+	layer.add_child(_fade_rect)
+	add_child(layer)
+
+
+func _fade_in() -> void:
+	if _fade_rect == null or _fade_rect.modulate.a <= 0.0:
+		return
+	var tw := create_tween()
+	tw.tween_property(_fade_rect, "modulate:a", 0.0, 0.45)
+
+
 # ---------- Прогрів: усі вигляди, що зʼявляються пізніше, показуємо заздалегідь ----------
 
 ## Причина мікрозависань у 0.1: перша поява ворога, сяйва, спрайта чи напису вимагала
 ## компіляції шейдера просто посеред гри. Тепер усе це один раз показується за темною заслоною.
+## Після першої локації прогріваються лише нові види ворогів: перехід швидкий.
 func _warm_up() -> void:
 	if not is_inside_tree():
+		return
+	var kinds: Array = []
+	for k in ["novice", "werewolf", "wraith", "beast", "hound", "archer", "brute"]:
+		if not warmed_kinds.has(k):
+			kinds.append(k)
+	var first := warmed_kinds.is_empty()
+	if kinds.is_empty():
+		is_warmed = true
+		warmed.emit()
+		_fade_in()
 		return
 	var layer := CanvasLayer.new()
 	layer.layer = 90
@@ -345,7 +573,7 @@ func _warm_up() -> void:
 	FolkTheme.fullscreen(cr)
 	cr.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(cr)
-	var l := FolkTheme.label("Пращури збираються…", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	var l := FolkTheme.label("Пращури збираються…" if first else "Дорога…", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	FolkTheme.fullscreen(l)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cr.add_child(l)
@@ -355,44 +583,53 @@ func _warm_up() -> void:
 	add_child(holder)
 	var base := player.global_position
 	var i := 0
-	for kind in ["novice", "werewolf", "wraith", "beast"]:
+	for kind in kinds:
 		var m := ModelFactory.enemy(kind)
 		holder.add_child(m)
-		m.global_position = base + Vector3(-3.0 + float(i) * 2.0, 0, -2.5)
+		m.global_position = base + Vector3(-5.0 + float(i) * 1.8, 0, -2.5)
 		ModelFactory.set_flash(m, true)
 		ModelFactory.set_flash(m, false)
+		warmed_kinds[kind] = true
 		i += 1
-	var bar := Node3D.new()
-	holder.add_child(bar)
-	bar.global_position = base + Vector3(0, 2, -3)
-	for c in [Palette.NIGHT, Palette.BLOOD]:
-		var sp := Sprite3D.new()
-		sp.texture = Fx.white_texture()
-		sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		sp.modulate = c
-		sp.no_depth_test = true
-		sp.pixel_size = 0.0125
-		bar.add_child(sp)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5
-	var j := 0
-	for kind in [LootDrop.KIND_GOLD, LootDrop.KIND_HP, LootDrop.KIND_MANA]:
-		LootDrop.make_drop(holder, base + Vector3(-2.0 + float(j) * 1.0, 0, 3.4), kind, 1, {}, rng).set_process(false)
-		j += 1
-	for slot in Items.SLOTS:
-		for r in [0, Items.RARITIES.size() - 1]:
-			LootDrop.make_drop(holder, base + Vector3(-3.0 + float(j) * 0.7, 0, 4.2), LootDrop.KIND_ITEM, 1, Items.generate(1, rng, slot, r), rng).set_process(false)
+	if first:
+		var bar := Node3D.new()
+		holder.add_child(bar)
+		bar.global_position = base + Vector3(0, 2, -3)
+		for c in [Palette.NIGHT, Palette.BLOOD]:
+			var sp := Sprite3D.new()
+			sp.texture = Fx.white_texture()
+			sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			sp.modulate = c
+			sp.no_depth_test = true
+			sp.pixel_size = 0.0125
+			bar.add_child(sp)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 5
+		var j := 0
+		for kind in [LootDrop.KIND_GOLD, LootDrop.KIND_HP, LootDrop.KIND_MANA]:
+			LootDrop.make_drop(holder, base + Vector3(-2.0 + float(j) * 1.0, 0, 3.4), kind, 1, {}, rng).set_process(false)
 			j += 1
-	Fx.ring_burst(holder, base + Vector3(0, 0, -1), 2.0, Palette.GOLD, 0.2)
-	Fx.sparks(holder, base + Vector3(0, 1, -1), Palette.TURQUOISE, 6)
-	Fx.lightning(holder, base + Vector3(2, 0, -1))
-	Fx.damage_number(holder, base + Vector3(0, 2, -1), "0", Palette.LINEN, true)
+		for typ in Items.TYPE_NAMES.keys():
+			for r in [0, Items.RARITIES.size() - 1]:
+				LootDrop.make_drop(holder, base + Vector3(-3.0 + float(j) * 0.7, 0, 4.2), LootDrop.KIND_ITEM, 1, Items.generate(1, rng, typ, r), rng).set_process(false)
+				j += 1
+		Fx.ring_burst(holder, base + Vector3(0, 0, -1), 2.0, Palette.GOLD, 0.2)
+		Fx.sparks(holder, base + Vector3(0, 1, -1), Palette.TURQUOISE, 6)
+		Fx.lightning(holder, base + Vector3(2, 0, -1))
+		Fx.damage_number(holder, base + Vector3(0, 2, -1), "0", Palette.LINEN, true)
+		var ch := Structures.chest(false)
+		ch.position = base + Vector3(3, 0, -3)
+		holder.add_child(ch)
+		var hb := Structures.herb()
+		hb.position = base + Vector3(4, 0, -3)
+		holder.add_child(hb)
 	for k in range(4):
 		await get_tree().process_frame
 	holder.queue_free()
 	layer.queue_free()
 	is_warmed = true
 	warmed.emit()
+	_fade_in()
 
 
 # ---------- Вороги ----------
@@ -400,41 +637,77 @@ func _warm_up() -> void:
 func _enemy_count(kind: String) -> int:
 	var n := 0
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if (e as Enemy).kind == kind and not (e as Enemy).dead:
+		if (e as Enemy).kind == kind and not (e as Enemy).dead and not (e as Enemy).is_boss:
 			n += 1
 	return n
 
 
 func _spawn_initial() -> void:
-	for kind in TARGET_COUNTS.keys():
-		for i in range(int(TARGET_COUNTS[kind])):
+	var counts: Dictionary = loc.get("enemies", {})
+	for kind in counts.keys():
+		for i in range(int(counts[kind])):
 			_spawn_enemy(kind, false)
 
 
-func _spawn_enemy(kind: String, away_from_player: bool) -> void:
+## Рівень ворога залежить від того, наскільки глибоко він у локації (далі від входу — вищий).
+func _level_at(pos: Vector3) -> int:
+	var entry := exit_dir(0) * arena_radius if exits.size() > 0 else Vector2.ZERO
+	var t := Vector2(pos.x, pos.z).distance_to(entry) / (arena_radius * 2.0)
+	return EnemyDefs.level_in(loc, t, _rng)
+
+
+func _spawn_enemy(kind: String, away_from_player: bool) -> Enemy:
 	var pos := Vector3.ZERO
+	var spawn := player.global_position
 	for attempt in range(30):
 		var a := _rng.randf() * TAU
-		var r := _rng.randf_range(12.0, ARENA_RADIUS - 4.0)
+		var r := _rng.randf_range(12.0, arena_radius - 4.0)
 		pos = Vector3(cos(a) * r, 0, sin(a) * r)
-		if _too_close(pos, 1.6):
+		if _too_close(pos, 1.6) or _near_exit_point(pos, 10.0):
 			continue
-		if away_from_player and pos.distance_to(player.global_position) < 16.0:
+		if away_from_player and pos.distance_to(spawn) < 16.0:
 			continue
-		if pos.distance_to(player.global_position) < 9.0:
+		if pos.distance_to(spawn) < 12.0:
 			continue
 		break
 	var e := Enemy.new()
 	e.name = "Enemy_" + kind
-	var lvl := maxi(1, GameState.level - _rng.randi_range(0, 1))
-	e.setup(kind, lvl, player, pos, self)
+	e.setup(kind, _level_at(pos), player, pos, self)
 	_enemy_root.add_child(e)
 	e.global_position = pos
 	e.died.connect(_on_enemy_died)
+	return e
+
+
+func _spawn_boss() -> void:
+	if not loc.has("boss"):
+		return
+	var b: Dictionary = loc["boss"]
+	if not GameState.boss_ready(str(b["id"])) or (boss != null and is_instance_valid(boss) and not boss.dead):
+		return
+	var pos := Vector3(float(b["pos"][0]), 0, float(b["pos"][1]))
+	var e := Enemy.new()
+	e.name = "Boss_" + str(b["id"])
+	e.setup(str(b["kind"]), int(b["level"]), player, pos, self)
+	e.make_boss(str(b["id"]), str(b["name"]), float(b["scale"]), float(b.get("hp_mult", 1.0)))
+	_enemy_root.add_child(e)
+	e.global_position = pos
+	e.died.connect(_on_enemy_died)
+	boss = e
 
 
 func _on_enemy_died(e: Enemy) -> void:
 	GameState.add_xp(e.xp_reward)
+	if e.is_boss:
+		var ids := LootDrop.drop_from_boss(_loot_root, e.global_position, e.level, _rng)
+		GameState.boss_killed(e.boss_id)
+		Fx.ring_burst(self, e.global_position, 6.0, Palette.GOLD, 0.8)
+		Fx.damage_number(self, e.global_position + Vector3(0, 3.4, 0), "%s повалений!" % e.boss_name, Palette.GOLD, true)
+		if hud != null:
+			hud.toast("%s повалений! Здобич чекає." % e.boss_name)
+		boss = null
+		return
+	GameState.quest_event("kill", e.kind)
 	LootDrop.drop_from_enemy(_loot_root, e.global_position, e.kind, e.level, _rng)
 
 
@@ -486,8 +759,8 @@ func _physics_process(delta: float) -> void:
 	_clamp_to_arena(player)
 	for e in get_tree().get_nodes_in_group("enemies"):
 		_clamp_to_arena(e)
-	# Капище лікує
 	if not player.dead:
+		# Капище лікує
 		var d := Vector2(player.global_position.x, player.global_position.z).length()
 		if d < Shrine.HEAL_RADIUS:
 			var heal_rate := HeroStats.max_hp() * 0.12
@@ -501,15 +774,23 @@ func _physics_process(delta: float) -> void:
 			if GameState.mark_explored(Vector2(player.global_position.x, player.global_position.z), EXPLORE_RADIUS):
 				if hud != null:
 					hud.map_dirty()
+			_pick_herbs()
 		_check_exits(delta)
 	# вороги знову з'являються
-	_respawn_t += delta
-	if _respawn_t >= RESPAWN_CHECK:
-		_respawn_t = 0.0
-		for kind in TARGET_COUNTS.keys():
-			if _enemy_count(kind) < int(TARGET_COUNTS[kind]):
-				_spawn_enemy(kind, true)
-				break
+	if not safe:
+		_respawn_t += delta
+		if _respawn_t >= RESPAWN_CHECK:
+			_respawn_t = 0.0
+			var counts: Dictionary = loc.get("enemies", {})
+			for kind in counts.keys():
+				if _enemy_count(kind) < int(counts[kind]):
+					_spawn_enemy(kind, true)
+					break
+		_boss_t += delta
+		if _boss_t >= 2.0:
+			_boss_t = 0.0
+			if boss == null or not is_instance_valid(boss):
+				_try_respawn_boss()
 	# автозбереження
 	_save_t += delta
 	if _save_t >= AUTOSAVE_SECONDS:
@@ -517,21 +798,143 @@ func _physics_process(delta: float) -> void:
 		GameState.save_game()
 
 
-## Тригер виходу: поки шлях зачинений, лише повідомлення.
+func _try_respawn_boss() -> void:
+	if not loc.has("boss"):
+		return
+	var b: Dictionary = loc["boss"]
+	var pos := Vector3(float(b["pos"][0]), 0, float(b["pos"][1]))
+	if player.global_position.distance_to(pos) < 25.0:
+		return
+	_spawn_boss()
+
+
+func _pick_herbs() -> void:
+	if herbs.is_empty():
+		return
+	for i in range(herbs.size() - 1, -1, -1):
+		var h: Dictionary = herbs[i]
+		if (h["pos"] as Vector3).distance_to(player.global_position) < HERB_PICKUP_R:
+			(h["node"] as Node3D).queue_free()
+			herbs.remove_at(i)
+			GameState.quest_event("item", "herb", 1)
+			var have := int(GameState.quest_items.get("herb", 0))
+			var need := int(Quests.get_def("herbs")["need"])
+			var txt := "Цілюща трава (%d)" % have
+			if GameState.quest_state("herbs") == "active":
+				txt = "Цілюща трава %d/%d" % [mini(have, need), need]
+			Fx.damage_number(self, player.global_position + Vector3(0, 2.2, 0), txt, Color("8BE06E"), true)
+
+
+# ---------- Взаємодія: NPC, скрині ----------
+
+## Найближчий обʼєкт, з яким можна говорити або який можна відкрити (null, якщо нічого поруч).
+func nearest_interactable() -> Dictionary:
+	if player == null or player.dead:
+		return {}
+	var best: Dictionary = {}
+	var bd := INTERACT_R
+	for it in interactables:
+		if str(it["kind"]) == "chest" and bool(it.get("opened", false)):
+			continue
+		var dd := (it["pos"] as Vector3).distance_to(player.global_position)
+		if dd < bd:
+			bd = dd
+			best = it
+	return best
+
+
+func interact_prompt(it: Dictionary) -> String:
+	if it.is_empty():
+		return ""
+	match str(it["kind"]):
+		"npc":
+			var mark := ""
+			if not GameState.quests_to_turn_in(str(it["id"])).is_empty():
+				mark = " (?)"
+			elif not GameState.quests_of(str(it["id"])).is_empty():
+				mark = " (!)"
+			return "Говорити: %s%s" % [it["name"], mark]
+		"chest":
+			return "Відкрити скриню"
+	return ""
+
+
+## Виконує взаємодію. Для NPC відкриває діалог у HUD, для скрині видає здобич.
+func interact(it: Dictionary) -> void:
+	if it.is_empty():
+		return
+	match str(it["kind"]):
+		"npc":
+			if hud != null:
+				hud.open_dialog(str(it["id"]))
+		"chest":
+			open_chest(it)
+
+
+func open_chest(it: Dictionary) -> void:
+	if bool(it.get("opened", false)):
+		return
+	var c: Dictionary = it["def"]
+	it["opened"] = true
+	GameState.mark_chest(str(it["id"]))
+	# модель: відкрита скриня
+	var old: Node3D = it["node"]
+	var fresh := Structures.chest(true)
+	fresh.position = old.position
+	fresh.rotation = old.rotation
+	add_child(fresh)
+	old.queue_free()
+	it["node"] = fresh
+	Fx.sparks(self, it["pos"] + Vector3(0, 0.8, 0), Palette.GOLD, 10)
+	var text := "Скриня відкрита"
+	var qi := str(c.get("quest_item", ""))
+	if qi != "":
+		GameState.quest_event("item", qi, 1)
+		text = "Знайдено: %s" % Quests.item_name(qi)
+		Fx.damage_number(self, it["pos"] + Vector3(0, 2.2, 0), text, Palette.GOLD, true)
+	var lvl := int(c.get("loot_level", 1))
+	LootDrop.make_drop(_loot_root, it["pos"] + Vector3(1.2, 0, 0.8), LootDrop.KIND_GOLD, 8 + 6 * lvl, {}, _rng)
+	LootDrop.make_drop(_loot_root, it["pos"] + Vector3(-1.2, 0, 0.8), LootDrop.KIND_ITEM, 1, Items.generate(lvl, _rng, "", 1), _rng)
+	if hud != null:
+		hud.toast(text)
+
+
+# ---------- Виходи ----------
+
+## Тригер виходу: торкнувшись брами, герой переходить в іншу локацію.
 func _check_exits(delta: float) -> void:
 	_exit_cd = maxf(0.0, _exit_cd - delta)
+	if _transitioning:
+		return
 	var pp := Vector2(player.global_position.x, player.global_position.z)
-	for i in range(EXITS.size()):
+	for i in range(exits.size()):
 		if pp.distance_to(exit_trigger_pos(i)) < EXIT_TRIGGER_R and _exit_cd <= 0.0:
-			_exit_cd = 3.5
-			on_exit_touched(i)
+			go_through_exit(i)
+			return
 
 
-func on_exit_touched(i: int) -> void:
-	if bool(EXITS[i].get("closed", true)):
-		if hud != null:
-			hud.toast(CLOSED_TEXT)
-		Fx.damage_number(self, Vector3(player.global_position.x, 2.6, player.global_position.z), CLOSED_TEXT, Palette.GOLD, true)
+func go_through_exit(i: int) -> void:
+	if _transitioning or i < 0 or i >= exits.size():
+		return
+	var to := str(exits[i]["to"])
+	_transitioning = true
+	if hud != null:
+		hud.toast(str(exits[i]["label"]))
+	if instant_transition:
+		GameState.change_location(to, loc_id)
+		return
+	var tw := create_tween()
+	tw.tween_property(_fade_rect, "modulate:a", 1.0, 0.35)
+	await tw.finished
+	if not is_inside_tree():
+		return
+	GameState.change_location(to, loc_id)
+	get_tree().reload_current_scene()
+
+
+func _on_quest_changed() -> void:
+	if hud != null:
+		hud.map_dirty()
 
 
 func _process(delta: float) -> void:
@@ -543,7 +946,11 @@ func _process(delta: float) -> void:
 
 func _clamp_to_arena(n: Node3D) -> void:
 	var flat := Vector2(n.global_position.x, n.global_position.z)
-	var limit := ARENA_RADIUS - 1.2
+	var limit := arena_radius - 1.2
+	# біля брами лишаємо проліт: обмеження ширше
+	for i in range(exits.size()):
+		if flat.distance_to(exit_dir(i) * arena_radius) < 6.0:
+			limit = arena_radius + 1.0
 	if flat.length() > limit:
 		flat = flat.normalized() * limit
 		n.global_position = Vector3(flat.x, n.global_position.y, flat.y)
