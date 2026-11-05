@@ -8,7 +8,7 @@ signal empty_tapped
 const ZOOM_MIN := 0.12
 const ZOOM_MAX := 1.7
 const TAP_SLOP := 14.0
-const RADIUS := {"small": 22.0, "notable": 31.0, "keystone": 42.0, "skill": 35.0, "start": 38.0, "core": 50.0}
+const RADIUS := {"small": 20.0, "notable": 38.0, "keystone": 48.0, "skill": 34.0, "start": 40.0, "core": 56.0}
 const REGION_ICONS := {"str": "perk_region_str", "agi": "perk_region_agi", "faith": "perk_region_faith"}
 
 var selected := ""
@@ -208,15 +208,7 @@ func _state(id: String) -> int:
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color("120E0F"))
 	var view := Rect2(Vector2.ZERO, size).grow(80.0)
-	# м'які плями регіонів
-	for rg in PerkTree.regions():
-		var rid := str(rg.get("id", ""))
-		var col := Color(str(rg.get("color", "#888888")))
-		var st := PerkTree.class_start(_class_of_region(rid))
-		if st != "":
-			var sp := to_screen(PerkTree.pos(st) * 0.62)
-			draw_circle(sp, 620.0 * zoom, Color(col, 0.05))
-			draw_circle(sp, 380.0 * zoom, Color(col, 0.05))
+	# без великих напівпрозорих кіл під корінням
 	# зв'язки: кора + відтінок регіону; товстіші в стовбурі, тонші в кроні
 	for l in PerkTree.links():
 		var a := to_screen(PerkTree.pos(l[0]))
@@ -229,23 +221,31 @@ func _draw() -> void:
 		var pb := PerkTree.pos(l[1])
 		var mid_x := (pa.x + pb.x) * 0.5
 		var mid_y := (pa.y + pb.y) * 0.5
-		var trunkness := clampf(1.0 - absf(mid_x) / 280.0, 0.0, 1.0)
-		# вище (менший y) → тонше
-		var height_t := clampf((1500.0 - mid_y) / 3600.0, 0.0, 1.0)
-		var w := lerpf(2.0, 11.0, trunkness * (1.0 - height_t * 0.55))
-		var bark := Color("5A4030")
-		var reg_col := PerkTree.color_of(l[0]).lerp(PerkTree.color_of(l[1]), 0.5)
-		var col2 := bark.lerp(reg_col, 0.45)
-		col2.a = 0.72
+		var trunkness := clampf(1.0 - absf(mid_x) / 220.0, 0.0, 1.0)
+		# вище (менший y) → тонше; стовбур у середній смузі — найтовстіший
+		var height_t := clampf((1200.0 - mid_y) / 3200.0, 0.0, 1.0)
+		var w := lerpf(2.2, 22.0, trunkness * trunkness * (1.0 - height_t * 0.45))
+		var bark := Color("4A3224")
+		var bark_hi := Color("6B4A35")
+		var reg_col := _region_color(l[0]).lerp(_region_color(l[1]), 0.5)
+		var col2 := bark.lerp(reg_col, 0.38)
+		col2.a = 0.88
 		if sa == 2 and sb == 2:
-			col2 = bark.lerp(Palette.GOLD, 0.55)
-			col2.a = 0.9
-			w += 1.5
+			col2 = bark_hi.lerp(Palette.GOLD, 0.5)
+			col2.a = 0.95
+			w += 2.0
 		elif sa == 2 or sb == 2:
-			col2 = bark.lerp(Palette.LINEN, 0.35)
-			col2.a = 0.75
-			w += 0.8
-		_draw_branch(a, b, col2, maxf(1.4, w * zoom * 1.15))
+			col2 = bark.lerp(Palette.LINEN, 0.3)
+			col2.a = 0.85
+			w += 1.0
+		# кора: темна підкладка + кольоровий шар
+		# товщина стовбура майже не залежить від зуму на mid-zoom
+		var zf := clampf(zoom, 0.42, 1.2)
+		var ww := maxf(2.0, w * zf * (1.55 if trunkness > 0.5 else 1.15))
+		if trunkness > 0.4:
+			var under := Color(bark.r, bark.g, bark.b, 0.7)
+			_draw_branch(a, b, under, ww * 1.45)
+		_draw_branch(a, b, col2, ww)
 	# вузли
 	for id in PerkTree.nodes().keys():
 		var p := to_screen(PerkTree.pos(id))
@@ -266,6 +266,17 @@ func _draw() -> void:
 		var tp := sp2 - Vector2(ts.x * 0.5, 0)
 		draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 6, Palette.NIGHT)
 		draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(str(rg.get("color", "#cccccc"))).lightened(0.2))
+
+
+
+func _region_color(id: String) -> Color:
+	var d := PerkTree.get_def(id)
+	var rid := str(d.get("region", ""))
+	for rg in PerkTree.regions():
+		if str(rg.get("id", "")) == rid:
+			return Color(str(rg.get("color", "#C9A227")))
+	# fallback: attribute mix
+	return PerkTree.color_of(id)
 
 
 func _class_of_region(region_id: String) -> String:
@@ -303,48 +314,63 @@ func _draw_branch(a: Vector2, b: Vector2, col: Color, width: float) -> void:
 func _draw_node(id: String, p: Vector2) -> void:
 	var d := PerkTree.get_def(id)
 	var type := str(d.get("type", "small"))
-	var r := maxf(_node_r(id) * zoom, 6.0)
+	var r := maxf(_node_r(id) * zoom, 5.0)
 	var state := _state(id)
-	var col := PerkTree.color_of(id)
+	var col := _region_color(id)
 	var tex := _icon_for(id)
-	var dim := 1.0 if state > 0 else 0.45
-	if tex != null:
-		var ir := r * 0.88   # значок на ~12% менший за коло: кінчики не зрізаються маскою
+	# стан: 0 замкнений (приглушений колір регіону), 1 доступний (яскравіше + світіння), 2 відкритий
+	var fill: Color
+	var ring: Color
+	var rw := 2.2
+	match state:
+		2:
+			fill = col
+			ring = Palette.GOLD
+			rw = 3.8
+		1:
+			fill = col.lightened(0.12)
+			var pulse := 0.55 + 0.45 * sin(_t * 4.2)
+			ring = Palette.LINEN.lerp(col.lightened(0.35), pulse)
+			rw = 3.6
+			# м'яке світіння доступного вузла
+			draw_circle(p, r + 8.0 * zoom + 5.0, Color(col, 0.22 + 0.12 * pulse))
+		_:
+			fill = col.darkened(0.22).lerp(Color("1A1410"), 0.18)
+			fill.a = 1.0
+			ring = col.darkened(0.35)
+			rw = 2.2
+	# підкладка / іконка
+	draw_circle(p, r + 1.5, Color(Palette.NIGHT, 0.85))
+	if tex != null and type != "small":
+		var ir := r * 0.86
 		var dd := ir * 2.0
-		draw_circle(p, r + 2.0, Color(Palette.NIGHT, 0.9))
-		draw_texture_rect(tex, Rect2(p - Vector2(ir, ir), Vector2(dd, dd)), false, Color(dim, dim, dim, 1.0) if state > 0 else Color(0.38, 0.38, 0.42, 1.0))
-	else:
-		var fill := col.darkened(0.1) if state == 2 else Palette.PANEL_LIGHT.lerp(col, 0.45)
-		if state == 0:
-			fill = Palette.PANEL.lerp(col, 0.35)
+		var mod := Color(1, 1, 1, 1) if state == 2 else (Color(0.92, 0.92, 0.92, 1) if state == 1 else Color(0.45, 0.42, 0.4, 1))
+		# легкий відтінок регіону під іконкою
 		draw_circle(p, r, fill)
-		if type == "small" and zoom > 0.42:
+		draw_texture_rect(tex, Rect2(p - Vector2(ir, ir), Vector2(dd, dd)), false, mod)
+	else:
+		draw_circle(p, r, fill)
+		if type == "small" and zoom > 0.45 and state > 0:
 			var txt := PerkTree.badge(id)
-			var fs := int(clampf(r * 0.95, 11.0, 28.0))
+			var fs := int(clampf(r * 0.95, 10.0, 26.0))
 			var font := ThemeDB.fallback_font
 			var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
-			draw_string(font, p + Vector2(-ts.x * 0.5, fs * 0.33), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.95 if state > 0 else 0.45))
-	# обідок за станом
-	var ring := Palette.TEXT_DIM.darkened(0.3)
-	var rw := 2.5
-	if state == 2:
-		ring = Palette.GOLD
-		rw = 4.0
-	elif state == 1:
-		var pulse := 0.5 + 0.5 * sin(_t * 4.0)
-		ring = Palette.LINEN.lerp(Palette.TURQUOISE.lightened(0.3), pulse)
-		rw = 3.5
-	draw_arc(p, r + 1.5, 0.0, TAU, 28, ring, maxf(1.5, rw * minf(1.0, zoom + 0.4)), true)
-	if type == "keystone":
-		draw_arc(p, r + 6.0 * minf(1.0, zoom + 0.3), 0.0, TAU, 28, Color(ring, 0.6), 2.0, true)
+			var tc := Color(1, 1, 1, 0.95 if state == 2 else 0.8)
+			draw_string(font, p + Vector2(-ts.x * 0.5, fs * 0.33), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, tc)
+	draw_arc(p, r + 1.5, 0.0, TAU, 28, ring, maxf(1.4, rw * minf(1.0, zoom + 0.35)), true)
+	if type == "keystone" or type == "core":
+		draw_arc(p, r + 6.0 * minf(1.0, zoom + 0.25), 0.0, TAU, 28, Color(ring, 0.55), 2.0, true)
+	if type == "notable":
+		draw_arc(p, r + 4.5 * minf(1.0, zoom + 0.25), 0.0, TAU, 24, Color(col, 0.45 if state > 0 else 0.2), 1.8, true)
 	if id == selected:
-		draw_arc(p, r + 9.0, 0.0, TAU, 32, Color(1, 1, 1, 0.95), 3.0, true)
-	# назва під значущими вузлами
-	if zoom > 0.55 and type != "small":
+		draw_arc(p, r + 10.0, 0.0, TAU, 32, Color(1, 1, 1, 0.95), 3.0, true)
+	# підпис лише для великих вузлів при сильному зумі
+	if zoom > 0.58 and type != "small":
 		var font2 := ThemeDB.fallback_font
 		var nm := str(d.get("name", ""))
-		var fs2 := int(clampf(15.0 + zoom * 6.0, 14.0, 22.0))
+		var fs2 := int(clampf(16.0 * zoom + 6.0, 12.0, 22.0))
 		var ts2 := font2.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2)
-		var tp := p + Vector2(-ts2.x * 0.5, r + fs2 + 6.0)
+		var tp := p + Vector2(-ts2.x * 0.5, r + fs2 + 4.0)
 		draw_string_outline(font2, tp, nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, 5, Palette.NIGHT)
 		draw_string(font2, tp, nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, Palette.LINEN if state > 0 else Palette.TEXT_DIM)
+

@@ -31,17 +31,7 @@ BARK = (90, 64, 48)
 im = Image.new("RGB", (W, H), (12, 10, 11))
 dr = ImageDraw.Draw(im, "RGBA")
 
-# soft region glows near starts
-for reg, cid in DATA["class_starts"].items():
-    # class_starts maps class→id; use regions
-    pass
-for reg, sid in [("str", "s_root"), ("agi", "a_root"), ("faith", "f_root")]:
-    if sid not in nodes:
-        continue
-    px, py = to_px(nodes[sid]["x"], nodes[sid]["y"])
-    col = COLS[reg] + (28,)
-    for r in (220, 140):
-        dr.ellipse([px - r, py - r, px + r, py + r], fill=COLS[reg] + (18,))
+# (no root blobs in overview)
 
 # band labels
 layout = META.get("layout", {})

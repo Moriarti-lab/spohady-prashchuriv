@@ -92,28 +92,28 @@
     }
   ],
   "layout": {
-    "y_root": 1500,
-    "y_crown": -2000,
-    "y_trunk_top": -200,
-    "y_trunk_base": 500,
+    "y_root": 1550,
+    "y_crown": -2100,
+    "y_trunk_top": -350,
+    "y_trunk_base": 450,
     "bands": [
       {
         "id": "roots",
         "name": "Коріння",
-        "y0": 500,
-        "y1": 2100
+        "y0": 450,
+        "y1": 2200
       },
       {
         "id": "trunk",
         "name": "Стовбур",
-        "y0": -200,
-        "y1": 500
+        "y0": -350,
+        "y1": 450
       },
       {
         "id": "crown",
         "name": "Крона",
-        "y0": -2080,
-        "y1": -200
+        "y0": -2180,
+        "y1": -350
       }
     ],
     "trunk_spine": [
@@ -127,7 +127,9 @@
       "trunk_c7",
       "trunk_c8",
       "trunk_c9",
-      "trunk_c10"
+      "trunk_c10",
+      "trunk_c11",
+      "trunk_c12"
     ]
   }
 }

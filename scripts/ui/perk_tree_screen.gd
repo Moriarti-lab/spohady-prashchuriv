@@ -9,7 +9,7 @@ var _title: Label
 var _effect: RichTextLabel
 var _status: Label
 var _points: Label
-var _stats: Label
+var _stats: RichTextLabel
 var _icon: TextureRect
 var _unlock_btn: Button
 var _selected := ""
@@ -40,24 +40,38 @@ func _ready() -> void:
 	_view.empty_tapped.connect(_hide_detail)
 	add_child(_view)
 
-	# верхня панель: заголовок · перки/атрибути · respec · Закрити
-	var top := MarginContainer.new()
-	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 72
-	for side in ["left", "right", "top"]:
-		top.add_theme_constant_override("margin_" + side, 10)
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(top)
+	# верхня панель: непрозора підкладка, щоб вузли не перекривали текст
+	var top_panel := PanelContainer.new()
+	top_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top_panel.offset_bottom = 84
+	top_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var top_sb := StyleBoxFlat.new()
+	top_sb.bg_color = Color(0.09, 0.06, 0.05, 1.0)
+	top_sb.border_color = Color(Palette.GOLD, 0.4)
+	top_sb.set_border_width_all(0)
+	top_sb.border_width_bottom = 2
+	top_sb.content_margin_left = 10
+	top_sb.content_margin_right = 10
+	top_sb.content_margin_top = 10
+	top_sb.content_margin_bottom = 8
+	top_panel.add_theme_stylebox_override("panel", top_sb)
+	add_child(top_panel)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	head.mouse_filter = Control.MOUSE_FILTER_STOP
-	top.add_child(head)
-	head.add_child(FolkTheme.label("Древо звитяги", 30, Palette.GOLD))
-	_points = FolkTheme.label("", 20, Palette.LINEN)
+	top_panel.add_child(head)
+	head.add_child(FolkTheme.label("Древо звитяги", 28, Palette.GOLD))
+	_points = FolkTheme.label("", 18, Palette.LINEN)
 	_points.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_points)
-	_stats = FolkTheme.label("", 18, Palette.TEXT_DIM)
+	_stats = DescFormat.make_rich()
+	_stats.fit_content = true
+	_stats.scroll_active = false
+	_stats.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_stats.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_stats.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_stats.custom_minimum_size = Vector2(0, 28)
+	_stats.add_theme_font_size_override("normal_font_size", 17)
 	head.add_child(_stats)
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -77,7 +91,7 @@ func _ready() -> void:
 	# zoom tools
 	var tools := VBoxContainer.new()
 	tools.add_theme_constant_override("separation", 8)
-	tools.position = Vector2(14, 86)
+	tools.position = Vector2(14, 98)
 	tools.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(tools)
 	for spec in [["+", 1.25], ["−", 0.8]]:
@@ -113,33 +127,55 @@ func _ready() -> void:
 	_detail = PanelContainer.new()
 	_detail.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
 	_detail.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
-	_detail.offset_left = -340
-	_detail.offset_top = 80
+	_detail.offset_left = -360
+	_detail.offset_top = 92
 	_detail.offset_bottom = -16
 	_detail.offset_right = -12
 	_detail.visible = false
+	_detail.clip_contents = true
 	add_child(_detail)
+	var dv_pad := MarginContainer.new()
+	dv_pad.clip_contents = true
+	for side in ["left", "right", "top", "bottom"]:
+		dv_pad.add_theme_constant_override("margin_" + side, 4)
+	_detail.add_child(dv_pad)
 	var dv := VBoxContainer.new()
 	dv.add_theme_constant_override("separation", 6)
-	_detail.add_child(dv)
+	dv.clip_contents = true
+	dv_pad.add_child(dv)
 	var dhead := HBoxContainer.new()
 	dhead.add_theme_constant_override("separation", 8)
 	dv.add_child(dhead)
 	_icon = TextureRect.new()
-	_icon.custom_minimum_size = Vector2(64, 64)
+	_icon.custom_minimum_size = Vector2(48, 48)
 	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	dhead.add_child(_icon)
-	_title = FolkTheme.label("Вузол", 26, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, true)
+	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_box.add_theme_constant_override("separation", 0)
+	_title = FolkTheme.label("Вузол", 20, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, true)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dhead.add_child(_title)
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title.max_lines_visible = 2
+	title_box.add_child(_title)
+	dhead.add_child(title_box)
 	var hide_btn := Button.new()
 	hide_btn.text = "×"
 	FolkTheme.apply_button(hide_btn, Palette.PANEL_LIGHT, 22)
 	hide_btn.custom_minimum_size = Vector2(48, 48)
 	hide_btn.pressed.connect(_hide_detail)
 	dhead.add_child(hide_btn)
-	dv.add_child(OrnamentBand.new(22))
+	var band_wrap := MarginContainer.new()
+	band_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	band_wrap.clip_contents = true
+	band_wrap.add_theme_constant_override("margin_right", 2)
+	band_wrap.add_theme_constant_override("margin_left", 2)
+	var band := OrnamentBand.new(18)
+	band.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	band.clip_contents = true
+	band_wrap.add_child(band)
+	dv.add_child(band_wrap)
 	var effect_sc := ScrollContainer.new()
 	effect_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	effect_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -341,10 +377,13 @@ func _on_unlock() -> void:
 
 func _refresh(keep_status: bool = false) -> void:
 	_points.text = "Перки: %d" % GameState.perk_points
-	_stats.text = "%s %d · %s %d · %s %d · Ж%d · Ч%d · Вода %d" % [
-		Strings.stat_name("str"), HeroStats.stat_shown("str"),
-		Strings.stat_name("agi"), HeroStats.stat_shown("agi"),
-		Strings.stat_name("faith"), HeroStats.stat_shown("faith"),
+	var hs: String = str(Palette.STAT_BB.get("str", "D8574B"))
+	var ha: String = str(Palette.STAT_BB.get("agi", "7CBF5A"))
+	var hf: String = str(Palette.STAT_BB.get("faith", "E0A526"))
+	_stats.text = "[color=#%s]%s %d[/color] · [color=#%s]%s %d[/color] · [color=#%s]%s %d[/color] · Життя %d · Чар %d · Вода %d" % [
+		hs, Strings.stat_name("str"), HeroStats.stat_shown("str"),
+		ha, Strings.stat_name("agi"), HeroStats.stat_shown("agi"),
+		hf, Strings.stat_name("faith"), HeroStats.stat_shown("faith"),
 		int(HeroStats.max_hp()), int(HeroStats.max_mana()), GameState.oblivion_water]
 	if _selected == "" or not _detail_open:
 		_unlock_btn.disabled = true

@@ -13,14 +13,14 @@ META = ROOT / "data" / "perk_tree_meta.json"
 RNG = random.Random(40533)
 
 # Y: larger = roots (bottom), smaller = crown (top). Total span ~5600.
-Y_ROOT_TIP = 2100       # deepest rootlets
-Y_ROOT_BAND = 1500      # class starts sit around here
-Y_TRUNK_BASE = 500      # roots converge into trunk
-Y_TRUNK_TOP = -200      # trunk flares into canopy
-Y_CROWN = -2000         # apex («Серце роду»)
+Y_ROOT_TIP = 2200       # deepest rootlets
+Y_ROOT_BAND = 1550      # class starts sit around here
+Y_TRUNK_BASE = 450      # roots converge into trunk
+Y_TRUNK_TOP = -350      # trunk flares into canopy
+Y_CROWN = -2100         # apex («Серце роду»)
 # Canopy = top ~42% of (Y_ROOT_TIP - Y_CROWN) ≈ 5600 → ~2350 units from -2700 to -350
 
-MIN_DIST = 72.0
+MIN_DIST = 68.0
 MAX_EDGE = 152.0
 
 REGIONS = [
@@ -31,7 +31,7 @@ REGIONS = [
 CLASS_STARTS = {"druzhynnyk": "s_root", "strilets": "a_root", "volkhv": "f_root"}
 START_IDS = {"str": "s_root", "agi": "a_root", "faith": "f_root"}
 # wide root flare — class starts spread along the root system
-ROOT_X = {"str": -920.0, "agi": 0.0, "faith": 920.0}
+ROOT_X = {"str": -1050.0, "agi": 0.0, "faith": 1050.0}
 CYCLE = ["str", "agi", "faith"]
 
 TIER_STATS = {
@@ -244,8 +244,8 @@ class Builder:
 def canopy_pos(frac: float, radius_scale: float = 1.0):
     """Wide rounded dome: frac 0..1 left→right across upper semicircle."""
     ang = math.pi * (0.06 + 0.88 * frac)
-    rx = 1200 * radius_scale
-    ry = 780 * radius_scale
+    rx = 1350 * radius_scale
+    ry = 920 * radius_scale
     cx, cy = 0.0, (Y_CROWN + Y_TRUNK_TOP) * 0.38
     x = cx + math.cos(ang) * rx
     y = cy - math.sin(ang) * ry
@@ -256,192 +256,207 @@ def canopy_pos(frac: float, radius_scale: float = 1.0):
 def main():
     B = Builder()
 
-    # ========== WIDE ROOT SYSTEM ==========
-    # Class starts spread along the root flare
+    # ========== WIDE LUSH ROOT SYSTEM ==========
     root_names = {"str": "Сила", "agi": "Спритність", "faith": "Віра"}
     for reg, rx in ROOT_X.items():
         B.add(START_IDS[reg], f"Корінь · {root_names[reg]}",
               "start", rx, Y_ROOT_BAND, reg, {reg: 5}, "Початок шляху класу.", force=True)
 
-    # Rootlets fanning downward and outward from each start
-    root_anchors = list(START_IDS.values())
+    root_nodes = list(START_IDS.values())
+    # Many root arms per class: downward fan + side roots + forks
     for reg, rx in ROOT_X.items():
         start = START_IDS[reg]
-        for i in range(5):
-            side = -1 if i % 2 == 0 else 1
-            spread = 120 + i * 55
-            dy = 80 + i * 70
-            nx = rx + side * spread * (0.6 + 0.15 * i)
-            ny = Y_ROOT_BAND + dy
-            # outer tips wider
-            if abs(nx) < abs(rx):
-                nx = rx + side * (abs(rx) * 0.15 + spread)
-            nid = f"{reg[0]}_rootlet{i}"
-            B.add(nid, NAMES[reg][0], "small", nx, ny, reg,
-                  scale_stats(dict(RNG.choice(TIER_STATS[reg])), 0), "Корінець.")
-            B.link(start, nid)
-            root_anchors.append(nid)
-            # secondary tip
-            if i >= 2:
-                tip = f"{reg[0]}_tip{i}"
-                B.add(tip, NAMES[reg][0], "small",
-                      nx + side * 90, ny + 110, reg,
-                      scale_stats(dict(RNG.choice(TIER_STATS[reg])), 0), "Кінчик кореня.")
-                B.link(nid, tip)
-                root_anchors.append(tip)
+        for arm in range(8):
+            ang = math.pi * (0.15 + 0.70 * (arm / 7.0))  # down-ish semicircle
+            # mirror so left class fans left-down, right class right-down, center both
+            if reg == "str":
+                dir_x = -abs(math.cos(ang))
+            elif reg == "faith":
+                dir_x = abs(math.cos(ang))
+            else:
+                dir_x = math.cos(ang) * (1 if arm % 2 == 0 else -1)
+            dir_y = abs(math.sin(ang))
+            prev = start
+            segs = 4 if arm < 5 else 3
+            length = 280 + arm * 35
+            for s in range(1, segs + 1):
+                tt = s / segs
+                x = rx + dir_x * length * tt * (1.0 + 0.35 * tt)
+                y = Y_ROOT_BAND + dir_y * length * tt + 40 * tt
+                # keep within tip bound
+                y = min(y, Y_ROOT_TIP - 40)
+                nid = f"{reg[0]}_arm{arm}_{s}"
+                B.add(nid, NAMES[reg][0], "small", x, y, reg,
+                      scale_stats(dict(RNG.choice(TIER_STATS[reg])), 0), "Корінець.")
+                B.link(prev, nid)
+                prev = nid
+                root_nodes.append(nid)
+                # side fork
+                if s == 2:
+                    fork = f"{reg[0]}_arm{arm}_f"
+                    fx = x + dir_x * 70 + (-1 if arm % 2 == 0 else 1) * 80
+                    fy = y + 90
+                    B.add(fork, NAMES[reg][0], "small", fx, fy, reg,
+                          scale_stats(dict(RNG.choice(TIER_STATS[reg])), 0), "Бічний корінь.")
+                    B.link(nid, fork)
+                    root_nodes.append(fork)
 
-    # Soft bridges between neighbouring root regions (mixing at base)
+    # Dense cross-links between nearby root nodes (web, not 3 lines)
+    for a in list(root_nodes):
+        if a not in B.nodes:
+            continue
+        na = B.nodes[a]
+        near = []
+        for b in root_nodes:
+            if a == b or b not in B.nodes:
+                continue
+            nb = B.nodes[b]
+            d = math.hypot(na["x"] - nb["x"], na["y"] - nb["y"])
+            if 70 < d < 220:
+                near.append((d, b))
+        near.sort()
+        for _, b in near[:3]:
+            B.link(a, b)
+
+    # Soft bridges between class starts
     B.link("s_root", "a_root")
     B.link("a_root", "f_root")
 
-    # ========== CONVERGE INTO ONE BRAIDED TRUNK ==========
-    # Convergence chain: each root climbs inward toward trunk base
+    # ========== CONVERGE → MASSIVE BRAIDED TRUNK ==========
     converge_ids = {}
     for reg, rx in ROOT_X.items():
         prev = START_IDS[reg]
-        steps = 5
+        steps = 6
         for i in range(1, steps + 1):
             t = i / steps
-            # ease toward center
-            x = rx * (1.0 - t) * (1.0 - 0.35 * t)
+            x = rx * (1.0 - t) ** 1.15
             y = Y_ROOT_BAND + (Y_TRUNK_BASE - Y_ROOT_BAND) * t
-            # slight weave
-            x += math.sin(t * math.pi * 2 + {"str": 0, "agi": 2.1, "faith": 4.2}[reg]) * 30 * (1 - t)
+            x += math.sin(t * math.pi * 2.2 + {"str": 0, "agi": 2.0, "faith": 4.0}[reg]) * 40 * (1 - t)
             nid = f"{reg[0]}_conv{i}"
-            # near trunk → mix colours
-            use_reg = reg if t < 0.55 else CYCLE[(CYCLE.index(reg) + i) % 3]
-            pool = TIER_STATS["mix"] if t >= 0.45 else TIER_STATS[reg]
-            B.add(nid, NAMES["mix" if t >= 0.45 else reg][min(tier_of_y(y), 4)], "small",
+            use_reg = reg if t < 0.5 else CYCLE[(CYCLE.index(reg) + i) % 3]
+            pool = TIER_STATS["mix"] if t >= 0.4 else TIER_STATS[reg]
+            B.add(nid, NAMES["mix" if t >= 0.4 else reg][min(tier_of_y(y), 4)], "small",
                   x, y, use_reg,
                   scale_stats(dict(RNG.choice(pool)), tier_of_y(y)),
-                  "Шлях до стовбура." if t < 0.55 else "Сплетення коріння.")
+                  "Шлях до стовбура." if t < 0.5 else "Сплетення коріння.")
             B.link(prev, nid)
+            # lateral weave toward neighbours
+            if i >= 3:
+                for other in CYCLE:
+                    if other == reg:
+                        continue
+                    oid = f"{other[0]}_conv{i}"
+                    if oid in B.nodes:
+                        B.link(nid, oid)
             prev = nid
         converge_ids[reg] = prev
 
-    # Trunk base hub
     B.add("trunk0", "Сплетення коріння", "keystone", 0, Y_TRUNK_BASE, "agi",
           scale_stats(dict(RNG.choice(TIER_STATS["mix"])), 1),
           "Три шляхи сходяться в один стовбур.")
     for reg in CYCLE:
         B.link(converge_ids[reg], "trunk0")
 
-    # Braided trunk: 3 intertwining strands (str/agi/faith) along center
-    TRUNK_STEPS = 10
-    strand_prev = {"str": "trunk0", "agi": "trunk0", "faith": "trunk0"}
+    # 5-strand massive braid: 3 class colours + 2 mix companions; frequent rungs; taper
+    TRUNK_STEPS = 12
+    STRANDS = [
+        ("s", "str", -1.0),
+        ("m1", "agi", -0.45),
+        ("c", "agi", 0.0),
+        ("m2", "faith", 0.45),
+        ("f", "faith", 1.0),
+    ]
+    strand_prev = {key: "trunk0" for key, _, _ in STRANDS}
     trunk_spine = ["trunk0"]
     for i in range(1, TRUNK_STEPS + 1):
         t = i / TRUNK_STEPS
         y = Y_TRUNK_BASE + (Y_TRUNK_TOP - Y_TRUNK_BASE) * t
-        # braid radius shrinks slightly toward top then flares near canopy
-        rad = 42 + 18 * math.sin(t * math.pi) * (0.35 if t < 0.85 else 1.0)
-        phase = t * math.pi * 3.2  # weave frequency
-        for si, reg in enumerate(CYCLE):
-            ang = phase + si * (math.tau / 3)
-            x = math.cos(ang) * rad
-            # keep strands close — thick trunk silhouette
-            x *= 0.85
-            nid = f"trunk_{reg[0]}{i}"
+        # wide at base, taper mid, slight flare at top into canopy
+        rad = 130 * (1.0 - 0.45 * t) + 25 * math.sin(t * math.pi)
+        if t > 0.85:
+            rad += 35 * ((t - 0.85) / 0.15)
+        phase = t * math.pi * 2.6
+        step_ids = []
+        for si, (key, reg, lane) in enumerate(STRANDS):
+            weave = math.sin(phase + si * 0.9) * 18
+            x = lane * rad + weave
+            nid = f"trunk_{key}{i}"
             B.add(nid, NAMES["mix"][min(tier_of_y(y), 4)], "small", x, y, reg,
                   scale_stats(dict(RNG.choice(TIER_STATS["mix"])), tier_of_y(y)),
                   "Стовбур роду — сплетення шляхів.")
-            B.link(strand_prev[reg], nid)
-            # cross-links between strands (braid)
-            if i % 2 == 0:
-                other = CYCLE[(si + 1) % 3]
-                other_id = f"trunk_{other[0]}{i}"
-                if other_id in B.nodes:
-                    B.link(nid, other_id)
-            strand_prev[reg] = nid
-        # center spine node every step for thicker trunk silhouette
-        if True:
-            cid = f"trunk_c{i}"
-            B.add(cid, NAMES["mix"][min(tier_of_y(y), 4)], "small", 0, y - 15,
-                  CYCLE[i % 3],
-                  scale_stats(dict(RNG.choice(TIER_STATS["mix"])), tier_of_y(y)),
-                  "Серцевина стовбура.")
-            B.link(f"trunk_s{i}" if f"trunk_s{i}" in B.nodes else strand_prev["str"], cid)
-            B.link(strand_prev["agi"], cid)
-            trunk_spine.append(cid)
-        else:
-            trunk_spine.append(strand_prev["agi"])
+            B.link(strand_prev[key], nid)
+            strand_prev[key] = nid
+            step_ids.append(nid)
+        # rungs: link every neighbouring strand this step + every other skip
+        for a, b in zip(step_ids, step_ids[1:]):
+            B.link(a, b)
+        if i % 2 == 0 and len(step_ids) >= 4:
+            B.link(step_ids[0], step_ids[2])
+            B.link(step_ids[1], step_ids[3])
+            B.link(step_ids[2], step_ids[-1])
+        trunk_spine.append(step_ids[2])  # center
 
-    trunk_top_nodes = [strand_prev[r] for r in CYCLE]
+    trunk_top_nodes = [strand_prev[k] for k, _, _ in STRANDS]
 
-    # ========== PRIMARY BRANCHES FANNING INTO CANOPY ==========
-    # From upper trunk, radiate branches into the round canopy
+    # ========== PRIMARY BRANCHES → ROUND CANOPY ==========
     branch_tips = []
-    N_BRANCHES = 14
+    N_BRANCHES = 16
     for bi in range(N_BRANCHES):
-        # attach to upper third of trunk
-        attach_t = 0.55 + 0.4 * (bi / max(N_BRANCHES - 1, 1))
+        attach_t = 0.5 + 0.48 * (bi / max(N_BRANCHES - 1, 1))
         attach_i = max(1, min(TRUNK_STEPS, int(attach_t * TRUNK_STEPS)))
-        attach_reg = CYCLE[bi % 3]
-        attach = f"trunk_{attach_reg[0]}{attach_i}"
+        attach_key = STRANDS[bi % len(STRANDS)][0]
+        attach = f"trunk_{attach_key}{attach_i}"
         if attach not in B.nodes:
-            attach = trunk_top_nodes[bi % 3]
+            attach = trunk_top_nodes[bi % len(trunk_top_nodes)]
         ax, ay = B.nodes[attach]["x"], B.nodes[attach]["y"]
-        # fan: left → up → right (upper semicircle directions)
-        ang = math.pi * (0.15 + 0.70 * (bi / (N_BRANCHES - 1)))  # ~27°..153°
-        # lean: left=str, center=agi/mix, right=faith
-        if bi <= 3:
+        ang = math.pi * (0.08 + 0.84 * (bi / (N_BRANCHES - 1)))
+        if bi <= 4:
             lean = "str"
-        elif bi >= 8:
+        elif bi >= 11:
             lean = "faith"
         else:
-            lean = "agi" if bi in (5, 6) else CYCLE[bi % 3]
-        segs = 4
-        length = 520 + (bi % 3) * 50
+            lean = "agi" if bi in (7, 8) else CYCLE[bi % 3]
+        segs = 5
+        length = 560 + (bi % 4) * 45
         prev = attach
         for s in range(1, segs + 1):
             tt = s / segs
-            # radiate outward and upward into canopy
-            x = ax + math.cos(ang) * length * tt * 1.15
-            y = ay - math.sin(ang) * length * tt
-            # widen near canopy
-            x *= (1.0 + 0.25 * tt)
-            # outer lean vs inner mix
-            if tt < 0.4:
-                reg = CYCLE[(bi + s) % 3]  # mixing near trunk
-            else:
-                reg = lean
+            x = ax + math.cos(ang) * length * tt * 1.2
+            y = ay - math.sin(ang) * length * tt * 1.05
+            x *= (1.0 + 0.3 * tt)
+            reg = CYCLE[(bi + s) % 3] if tt < 0.35 else lean
             nid = f"br{bi}_{s}"
             B.add(nid, NAMES[reg if reg in NAMES else "mix"][min(tier_of_y(y), 4)], "small",
                   x, y, reg,
                   scale_stats(dict(RNG.choice(TIER_STATS[reg if reg in TIER_STATS else "mix"])),
                               tier_of_y(y)),
-                  "Гілка." if tt >= 0.4 else "Сплетення гілки.")
+                  "Гілка." if tt >= 0.35 else "Сплетення гілки.")
             B.link(prev, nid)
             prev = nid
         branch_tips.append(prev)
 
-    # ========== CANOPY FRUITS on dome ==========
+    # ========== CANOPY FRUITS on big dome ==========
     fruit_meta = []
     fruit_ids = []
-    # two rings for even dome coverage
     for fi, (name, stats, theme, lean, frac) in enumerate(FRUITS):
-        ring = 0.72 if fi % 2 == 0 else 1.0
-        # stagger frac slightly for even angular spacing
+        ring = 0.62 + 0.38 * ((fi % 3) / 2.0)
         fx, fy = canopy_pos(frac, ring)
         fid = f"fruit{fi}"
         B.add(fid, name, "notable", fx, fy, lean, dict(stats), f"Плід крони («{theme}»).")
         fruit_meta.append({"id": fid, "theme": theme, "name": name, "region": lean})
         fruit_ids.append(fid)
-        # connect to nearest branch tip (short hops via link())
-        near = min(branch_tips, key=lambda t: (B.nodes[t]["x"] - fx) ** 2 + (B.nodes[t]["y"] - fy) ** 2)
+        near = min(branch_tips, key=lambda tip: (B.nodes[tip]["x"] - fx) ** 2 + (B.nodes[tip]["y"] - fy) ** 2)
         B.link(near, fid)
-        # ring of smalls around fruit (notable core + orbit)
-        for j in range(4):
-            a = (j / 4) * math.tau + 0.15
-            sx = fx + math.cos(a) * 100
-            sy = fy + math.sin(a) * 78
+        for j in range(5):
+            a = (j / 5) * math.tau + 0.12
+            sx = fx + math.cos(a) * 105
+            sy = fy + math.sin(a) * 82
             sid = f"{fid}_s{j}"
             B.add(sid, NAMES[lean][4], "small", sx, sy, lean,
                   scale_stats(dict(RNG.choice(TIER_STATS[lean])), 4),
                   f"Навколо плоду «{theme}».")
             B.link(fid, sid)
 
-    # Bridges between nearby fruits (short)
     for i, fid in enumerate(fruit_ids):
         a = B.nodes[fid]
         cands = []
@@ -450,53 +465,50 @@ def main():
                 continue
             b = B.nodes[oid]
             d = math.hypot(a["x"] - b["x"], a["y"] - b["y"])
-            if d < 420:
+            if d < 480:
                 cands.append((d, oid))
         cands.sort()
-        for _, oid in cands[:2]:
+        for _, oid in cands[:3]:
             B.link(fid, oid)
 
-    # Keystones inner canopy
     for kid, reg, name, stats, frac in KEYSTONES:
-        kx, ky = canopy_pos(frac, 0.48)
-        ky -= 60
+        kx, ky = canopy_pos(frac, 0.42)
+        ky -= 70
         store = reg if reg != "mix" else CYCLE[abs(hash(kid)) % 3]
         B.add(kid, name, "keystone", kx, ky, store, dict(stats), "Ключовий вузол крони.")
         near = min(fruit_ids, key=lambda fid: (B.nodes[fid]["x"] - kx) ** 2 + (B.nodes[fid]["y"] - ky) ** 2)
         B.link(near, kid)
 
-    # Core at apex
     B.add("core", "Серце роду", "core", 0, Y_CROWN + 50, "agi",
           {"str": 5, "agi": 5, "faith": 5, "dmg_pct": 8, "hp_pct": 8, "res_all_pct": 5},
           "Вершина Древа роду.", force=True)
     for kid, *_ in KEYSTONES[:4]:
         if kid in B.nodes:
             B.link(kid, "core")
-    top_fruits = sorted(fruit_ids, key=lambda fid: B.nodes[fid]["y"])[:4]
-    for fid in top_fruits:
+    for fid in sorted(fruit_ids, key=lambda fid: B.nodes[fid]["y"])[:5]:
         B.link(fid, "core")
 
-    # Fill canopy dome densely (even spread, min spacing)
+    # Dense canopy fill (big round crown)
     fill = 0
-    target = 300
-    while len(B.nodes) < target and fill < 900:
+    target = 320
+    while len(B.nodes) < target and fill < 1100:
         fill += 1
         frac = RNG.random()
-        scale = RNG.uniform(0.35, 1.05)
+        scale = RNG.uniform(0.28, 1.08)
         x, y = canopy_pos(frac, scale)
-        if y > Y_TRUNK_TOP:
+        if y > Y_TRUNK_TOP + 20:
             continue
         too_close = any((n["x"] - x) ** 2 + (n["y"] - y) ** 2 < MIN_DIST ** 2 for n in B.nodes.values())
         if too_close:
             continue
-        if x < -380:
+        if x < -420:
             lean = "str"
-        elif x > 380:
+        elif x > 420:
             lean = "faith"
-        elif abs(x) < 160:
-            lean = CYCLE[fill % 3]  # mix near center
+        elif abs(x) < 180:
+            lean = CYCLE[fill % 3]
         else:
-            lean = "agi" if abs(x) < 380 else CYCLE[fill % 3]
+            lean = "agi"
         nid = f"can_{fill}"
         B.add(nid, NAMES[lean][4], "small", x, y, lean,
               scale_stats(dict(RNG.choice(TIER_STATS[lean])), 4), "Крона.")
@@ -505,21 +517,20 @@ def main():
         if near["id"] != nid:
             B.link(near["id"], nid)
 
-    # Also fill a bit of root space for denser root flare
+    # Dense root fill for lush flare
     fill_r = 0
-    while len(B.nodes) < 340 and fill_r < 120:
+    while len(B.nodes) < 400 and fill_r < 160:
         fill_r += 1
-        x = RNG.uniform(-1100, 1100)
-        y = RNG.uniform(Y_TRUNK_BASE + 80, Y_ROOT_TIP - 40)
-        # prefer outside trunk column
-        if abs(x) < 100 and y < Y_ROOT_BAND:
+        x = RNG.uniform(-1300, 1300)
+        y = RNG.uniform(Y_TRUNK_BASE + 60, Y_ROOT_TIP - 30)
+        if abs(x) < 140 and y < Y_ROOT_BAND + 100:
             continue
         too_close = any((n["x"] - x) ** 2 + (n["y"] - y) ** 2 < MIN_DIST ** 2 for n in B.nodes.values())
         if too_close:
             continue
-        if x < -280:
+        if x < -320:
             lean = "str"
-        elif x > 280:
+        elif x > 320:
             lean = "faith"
         else:
             lean = CYCLE[fill_r % 3]
@@ -577,7 +588,7 @@ def main():
             a, b = nbs
             # skip if collapsing would make a very long edge
             da = B.nodes[a]; db = B.nodes[b]
-            if math.hypot(da["x"] - db["x"], da["y"] - db["y"]) > MAX_EDGE:
+            if math.hypot(da["x"] - db["x"], da["y"] - db["y"]) > MAX_EDGE * 1.15:
                 continue
             del B.nodes[nid]
             # rebuild adj lightly
@@ -603,14 +614,76 @@ def main():
         B.links = new_links
         B.seen = seen
 
-    collapse_to(520)
-    if len(B.nodes) > 520:
-        collapse_to(500)
-    B.harden_edges()
-    # final safety collapse if harden re-inflated
+    collapse_to(580)
     if len(B.nodes) > 580:
         collapse_to(560)
-        B.harden_edges()
+    B.harden_edges()
+    # final safety collapse if harden re-inflated
+    if len(B.nodes) > 650:
+        collapse_to(620)
+    if len(B.nodes) > 650:
+        collapse_to(600)
+    B.harden_edges()
+    # Leaf-only prune (never cut chains) + reconnect orphans
+    if len(B.nodes) > 780:
+        adj = defaultdict(list)
+        for a, b in B.links:
+            adj[a].append(b)
+            adj[b].append(a)
+        protect = set(START_IDS.values()) | {"trunk0", "core"}
+        protect |= {n["id"] for n in B.nodes.values() if n["type"] in ("notable", "keystone", "start", "core")}
+        protect |= {nid for nid in B.nodes if nid.startswith(("trunk_", "br", "fruit", "ks_", "s_conv", "a_conv", "f_conv", "s_root", "a_root", "f_root"))}
+        cands = [nid for nid, n in B.nodes.items()
+                 if nid not in protect and n["type"] == "small"
+                 and nid.startswith(("can_", "rootfill_"))]
+        cands.sort(key=lambda nid: len(adj[nid]))
+        for nid in cands:
+            if len(B.nodes) <= 750:
+                break
+            if len(adj.get(nid, [])) != 1:
+                continue
+            for nb in list(adj.get(nid, [])):
+                adj[nb] = [x for x in adj[nb] if x != nid]
+            del B.nodes[nid]
+            adj.pop(nid, None)
+        seen = set()
+        nl = []
+        for a, nbs in adj.items():
+            if a not in B.nodes:
+                continue
+            for b in nbs:
+                if b not in B.nodes:
+                    continue
+                k = tuple(sorted((a, b)))
+                if k in seen:
+                    continue
+                seen.add(k)
+                nl.append([a, b])
+        B.links = nl
+        B.seen = seen
+
+    # Reconnect anything severed
+    def reachable(starts):
+        adj = defaultdict(list)
+        for a, b in B.links:
+            adj[a].append(b)
+            adj[b].append(a)
+        seen = set(starts)
+        q = deque(starts)
+        while q:
+            u = q.popleft()
+            for v in adj[u]:
+                if v not in seen:
+                    seen.add(v)
+                    q.append(v)
+        return seen
+    reach = reachable(list(START_IDS.values()))
+    for oid in list(set(B.nodes) - reach):
+        near = min((B.nodes[i] for i in reach),
+                   key=lambda n: (n["x"] - B.nodes[oid]["x"]) ** 2 + (n["y"] - B.nodes[oid]["y"]) ** 2)
+        B.link(near["id"], oid)
+        reach.add(oid)
+    B.harden_edges()
 
     node_list = list(B.nodes.values())
     types = {}

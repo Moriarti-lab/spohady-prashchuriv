@@ -187,13 +187,49 @@ static func _compare(a: Dictionary, b: Dictionary) -> String:
 	return "\n".join(lines) if lines.size() > 0 else "[color=#B9AE9A]без змін у числах[/color]"
 
 
+static func node_type_ua(typ: String) -> String:
+	match typ:
+		"small":
+			return "Малий вузол"
+		"notable":
+			return "Плід"
+		"keystone":
+			return "Ключовий вузол"
+		"start":
+			return "Корінь"
+		"core":
+			return "Серце роду"
+		"skill":
+			return "Навичка"
+		_:
+			return "Вузол"
+
+
+static func region_ua(region: String) -> String:
+	match region:
+		"str":
+			return "Сила"
+		"agi":
+			return "Спритність"
+		"faith":
+			return "Віра"
+		"mix":
+			return "Рід"
+		"core":
+			return "Рід"
+		_:
+			return "Рід"
+
+
 static func node_bb(node_id: String) -> String:
 	var d: Dictionary = PerkTree.get_def(node_id)
 	if d.is_empty():
 		return ""
 	var out: PackedStringArray = []
-	out.append("[b]%s[/b]" % str(d.get("name", node_id)))
-	out.append("[color=#B9AE9A]%s · %s[/color]" % [str(d.get("type", "small")), str(d.get("region", ""))])
+	# назва вже в заголовку панелі — тут лише тип · регіон
+	var typ_ua := node_type_ua(str(d.get("type", "small")))
+	var reg_ua := region_ua(str(d.get("region", "")))
+	out.append("[color=#B9AE9A]%s · %s[/color]" % [typ_ua, reg_ua])
 	var stats: Dictionary = d.get("stats", {})
 	if typeof(stats) == TYPE_DICTIONARY and not stats.is_empty():
 		out.append("")
@@ -203,10 +239,6 @@ static func node_bb(node_id: String) -> String:
 	if desc != "":
 		out.append("")
 		out.append("[i]%s[/i]" % desc)
-	var fx := PerkTree.effect_text(node_id)
-	if fx != "" and fx != desc:
-		# effect_text may duplicate stats — only add if different
-		pass
 	return "\n".join(out)
 
 
