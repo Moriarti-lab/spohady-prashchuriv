@@ -33,6 +33,16 @@ grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR|TIMEOUT" /tmp/flow.log
 if grep -q "FAIL\|SCRIPT ERROR\|TIMEOUT" /tmp/flow.log; then fail=1; fi
 
 
+
+echo "== Гра: регресія UI наузів/ниток =="
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 res://tests/nauzi_ui_test.tscn > /tmp/nauzi_ui.log 2>&1 || fail=1
+else
+  "$GODOT" --path . res://tests/nauzi_ui_test.tscn > /tmp/nauzi_ui.log 2>&1 || fail=1
+fi
+grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR" /tmp/nauzi_ui.log | tail -60
+if grep -q "FAIL\|SCRIPT ERROR" /tmp/nauzi_ui.log; then fail=1; fi
+
 echo "== Гра: регресія layout (1024x473 / 1280x576 / 854x480) =="
 mkdir -p /tmp/layout_shots
 if command -v xvfb-run >/dev/null 2>&1; then

@@ -139,21 +139,42 @@ static func color_ok(nauz: Dictionary, color: String) -> bool:
 
 
 static func thread_fits(nauz: Dictionary, thread_item: Dictionary) -> bool:
-	if not is_nauz(nauz) or not is_thread(thread_item):
-		return false
+	return thread_fit_reason(nauz, thread_item) == ""
+
+
+## Порожньо = пасує; інакше причина українською (колір/теги/дублікат).
+static func thread_fit_reason(nauz: Dictionary, thread_item: Dictionary) -> String:
+	if not is_nauz(nauz):
+		return "Немає цільового науза"
+	if not is_thread(thread_item):
+		return "Це не нитка"
 	var color := str(thread_item.get("color", "white"))
 	if not color_ok(nauz, color):
-		return false
+		var st := skill_stat(str(nauz.get("skill", "")))
+		var need_c := ""
+		for c in COLOR_STAT:
+			if COLOR_STAT[c] == st:
+				need_c = str(COLOR_NAMES.get(c, c))
+				break
+		return "Колір «%s» не пасує (потрібна %s або біла)" % [
+			str(COLOR_NAMES.get(color, color)), need_c if need_c != "" else "відповідна"]
 	var tid := str(thread_item.get("thread", ""))
 	var tdef: Dictionary = THREADS.get(tid, {})
 	var need: Array = tdef.get("tags", [])
-	if need.is_empty():
-		return true
-	var have := tags_of(str(nauz.get("skill", "")))
-	for tag in need:
-		if tag in have:
-			return true
-	return false
+	if not need.is_empty():
+		var have := tags_of(str(nauz.get("skill", "")))
+		var ok_tag := false
+		for tag in need:
+			if tag in have:
+				ok_tag = true
+				break
+		if not ok_tag:
+			return "Теги нитки не пасують до вміння"
+	# дублікат того самого типу нитки
+	for th in nauz.get("threads", []):
+		if typeof(th) == TYPE_DICTIONARY and str(th.get("thread", "")) == tid:
+			return "Така нитка вже вплетена"
+	return ""
 
 
 ## Сума mods з вплетених ниток (з урахуванням thread_power_pct з Древа).
