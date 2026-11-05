@@ -17,8 +17,8 @@ func _run() -> void:
 	var screen: PerkTreeScreen = w.hud._perk_screen
 	var view: PerkTreeView = screen._view
 	var focus := "trunk0" if PerkTree.has_node("trunk0") else PerkTree.class_start("druzhynnyk")
-	view.center = Vector2(0, 200)
-	view.zoom = 0.32
+	view.center = Vector2(0, 150)
+	view.zoom = 0.34
 	view.queue_redraw()
 	await get_tree().process_frame
 	screen._on_node_selected(focus)

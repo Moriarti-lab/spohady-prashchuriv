@@ -16,9 +16,9 @@ func _run() -> void:
 	await get_tree().create_timer(0.55).timeout
 	var screen: PerkTreeScreen = w.hud._perk_screen
 	var view: PerkTreeView = screen._view
-	# trunk + lower canopy fan (wide enough to read silhouette)
-	view.center = Vector2(0, 100)
-	view.zoom = 0.28
+	# mid tree: trunk + lower canopy
+	view.center = Vector2(0, 50)
+	view.zoom = 0.26
 	view.queue_redraw()
 	screen._hide_detail()
 	await get_tree().create_timer(0.55).timeout

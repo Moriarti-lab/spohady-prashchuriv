@@ -59,7 +59,7 @@ for a, b in DATA["links"]:
     mid_y = (na["y"] + nb["y"]) * 0.5
     trunkness = max(0.0, 1.0 - abs(mid_x) / 420.0)
     height_t = max(0.0, min(1.0, (2600.0 - mid_y) / 5200.0))
-    w = 1.2 + 4.5 * trunkness * (1.0 - height_t * 0.55)
+    w = 1.4 + 7.0 * trunkness * trunkness * (1.0 - height_t * 0.5)
     ca = COLS.get(na["region"], (150, 150, 150))
     cb = COLS.get(nb["region"], (150, 150, 150))
     col = tuple(int((ca[i] + cb[i]) / 2 * 0.55 + BARK[i] * 0.45) for i in range(3)) + (200,)
@@ -85,7 +85,10 @@ for n in nodes.values():
     dr.ellipse([px - r, py - r, px + r, py + r], fill=col + (255,))
 
 # labels for important nodes only, collision-avoided
-important = [n for n in nodes.values() if n["type"] in ("start", "core", "notable", "keystone")]
+# sparse labels: starts + core + every 3rd fruit (avoid crown clutter)
+important = [n for n in nodes.values() if n["type"] in ("start", "core")]
+fruits = sorted([n for n in nodes.values() if n["type"] == "notable"], key=lambda n: n["x"])
+important += fruits[::3]
 important.sort(key=lambda n: (0 if n["type"] in ("core", "start") else 1, n["y"]))
 for n in important:
     px, py = to_px(n["x"], n["y"])
