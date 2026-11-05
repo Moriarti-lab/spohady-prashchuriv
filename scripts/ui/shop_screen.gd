@@ -26,6 +26,7 @@ func _ready() -> void:
 	add_child(margin)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	panel.clip_contents = true
 	margin.add_child(panel)
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 6)

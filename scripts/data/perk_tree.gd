@@ -11,6 +11,7 @@ const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]  
 ## Ключ бонусу -> шаблон тексту (%s — число зі знаком).
 const STAT_TEXT := {
 	"str": "%s Сили", "agi": "%s Спритності", "faith": "%s Віри",
+	"dmg": "%s до шкоди", "interval": "%s с між ударами", "range": "%s до дальності зброї", "arc": "%s° дуги",
 	"hp": "%s до життя", "hp_pct": "%s%% до життя",
 	"mana_pct": "%s%% до чару", "mana_regen": "%s до відновлення чару за секунду",
 	"mana_regen_pct": "%s%% до відновлення чару",
@@ -25,6 +26,9 @@ const STAT_TEXT := {
 	"nauz_xp_pct": "%s%% до росту наузів", "aoe_pct": "%s%% до площі", "effect_dur_pct": "%s%% до тривалості ефектів",
 	"skill_cost_pct": "%s%% до вартості вмінь", "double_hit_pct": "%s%% подвійного удару",
 	"proj_speed_pct": "%s%% швидкості снарядів", "armor_pen_pct": "%s%% пробиття броні",
+	"radius_pct": "%s%% до радіусу", "range_pct": "%s%% до дальності", "duration_pct": "%s%% до тривалості",
+	"cd_pct": "%s%% до часу відновлення", "count": "%s до кількості", "power_pct": "%s%% сили ефекту",
+	"heal_pct": "%s%% до лікування", "stun": "%s с оглушення",
 	"life_on_kill": "%s життя за вбивство", "mana_on_kill": "%s чару за вбивство",
 	"stun_chance_pct": "%s%% шансу оглушення", "nauz_thread_slots": "%s гніздо нитки на наузах",
 	"nauz_level": "%s до рівня наузів", "res_all_pct": "%s%% опору всім стихіям",
@@ -37,10 +41,11 @@ const STAT_TEXT := {
 	"free_skills": "Уміння без вартості чару", "crit_stun": "Крити оглушують",
 	"block_no_shield": "Блок без щита", "kill_haste": "Вбивство дає прискорення",
 }
-const STAT_ORDER := ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "mana_regen_pct", "armor",
+const STAT_ORDER := ["str", "agi", "faith", "dmg", "hp", "hp_pct", "mana_pct", "mana_regen", "mana_regen_pct", "armor",
 	"dmg_pct", "atk_speed_pct", "crit_pct", "crit_dmg_pct", "cdr_pct", "lifesteal_pct", "thorns_pct",
 	"hp_regen_pct", "dr_pct", "move_pct", "dodge_pct", "block_pct", "block_power_pct",
 	"aoe_pct", "effect_dur_pct", "skill_cost_pct", "double_hit_pct", "proj_speed_pct", "armor_pen_pct",
+	"radius_pct", "range_pct", "duration_pct", "cd_pct", "count", "power_pct", "heal_pct", "stun",
 	"stun_chance_pct", "life_on_kill", "mana_on_kill", "nauz_xp_pct", "nauz_thread_slots", "nauz_level",
 	"res_all_pct", "res_fire_pct", "res_frost_pct", "res_thunder_pct", "res_nature_pct", "res_light_pct", "res_fate_pct",
 	"pen_all_pct", "pen_fire_pct", "pen_frost_pct", "pen_thunder_pct", "pen_nature_pct", "pen_light_pct", "pen_fate_pct",
@@ -125,11 +130,11 @@ static func default_tree() -> Dictionary:
 		var dirv := Vector2(cos(ang), sin(ang))
 		var side := Vector2(-dirv.y, dirv.x)
 		var sid := p + "_t0"
-		nodes.append({"id": sid, "name": "Початок шляху", "description": "Початок шляху.", "x": dirv.x * 900.0, "y": dirv.y * 900.0,
+		nodes.append({"id": sid, "name": "Початок шляху", "description": "Початок шляху.", "x": dirv.x * 9000.0, "y": dirv.y * 9000.0,
 			"type": "start", "stats": {rid: 2}, "skill": "", "icon": "", "region": rid})
 		for i in range(3):
 			var kid := "%s_k%d" % [p, i]
-			var pos := dirv * 740.0 + side * (float(i) - 1.0) * 150.0
+			var pos := dirv * 7400.0 + side * (float(i) - 1.0) * 1500.0
 			var sk: String = kits[rid][i]
 			nodes.append({"id": kid, "name": str(Skills.get_def(sk).get("name", sk)), "description": "Стартова навичка.", "x": pos.x, "y": pos.y,
 				"type": "skill", "stats": {}, "skill": sk, "icon": "", "region": rid, "starter": true})
@@ -137,7 +142,7 @@ static func default_tree() -> Dictionary:
 			var prev := kid
 			for j in range(3):
 				var pid := "%s_p%d%d" % [p, i, j]
-				var pp := dirv * (600.0 - 140.0 * j) + side * (float(i) - 1.0) * (150.0 - 40.0 * j)
+				var pp := dirv * (6000.0 - 1400.0 * j) + side * (float(i) - 1.0) * (1500.0 - 400.0 * j)
 				nodes.append({"id": pid, "name": "Міць предків", "description": "", "x": pp.x, "y": pp.y, "type": "small",
 					"stats": {rid: 1, "hp": 8}, "skill": "", "icon": "", "region": rid})
 				links.append([prev, pid])

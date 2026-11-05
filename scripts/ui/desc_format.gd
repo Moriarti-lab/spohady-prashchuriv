@@ -32,7 +32,7 @@ static func rarity_color(r: int) -> Color:
 
 
 static func format_stat_line(key: String, value: float) -> String:
-	var tmpl := str(PerkTree.STAT_TEXT.get(key, "%s " + key))
+	var tmpl := str(PerkTree.STAT_TEXT.get(key, "%s до «" + key + "»"))
 	var body := tmpl % _signed(value)
 	return "• " + _bb(key, body)
 
@@ -183,7 +183,7 @@ static func _compare(a: Dictionary, b: Dictionary) -> String:
 		if is_zero_approx(d):
 			continue
 		var sign := "+" if d > 0.0 else ""
-		lines.append("%s %s%s" % [_bb(str(k), str(PerkTree.STAT_TEXT.get(str(k), k))), sign, _num(d)])
+		lines.append("• " + _bb(str(k), str(PerkTree.STAT_TEXT.get(str(k), "%s «" + str(k) + "»")) % (sign + _num(d))))
 	return "\n".join(lines) if lines.size() > 0 else "[color=#B9AE9A]без змін у числах[/color]"
 
 

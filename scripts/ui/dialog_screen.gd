@@ -36,6 +36,7 @@ func _ready() -> void:
 	add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	panel.clip_contents = true
 	panel.custom_minimum_size = Vector2(820, 0)
 	center.add_child(panel)
 	var v := VBoxContainer.new()
