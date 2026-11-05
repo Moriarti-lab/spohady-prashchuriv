@@ -13,14 +13,14 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	w.hud.open_perks()
-	await get_tree().create_timer(0.5).timeout
-	var view: PerkTreeView = w.hud._perk_screen._view
-	# крона: серед плодів сили + верх стовбура
-	var fruit := "s_fruit1" if PerkTree.has_node("s_fruit1") else PerkTree.class_start("druzhynnyk")
-	var trunk := "s_t14" if PerkTree.has_node("s_t14") else fruit
-	view.center = PerkTree.pos(fruit) * 0.65 + PerkTree.pos(trunk) * 0.35
-	view.zoom = 0.36
+	await get_tree().create_timer(0.55).timeout
+	var screen: PerkTreeScreen = w.hud._perk_screen
+	var view: PerkTreeView = screen._view
+	# trunk + lower canopy fan (wide enough to read silhouette)
+	view.center = Vector2(0, 100)
+	view.zoom = 0.28
 	view.queue_redraw()
+	screen._hide_detail()
 	await get_tree().create_timer(0.55).timeout
 	get_viewport().get_texture().get_image().save_png("/workspace/spohady-tree-v4-screen.png")
 	print("TREE_SCREEN_OK")

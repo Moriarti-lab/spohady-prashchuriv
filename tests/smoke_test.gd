@@ -73,7 +73,7 @@ func _run() -> void:
 	var val := PerkTree.validate(rawd)
 	ok((val["errors"] as Array).is_empty() and (val["warnings"] as Array).is_empty(), "перевірка формату: без помилок і застережень %s" % str(val))
 	var nn := PerkTree.nodes().size()
-	ok(nn >= 250 and nn <= 600, "вузлів 250–600 (є %d)" % nn)
+	ok(nn >= 250 and nn <= 700, "вузлів 250–700 (є %d)" % nn)
 	ok(Nauzi.STARTER_IDS.size() == 9, "стартових id наузів: %d" % Nauzi.STARTER_IDS.size())
 	ok(Nauzi.max_level() == 20, "рівень науза 1–20")
 	ok(Nauzi.thread_ids().size() >= 3, "каталог ниток")

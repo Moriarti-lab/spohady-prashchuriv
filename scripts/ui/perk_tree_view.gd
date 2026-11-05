@@ -3,6 +3,7 @@ class_name PerkTreeView
 extends Control
 
 signal node_selected(id: String)
+signal empty_tapped
 
 const ZOOM_MIN := 0.12
 const ZOOM_MAX := 1.7
@@ -161,6 +162,10 @@ func _tap(p: Vector2) -> void:
 		selected = id
 		node_selected.emit(id)
 		queue_redraw()
+	else:
+		selected = ""
+		empty_tapped.emit()
+		queue_redraw()
 
 
 # ---------- Малювання ----------
@@ -212,7 +217,7 @@ func _draw() -> void:
 			var sp := to_screen(PerkTree.pos(st) * 0.62)
 			draw_circle(sp, 620.0 * zoom, Color(col, 0.05))
 			draw_circle(sp, 380.0 * zoom, Color(col, 0.05))
-	# зв'язки
+	# зв'язки: кора + відтінок регіону; товстіші в стовбурі, тонші в кроні
 	for l in PerkTree.links():
 		var a := to_screen(PerkTree.pos(l[0]))
 		var b := to_screen(PerkTree.pos(l[1]))
@@ -220,15 +225,27 @@ func _draw() -> void:
 			continue
 		var sa := _state(l[0])
 		var sb := _state(l[1])
-		var col2 := Color(Palette.TEXT_DIM, 0.28)
-		var w := 3.0
+		var pa := PerkTree.pos(l[0])
+		var pb := PerkTree.pos(l[1])
+		var mid_x := (pa.x + pb.x) * 0.5
+		var mid_y := (pa.y + pb.y) * 0.5
+		var trunkness := clampf(1.0 - absf(mid_x) / 280.0, 0.0, 1.0)
+		# вище (менший y) → тонше
+		var height_t := clampf((1500.0 - mid_y) / 3600.0, 0.0, 1.0)
+		var w := lerpf(2.0, 11.0, trunkness * (1.0 - height_t * 0.55))
+		var bark := Color("5A4030")
+		var reg_col := PerkTree.color_of(l[0]).lerp(PerkTree.color_of(l[1]), 0.5)
+		var col2 := bark.lerp(reg_col, 0.45)
+		col2.a = 0.72
 		if sa == 2 and sb == 2:
-			col2 = Palette.GOLD
-			w = 5.0
+			col2 = bark.lerp(Palette.GOLD, 0.55)
+			col2.a = 0.9
+			w += 1.5
 		elif sa == 2 or sb == 2:
-			col2 = Color(Palette.LINEN, 0.7)
-			w = 4.0
-		_draw_branch(a, b, col2, maxf(1.5, w * zoom * 1.3))
+			col2 = bark.lerp(Palette.LINEN, 0.35)
+			col2.a = 0.75
+			w += 0.8
+		_draw_branch(a, b, col2, maxf(1.4, w * zoom * 1.15))
 	# вузли
 	for id in PerkTree.nodes().keys():
 		var p := to_screen(PerkTree.pos(id))
@@ -297,9 +314,9 @@ func _draw_node(id: String, p: Vector2) -> void:
 		draw_circle(p, r + 2.0, Color(Palette.NIGHT, 0.9))
 		draw_texture_rect(tex, Rect2(p - Vector2(ir, ir), Vector2(dd, dd)), false, Color(dim, dim, dim, 1.0) if state > 0 else Color(0.38, 0.38, 0.42, 1.0))
 	else:
-		var fill := col.darkened(0.15) if state == 2 else Palette.PANEL_LIGHT.lerp(col, 0.2)
+		var fill := col.darkened(0.1) if state == 2 else Palette.PANEL_LIGHT.lerp(col, 0.45)
 		if state == 0:
-			fill = Palette.PANEL.lerp(col, 0.12)
+			fill = Palette.PANEL.lerp(col, 0.35)
 		draw_circle(p, r, fill)
 		if type == "small" and zoom > 0.42:
 			var txt := PerkTree.badge(id)

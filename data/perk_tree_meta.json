@@ -1,125 +1,133 @@
 {
   "fruits": [
     {
-      "id": "s_fruit0",
+      "id": "fruit0",
       "theme": "броня",
       "name": "Щит роду",
       "region": "str"
     },
     {
-      "id": "s_fruit1",
+      "id": "fruit1",
       "theme": "кров",
       "name": "Кривавий удар",
       "region": "str"
     },
     {
-      "id": "s_fruit2",
+      "id": "fruit2",
       "theme": "пробиття",
       "name": "Пробивач",
       "region": "str"
     },
     {
-      "id": "s_fruit3",
+      "id": "fruit3",
       "theme": "опір",
       "name": "Залізна шкіра",
       "region": "str"
     },
     {
-      "id": "s_fruit4",
-      "theme": "здобич",
-      "name": "Щедра здобич",
-      "region": "str"
-    },
-    {
-      "id": "a_fruit0",
+      "id": "fruit4",
       "theme": "рух",
       "name": "Тінь вовка",
       "region": "agi"
     },
     {
-      "id": "a_fruit1",
+      "id": "fruit5",
       "theme": "крит",
       "name": "Влучне око",
       "region": "agi"
     },
     {
-      "id": "a_fruit2",
+      "id": "fruit6",
       "theme": "снаряди",
       "name": "Град стріл",
       "region": "agi"
     },
     {
-      "id": "a_fruit3",
+      "id": "fruit7",
       "theme": "звитяга",
       "name": "Шлях учня",
       "region": "agi"
     },
     {
-      "id": "a_fruit4",
-      "theme": "здобич",
-      "name": "Щедра здобич",
-      "region": "agi"
-    },
-    {
-      "id": "f_fruit0",
+      "id": "fruit8",
       "theme": "площа",
       "name": "Коло пращурів",
       "region": "faith"
     },
     {
-      "id": "f_fruit1",
+      "id": "fruit9",
       "theme": "нитки",
       "name": "Нитка долі",
       "region": "faith"
     },
     {
-      "id": "f_fruit2",
+      "id": "fruit10",
       "theme": "наузи",
       "name": "Сила науза",
       "region": "faith"
     },
     {
-      "id": "f_fruit3",
+      "id": "fruit11",
       "theme": "опір",
       "name": "Опір стихіям",
       "region": "faith"
     },
     {
-      "id": "f_fruit4",
-      "theme": "звитяга",
-      "name": "Шлях учня",
-      "region": "faith"
+      "id": "fruit12",
+      "theme": "здобич",
+      "name": "Щедра здобич",
+      "region": "agi"
+    },
+    {
+      "id": "fruit13",
+      "theme": "бій",
+      "name": "Бойовий дух",
+      "region": "str"
+    },
+    {
+      "id": "fruit14",
+      "theme": "зір",
+      "name": "Ясне око",
+      "region": "agi"
     }
   ],
   "layout": {
-    "y_root": 2400,
-    "y_crown": -2600,
-    "y_crown_base": -900,
+    "y_root": 1500,
+    "y_crown": -2000,
+    "y_trunk_top": -200,
+    "y_trunk_base": 500,
     "bands": [
       {
         "id": "roots",
         "name": "Коріння",
-        "y0": 2350,
-        "y1": 2600
+        "y0": 500,
+        "y1": 2100
       },
       {
         "id": "trunk",
         "name": "Стовбур",
-        "y0": 200,
-        "y1": 2350
-      },
-      {
-        "id": "boughs",
-        "name": "Гілля",
-        "y0": -900,
-        "y1": 200
+        "y0": -200,
+        "y1": 500
       },
       {
         "id": "crown",
         "name": "Крона",
-        "y0": -2700,
-        "y1": -900
+        "y0": -2080,
+        "y1": -200
       }
+    ],
+    "trunk_spine": [
+      "trunk0",
+      "trunk_c1",
+      "trunk_c2",
+      "trunk_c3",
+      "trunk_c4",
+      "trunk_c5",
+      "trunk_c6",
+      "trunk_c7",
+      "trunk_c8",
+      "trunk_c9",
+      "trunk_c10"
     ]
   }
 }

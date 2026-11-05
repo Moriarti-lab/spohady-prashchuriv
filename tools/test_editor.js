@@ -14,7 +14,7 @@ const errs = (d) => ctx.validateTree(d).errors.length;
 ok(JSON.stringify(embedded) === JSON.stringify(file), "вбудоване Древо == data/perk_tree.json");
 const v = ctx.validateTree(file);
 ok(v.errors.length === 0 && v.warnings.length === 0, "data/perk_tree.json проходить перевірку редактора " + JSON.stringify(v));
-ok(file.nodes.length >= 250 && file.nodes.length <= 600, "вузлів 250–600: " + file.nodes.length);
+ok(file.nodes.length >= 250 && file.nodes.length <= 700, "вузлів 250–700: " + file.nodes.length);
 ok((file.version === 3 || file.version === 4) && file.nodes.filter(n => n.type === "core").length === 1, "версія 3/4 і одне Серце роду");
 ok(file.nodes.filter(n => n.skill || n.mod_skill).length === 0, "пасивне Древо без skill/mod_skill");
 // експорт того, що читає редактор, дає той самий файл
