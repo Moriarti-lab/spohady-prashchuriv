@@ -460,8 +460,9 @@ func attach_thread_to_socket(socket_index: int, thread_bag_index: int) -> bool:
 		return false
 	var nauz: Dictionary = sockets[socket_index]
 	var th: Dictionary = bag[thread_bag_index]
-	if not Nauzi.thread_fits(nauz, th):
-		last_error = "Нитка не пасує до цього науза"
+	var fit_r := Nauzi.thread_fit_reason(nauz, th)
+	if fit_r != "":
+		last_error = fit_r
 		return false
 	var slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
 	var threads: Array = nauz.get("threads", [])
@@ -488,8 +489,9 @@ func attach_thread(nauz_bag_index: int, thread_bag_index: int) -> bool:
 	if not Nauzi.is_nauz(nauz) or not Nauzi.is_thread(th):
 		last_error = "Потрібен науз і нитка"
 		return false
-	if not Nauzi.thread_fits(nauz, th):
-		last_error = "Нитка не пасує до цього науза"
+	var fit_r2 := Nauzi.thread_fit_reason(nauz, th)
+	if fit_r2 != "":
+		last_error = fit_r2
 		return false
 	var slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
 	var threads: Array = nauz.get("threads", [])
@@ -576,7 +578,9 @@ func socket_nauz(slot: int) -> Variant:
 
 
 func equip_nauz(slot: int, uid: int) -> bool:
+	last_error = ""
 	if slot < 0 or slot >= QUICK_SLOTS:
+		last_error = "Невірне гніздо науза"
 		return false
 	var idx := -1
 	var item: Dictionary = {}
@@ -586,13 +590,21 @@ func equip_nauz(slot: int, uid: int) -> bool:
 			item = bag[i]
 			break
 	if idx < 0:
+		last_error = "Науз не знайдено в сумці"
+		return false
+	var reason := Nauzi.can_use(item)
+	if reason != "":
+		last_error = reason
 		return false
 	if int(HeroStats.bonus("one_path")) > 0:
 		for i in range(QUICK_SLOTS):
 			if i != slot and typeof(sockets[i]) == TYPE_DICTIONARY and sockets[i] != null:
+				last_error = "Ключ «Один шлях»: лише один науз"
 				return false
+	var occupied := typeof(sockets[slot]) == TYPE_DICTIONARY and sockets[slot] != null
+	# зняти з сумки спочатку — місце для заміни звільняється
 	bag.remove_at(idx)
-	if typeof(sockets[slot]) == TYPE_DICTIONARY and sockets[slot] != null:
+	if occupied:
 		bag.append(sockets[slot])
 	sockets[slot] = item
 	_sync_quick_from_sockets()
@@ -603,11 +615,15 @@ func equip_nauz(slot: int, uid: int) -> bool:
 
 
 func unequip_nauz(slot: int) -> bool:
+	last_error = ""
 	if slot < 0 or slot >= QUICK_SLOTS:
+		last_error = "Невірне гніздо науза"
 		return false
 	if typeof(sockets[slot]) != TYPE_DICTIONARY or sockets[slot] == null:
+		last_error = "Гніздо порожнє"
 		return false
 	if bag.size() >= BAG_SIZE:
+		last_error = "Сумка повна — немає місця зняти науз"
 		return false
 	bag.append(sockets[slot])
 	sockets[slot] = null
@@ -616,6 +632,20 @@ func unequip_nauz(slot: int) -> bool:
 	changed.emit()
 	save_game()
 	return true
+
+
+## Знайти науз за стабільним uid: {"where":"bag"|"socket","index":int,"item":Dictionary} або {}.
+func find_nauz_by_uid(uid: int) -> Dictionary:
+	if uid <= 0:
+		return {}
+	for i in range(QUICK_SLOTS):
+		var sn: Variant = socket_nauz(i)
+		if typeof(sn) == TYPE_DICTIONARY and sn != null and int(sn.get("uid", 0)) == uid:
+			return {"where": "socket", "index": i, "item": sn}
+	for i in range(bag.size()):
+		if Nauzi.is_nauz(bag[i]) and int(bag[i].get("uid", 0)) == uid:
+			return {"where": "bag", "index": i, "item": bag[i]}
+	return {}
 
 
 func on_nauz_used(slot: int) -> void:

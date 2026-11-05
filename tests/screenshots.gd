@@ -93,6 +93,25 @@ func _run() -> void:
 	await shot("07a_bag_long_desc")
 	w.hud.open_inventory(InventoryScreen.TAB_SKILLS)
 	await frames(3)
+	# науз у сумці + одягнути
+	var sn := Nauzi.make_nauz("element_wave", 1, 1)
+	GameState.add_item(sn)
+	var th := Nauzi.make_thread("fury", "blue", 1)
+	GameState.add_item(th)
+	w.hud._inventory._select_nauz_uid(int(sn.get("uid", 0)))
+	w.hud._inventory._nauz_inner = 0
+	w.hud._inventory._refresh()
+	await frames(3)
+	await shot("07b_nauzi_equip")
+	w.hud._inventory._on_nauz_equip_pressed()
+	await frames(2)
+	await shot("07b_nauzi_pick_socket")
+	w.hud._inventory._nauz_inner = 1
+	w.hud._inventory._thread_slot_sel = 0
+	w.hud._inventory._sel_thread_uid = int(th.get("uid", 0))
+	w.hud._inventory._refresh()
+	await frames(3)
+	await shot("07b_nauzi_threads")
 	await shot("07b_skills")
 	w.hud._close_overlay()
 	w.hud.open_map()

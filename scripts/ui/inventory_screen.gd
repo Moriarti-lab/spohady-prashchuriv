@@ -39,7 +39,6 @@ var _skill_grid: GridContainer
 var _skill_info: Label
 var _sel_quick := 0
 var _sel_skill := ""
-var _clear_btn: Button
 var _bag_filter := "all"  # all|weapon|armor|nauz|thread|other
 var _filter_btns: Dictionary = {}
 var _btn_socket: Button
@@ -55,6 +54,22 @@ var _thread_slot_sel := -1
 var _thread_slot_row: HBoxContainer
 var _thread_pick_box: VBoxContainer
 var _confirm: AcceptDialog
+# Nauzi redesign 0.5.4.1
+var _sel_nauz_uid := -1
+var _sel_thread_uid := -1
+var _nauz_inner := 0  # 0 наузи, 1 нитки
+var _equip_pick_mode := false
+var _nauz_tab_btn: Button
+var _thread_tab_btn: Button
+var _nauz_target_label: Label
+var _nauz_list_title: Label
+var _nauz_action_bar: VBoxContainer
+var _nauz_detail_scroll: ScrollContainer
+var _nauz_detail_rich: RichTextLabel
+var _btn_nauz_equip: Button
+var _btn_nauz_unequip: Button
+var _btn_weave: Button
+var _socket_pick_row: HBoxContainer
 
 
 func _ready() -> void:
@@ -138,6 +153,11 @@ func open(tab: int = TAB_BAG) -> void:
 	_sel_bag = -1
 	_sel_equip = ""
 	_sel_skill = ""
+	_sel_nauz_uid = -1
+	_sel_thread_uid = -1
+	_equip_pick_mode = false
+	_nauz_inner = 0
+	_thread_slot_sel = -1
 	_show_tab(tab)
 
 
@@ -371,11 +391,20 @@ func _alt_slot(it: Dictionary) -> String:
 func _on_equip(alt: bool = false) -> void:
 	if _sel_bag >= 0 and _sel_bag < GameState.bag.size():
 		var it: Dictionary = GameState.bag[_sel_bag]
+		if Nauzi.is_nauz(it):
+			_select_nauz_uid(int(it.get("uid", 0)))
+			_show_tab(TAB_SKILLS)
+			_nauz_inner = 0
+			_on_nauz_equip_pressed()
+			return
 		var pref := _alt_slot(it) if alt else ""
 		var slot := GameState.target_slot(it, pref)
 		if GameState.equip_from_bag(_sel_bag, pref):
 			_sel_bag = -1
 			_sel_equip = slot
+		else:
+			if GameState.last_error != "" and _detail_rich:
+				_detail_rich.text = "[color=#D8574B]%s[/color]" % GameState.last_error
 	elif _sel_equip != "":
 		if GameState.unequip(_sel_equip):
 			_sel_equip = ""
@@ -396,15 +425,10 @@ func _on_socket() -> void:
 		return
 	var it: Dictionary = GameState.bag[_sel_bag]
 	if Nauzi.is_nauz(it):
-		# перше вільне або _sel_quick
-		var slot := _sel_quick
-		for i in range(GameState.QUICK_SLOTS):
-			if GameState.socket_nauz(i) == null:
-				slot = i
-				break
-		if GameState.equip_nauz(slot, int(it.get("uid", 0))):
-			_sel_bag = -1
-	_refresh()
+		_select_nauz_uid(int(it.get("uid", 0)))
+		_show_tab(TAB_SKILLS)
+		_nauz_inner = 0
+		_on_nauz_equip_pressed()
 
 
 func _on_to_stash() -> void:
@@ -543,8 +567,9 @@ func _refresh_bag() -> void:
 		int(round(HeroStats.damage_reduction() * 100.0)), int(HeroStats.weapon_damage()),
 		Strings.num(snappedf(1.0 / HeroStats.attack_interval(), 0.01)), Items.kind_name(str(wd["kind"])).to_lower()]
 	var it := _selected_item()
-	var can_equip := not it.is_empty() and not Nauzi.is_nauz(it) and not Nauzi.is_thread(it) and str(it.get("kind", "")) != "oblivion"
-	_btn_equip.visible = can_equip or (_sel_equip != "" and not it.is_empty())
+	var is_nauz_sel := Nauzi.is_nauz(it)
+	var can_equip := not it.is_empty() and not is_nauz_sel and not Nauzi.is_thread(it) and str(it.get("kind", "")) != "oblivion"
+	_btn_equip.visible = can_equip or is_nauz_sel or (_sel_equip != "" and not it.is_empty())
 	_btn_sell.visible = _sel_bag >= 0 and not it.is_empty()
 	_btn_equip2.visible = false
 	_btn_socket.visible = false
@@ -557,12 +582,16 @@ func _refresh_bag() -> void:
 		return
 	var cmp_item := {}
 	if _sel_bag >= 0:
-		var tslot := GameState.target_slot(it)
-		var disp: Array = GameState.displaced_by(it, tslot)
-		if disp.size() > 0 and typeof(disp[0]) == TYPE_DICTIONARY:
-			cmp_item = disp[0]
-		_btn_equip.text = "Одягти"
-		_btn_equip.disabled = false
+		if Nauzi.is_nauz(it):
+			_btn_equip.text = "Одягнути"
+			_btn_equip.disabled = false
+		else:
+			var tslot := GameState.target_slot(it)
+			var disp: Array = GameState.displaced_by(it, tslot)
+			if disp.size() > 0 and typeof(disp[0]) == TYPE_DICTIONARY:
+				cmp_item = disp[0]
+			_btn_equip.text = "Одягти"
+			_btn_equip.disabled = false
 		_btn_sell.text = "Продати"
 	else:
 		_btn_equip.text = "Зняти" if GameState.bag_free() > 0 else "Сумка повна"
@@ -573,203 +602,503 @@ func _refresh_bag() -> void:
 
 # ---------- Навички ----------
 
+# ---------- Наузи / Нитки ----------
+
 func _build_skill_page() -> Control:
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 6)
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.clip_contents = true
+	# гнізда героя
 	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 10)
-	v.add_child(top)
+	top.add_theme_constant_override("separation", 8)
+	root.add_child(top)
+	top.add_child(FolkTheme.label("Гнізда:", 18, Palette.GOLD))
 	for i in range(GameState.QUICK_SLOTS):
-		var chip := SkillChip.new(78.0)
+		var chip := SkillChip.new(70.0)
 		var idx := i
 		chip.tapped.connect(func(_c: SkillChip) -> void:
 			_sel_quick = idx
 			var sn: Variant = GameState.socket_nauz(idx)
 			if typeof(sn) == TYPE_DICTIONARY and sn != null:
-				_nauz_focus = {"where": "socket", "index": idx}
-				_sel_skill = str(sn.get("skill", ""))
-				_thread_slot_sel = -1
+				_select_nauz_uid(int(sn.get("uid", 0)))
+			else:
+				if _equip_pick_mode and _sel_nauz_uid > 0:
+					_do_equip_into_socket(idx)
+				else:
+					_status_nauz("Гніздо %d порожнє. Обери науз у сумці й натисни «Одягнути»." % (idx + 1))
 			_refresh())
 		top.add_child(chip)
 		_quick_chips.append(chip)
-	_clear_btn = Button.new()
-	_clear_btn.text = "Зняти з гнізда"
-	FolkTheme.apply_button(_clear_btn, Palette.PANEL_LIGHT, 16)
-	_clear_btn.custom_minimum_size = Vector2(160, 48)
-	_clear_btn.pressed.connect(func() -> void:
-		GameState.unequip_nauz(_sel_quick)
+	# внутрішні вкладки
+	var inner := HBoxContainer.new()
+	inner.add_theme_constant_override("separation", 8)
+	root.add_child(inner)
+	_nauz_tab_btn = Button.new()
+	_nauz_tab_btn.text = "Наузи"
+	FolkTheme.apply_button(_nauz_tab_btn, Palette.EMBROIDERY, 18)
+	_nauz_tab_btn.custom_minimum_size = Vector2(120, 44)
+	_nauz_tab_btn.pressed.connect(func() -> void:
+		_nauz_inner = 0
+		_equip_pick_mode = false
 		_refresh())
-	top.add_child(_clear_btn)
-	v.add_child(FolkTheme.label("Наузи в гніздах і сумці — обери науз, тоді гніздо нитки", 20, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	var sc := ScrollContainer.new()
-	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(sc)
-	TouchScroll.attach(sc)
-	var body := VBoxContainer.new()
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 8)
-	sc.add_child(body)
+	inner.add_child(_nauz_tab_btn)
+	_thread_tab_btn = Button.new()
+	_thread_tab_btn.text = "Нитки"
+	FolkTheme.apply_button(_thread_tab_btn, Palette.PANEL_LIGHT, 18)
+	_thread_tab_btn.custom_minimum_size = Vector2(120, 44)
+	_thread_tab_btn.pressed.connect(func() -> void:
+		_nauz_inner = 1
+		_equip_pick_mode = false
+		_refresh())
+	inner.add_child(_thread_tab_btn)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_child(sp)
+	# ціль (видима на обох вкладках)
+	_nauz_target_label = FolkTheme.label("Ціль: —", 18, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	_nauz_target_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_child(_nauz_target_label)
+	# контент: сітка + деталі/дії
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.clip_contents = true
+	root.add_child(body)
+	# ліва сітка
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 4)
+	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.custom_minimum_size = Vector2(320, 80)
+	body.add_child(left)
+	_nauz_list_title = FolkTheme.label("Наузи в сумці", 20, Palette.GOLD)
+	left.add_child(_nauz_list_title)
+	var list_sc := ScrollContainer.new()
+	list_sc.name = "NauziListScroll"
+	list_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	list_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	list_sc.custom_minimum_size = Vector2(300, 80)
+	list_sc.clip_contents = true
+	left.add_child(list_sc)
+	TouchScroll.attach(list_sc)
 	_skill_grid = GridContainer.new()
-	_skill_grid.columns = 5
-	_skill_grid.add_theme_constant_override("h_separation", 10)
+	_skill_grid.columns = 4
+	_skill_grid.add_theme_constant_override("h_separation", 8)
 	_skill_grid.add_theme_constant_override("v_separation", 6)
-	body.add_child(_skill_grid)
-	body.add_child(FolkTheme.label("Гнізда ниток обраного науза", 22, Palette.GOLD))
+	list_sc.add_child(_skill_grid)
+	# гнізда ниток (під списком на вкладці Нитки — також у правій панелі; тут ряд для швидкого доступу)
 	_thread_slot_row = HBoxContainer.new()
-	_thread_slot_row.add_theme_constant_override("separation", 8)
-	body.add_child(_thread_slot_row)
-	body.add_child(FolkTheme.label("Сумісні нитки з сумки", 20, Palette.TURQUOISE.lightened(0.3)))
+	_thread_slot_row.add_theme_constant_override("separation", 6)
+	left.add_child(_thread_slot_row)
+	# права панель опису + дії
+	var right := Control.new()
+	right.name = "NauziDetailPane"
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.custom_minimum_size = Vector2(260, 120)
+	right.clip_contents = true
+	body.add_child(right)
+	_nauz_action_bar = VBoxContainer.new()
+	_nauz_action_bar.name = "NauziActionBar"
+	_nauz_action_bar.add_theme_constant_override("separation", 4)
+	_nauz_action_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_nauz_action_bar.offset_top = -56
+	_nauz_action_bar.offset_bottom = -2
+	_nauz_action_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	right.add_child(_nauz_action_bar)
+	var abtn := HBoxContainer.new()
+	abtn.add_theme_constant_override("separation", 6)
+	_nauz_action_bar.add_child(abtn)
+	_btn_nauz_equip = Button.new()
+	_btn_nauz_equip.text = "Одягнути"
+	FolkTheme.apply_button(_btn_nauz_equip, Palette.EMBROIDERY, 17)
+	_btn_nauz_equip.custom_minimum_size = Vector2(0, 48)
+	_btn_nauz_equip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_nauz_equip.pressed.connect(_on_nauz_equip_pressed)
+	abtn.add_child(_btn_nauz_equip)
+	_btn_nauz_unequip = Button.new()
+	_btn_nauz_unequip.text = "Зняти"
+	FolkTheme.apply_button(_btn_nauz_unequip, Palette.PANEL_LIGHT, 16)
+	_btn_nauz_unequip.custom_minimum_size = Vector2(0, 48)
+	_btn_nauz_unequip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_nauz_unequip.pressed.connect(_on_nauz_unequip_pressed)
+	abtn.add_child(_btn_nauz_unequip)
+	_btn_weave = Button.new()
+	_btn_weave.text = "Вплести"
+	FolkTheme.apply_button(_btn_weave, Palette.EMBROIDERY, 17)
+	_btn_weave.custom_minimum_size = Vector2(0, 48)
+	_btn_weave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_weave.pressed.connect(_on_weave_pressed)
+	abtn.add_child(_btn_weave)
+	_nauz_detail_scroll = ScrollContainer.new()
+	_nauz_detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_nauz_detail_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_nauz_detail_scroll.offset_bottom = -60
+	right.add_child(_nauz_detail_scroll)
+	TouchScroll.attach(_nauz_detail_scroll)
+	var dv := VBoxContainer.new()
+	dv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dv.add_theme_constant_override("separation", 4)
+	_nauz_detail_scroll.add_child(dv)
+	_skill_info = FolkTheme.label("", 17, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_child(_skill_info)
+	_nauz_detail_rich = DescFormat.make_rich()
+	_nauz_detail_rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dv.add_child(_nauz_detail_rich)
 	_thread_pick_box = VBoxContainer.new()
 	_thread_pick_box.add_theme_constant_override("separation", 4)
-	body.add_child(_thread_pick_box)
-	_skill_info = FolkTheme.label("", 18, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
-	# keep for compatibility; prefer rich via detail on bag tab
-	body.add_child(_skill_info)
-	return v
+	dv.add_child(_thread_pick_box)
+	# пікер гнізда
+	_socket_pick_row = HBoxContainer.new()
+	_socket_pick_row.add_theme_constant_override("separation", 6)
+	_socket_pick_row.visible = false
+	root.add_child(_socket_pick_row)
+	return root
+
+
+func _status_nauz(msg: String) -> void:
+	if _skill_info:
+		_skill_info.text = msg
+
+
+func _select_nauz_uid(uid: int) -> void:
+	_sel_nauz_uid = uid
+	_sel_thread_uid = -1
+	_thread_slot_sel = -1
+	_equip_pick_mode = false
+	_nauz_focus = {}
+	var found := GameState.find_nauz_by_uid(uid)
+	if not found.is_empty():
+		_nauz_focus = {"where": str(found["where"]), "index": int(found["index"])}
+		if str(found["where"]) == "socket":
+			_sel_quick = int(found["index"])
+
+
+func _select_thread_uid(uid: int) -> void:
+	_sel_thread_uid = uid
+
+
+func _resolved_nauz() -> Dictionary:
+	return GameState.find_nauz_by_uid(_sel_nauz_uid)
+
+
+func _resolved_thread_bag_index() -> int:
+	if _sel_thread_uid <= 0:
+		return -1
+	for i in range(GameState.bag.size()):
+		if Nauzi.is_thread(GameState.bag[i]) and int(GameState.bag[i].get("uid", 0)) == _sel_thread_uid:
+			return i
+	return -1
+
+
+func _on_nauz_equip_pressed() -> void:
+	var found := _resolved_nauz()
+	if found.is_empty() or str(found.get("where", "")) != "bag":
+		_status_nauz("Обери науз у сумці.")
+		return
+	var item: Dictionary = found["item"]
+	var reason := Nauzi.can_use(item)
+	if reason != "":
+		_status_nauz(reason)
+		_refresh()
+		return
+	_equip_pick_mode = true
+	_status_nauz("Обери гніздо героя (1–4), куди одягнути «%s»." % str(item.get("name", "науз")))
+	_refresh()
+
+
+func _do_equip_into_socket(slot: int) -> void:
+	if _sel_nauz_uid <= 0:
+		return
+	var ok := GameState.equip_nauz(slot, _sel_nauz_uid)
+	if ok:
+		_equip_pick_mode = false
+		_sel_quick = slot
+		_status_nauz("Науз одягнено в гніздо %d." % (slot + 1))
+		# uid лишається — тепер у сокеті
+	else:
+		_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося одягнути.")
+	_refresh()
+
+
+func _on_nauz_unequip_pressed() -> void:
+	var found := _resolved_nauz()
+	if found.is_empty() or str(found.get("where", "")) != "socket":
+		_status_nauz("Обери одягнений науз у гнізді.")
+		return
+	var slot := int(found["index"])
+	var uid := _sel_nauz_uid
+	if GameState.unequip_nauz(slot):
+		_status_nauz("Науз знято в сумку.")
+		_select_nauz_uid(uid)  # тепер у сумці
+	else:
+		_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося зняти.")
+	_refresh()
+
+
+func _on_weave_pressed() -> void:
+	var found := _resolved_nauz()
+	if found.is_empty():
+		_status_nauz("Обери цільовий науз (у сумці або в гнізді).")
+		return
+	var nauz: Dictionary = found["item"]
+	var open_slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
+	var threads: Array = nauz.get("threads", [])
+	if _thread_slot_sel < 0:
+		_status_nauz("Обери порожнє гніздо нитки.")
+		return
+	if _thread_slot_sel >= open_slots:
+		_status_nauz("Гніздо закрите.")
+		return
+	if _thread_slot_sel != threads.size():
+		_status_nauz("Спочатку заповни гніздо %d." % (threads.size() + 1))
+		return
+	var tbi := _resolved_thread_bag_index()
+	if tbi < 0:
+		_status_nauz("Обери нитку в списку.")
+		return
+	var ok := false
+	if str(found["where"]) == "socket":
+		ok = GameState.attach_thread_to_socket(int(found["index"]), tbi)
+	else:
+		# індекс науза міг зміститись — шукаємо знову за uid
+		var again := GameState.find_nauz_by_uid(_sel_nauz_uid)
+		if again.is_empty() or str(again["where"]) != "bag":
+			_status_nauz("Цільовий науз зник із сумки.")
+			_refresh()
+			return
+		ok = GameState.attach_thread(int(again["index"]), tbi)
+	if ok:
+		_sel_thread_uid = -1
+		_thread_slot_sel = -1
+		_status_nauz("Нитку вплетено.")
+	else:
+		_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
+	_refresh()
 
 
 func _focused_nauz() -> Dictionary:
-	if _nauz_focus.get("where", "") == "socket":
-		var i := int(_nauz_focus.get("index", -1))
-		var sn: Variant = GameState.socket_nauz(i)
-		return sn if typeof(sn) == TYPE_DICTIONARY and sn != null else {}
-	if _nauz_focus.get("where", "") == "bag":
-		var bi := int(_nauz_focus.get("index", -1))
-		if bi >= 0 and bi < GameState.bag.size() and Nauzi.is_nauz(GameState.bag[bi]):
-			return GameState.bag[bi]
-	return {}
+	var found := _resolved_nauz()
+	if found.is_empty():
+		return {}
+	return found["item"]
 
 
 func _refresh_skills() -> void:
+	# відновити фокус за uid після змін сумки
+	if _sel_nauz_uid > 0:
+		var f := GameState.find_nauz_by_uid(_sel_nauz_uid)
+		if f.is_empty():
+			_sel_nauz_uid = -1
+			_nauz_focus = {}
+		else:
+			_nauz_focus = {"where": str(f["where"]), "index": int(f["index"])}
+			if str(f["where"]) == "socket":
+				_sel_quick = int(f["index"])
+	FolkTheme.apply_button(_nauz_tab_btn, Palette.EMBROIDERY if _nauz_inner == 0 else Palette.PANEL_LIGHT, 18)
+	FolkTheme.apply_button(_thread_tab_btn, Palette.EMBROIDERY if _nauz_inner == 1 else Palette.PANEL_LIGHT, 18)
 	for i in range(_quick_chips.size()):
 		var chip: SkillChip = _quick_chips[i]
 		chip.set_skill(GameState.quick_skill(i))
-		chip.selected = i == _sel_quick
 		var sn0: Variant = GameState.socket_nauz(i)
+		var sel_sock := (_sel_nauz_uid > 0 and typeof(sn0) == TYPE_DICTIONARY and sn0 != null
+			and int(sn0.get("uid", 0)) == _sel_nauz_uid)
+		chip.selected = sel_sock or (_equip_pick_mode and i == _sel_quick)
 		if typeof(sn0) == TYPE_DICTIONARY and sn0 != null:
 			chip.note = "р.%d" % int(sn0.get("level", 1))
 		else:
-			chip.note = "порожньо"
+			chip.note = "порожньо" if not _equip_pick_mode else "← сюди"
 		chip.queue_redraw()
-	_clear_btn.disabled = GameState.quick_skill(_sel_quick) == ""
+	var found := _resolved_nauz()
+	if found.is_empty():
+		_nauz_target_label.text = "Ціль: —"
+	else:
+		var it: Dictionary = found["item"]
+		var where_ua := "гніздо %d" % (int(found["index"]) + 1) if str(found["where"]) == "socket" else "сумка"
+		_nauz_target_label.text = "Ціль: %s · %s · р.%d" % [str(it.get("name", "?")), where_ua, int(it.get("level", 1))]
+	# кнопки дій
+	var in_bag := (not found.is_empty() and str(found["where"]) == "bag")
+	var in_sock := (not found.is_empty() and str(found["where"]) == "socket")
+	_btn_nauz_equip.visible = _nauz_inner == 0
+	_btn_nauz_unequip.visible = _nauz_inner == 0
+	_btn_weave.visible = _nauz_inner == 1
+	_btn_nauz_equip.disabled = not in_bag
+	_btn_nauz_equip.text = "Обери гніздо…" if _equip_pick_mode else "Одягнути"
+	_btn_nauz_unequip.disabled = not in_sock
+	_btn_weave.disabled = found.is_empty() or _sel_thread_uid <= 0 or _thread_slot_sel < 0
+	_socket_pick_row.visible = false
+	if _equip_pick_mode and in_bag:
+		_rebuild_socket_pick()
+	# список
 	for ch in _skill_grid.get_children():
 		_skill_grid.remove_child(ch)
 		ch.queue_free()
-	var shown: Dictionary = {}
+	_thread_slot_row.visible = _nauz_inner == 1
+	if _nauz_inner == 0:
+		_nauz_list_title.text = "Наузи в сумці"
+		_fill_nauz_bag_grid()
+	else:
+		_nauz_list_title.text = "Нитки в сумці"
+		_fill_thread_bag_grid()
+	_refresh_thread_slots()
+	# опис
+	_thread_pick_box.visible = false
+	if found.is_empty():
+		if _skill_info.text == "" or _skill_info.text.begins_with("Ціль") or _skill_info.text.begins_with("Науз"):
+			_skill_info.text = "Обери науз у гнізді або сумці."
+		_nauz_detail_rich.text = ""
+	else:
+		var nauz: Dictionary = found["item"]
+		var req_fail := Nauzi.can_use(nauz)
+		if req_fail != "" and in_bag:
+			_skill_info.text = req_fail
+		elif _skill_info.text == "" or _skill_info.text.begins_with("Обери"):
+			_skill_info.text = "%s · %s" % [str(nauz.get("name", "")), "в гнізді" if in_sock else "в сумці"]
+		_nauz_detail_rich.text = DescFormat.item_bb(nauz)
+
+
+func _rebuild_socket_pick() -> void:
+	for c in _socket_pick_row.get_children():
+		_socket_pick_row.remove_child(c)
+		c.queue_free()
+	_socket_pick_row.visible = true
+	_socket_pick_row.add_child(FolkTheme.label("Куди одягнути:", 18, Palette.GOLD))
 	for i in range(GameState.QUICK_SLOTS):
+		var b := Button.new()
 		var sn: Variant = GameState.socket_nauz(i)
 		if typeof(sn) == TYPE_DICTIONARY and sn != null:
-			var sid0 := str(sn.get("skill", ""))
-			shown[sid0 + "#s%d" % i] = true
-			var chip2 := SkillChip.new(72.0)
-			chip2.set_skill(sid0)
-			chip2.selected = (_nauz_focus.get("where") == "socket" and int(_nauz_focus.get("index", -1)) == i)
-			chip2.note = "гніздо %d · р.%d" % [i + 1, int(sn.get("level", 1))]
-			var idx := i
-			chip2.tapped.connect(func(_c: SkillChip) -> void:
-				_nauz_focus = {"where": "socket", "index": idx}
-				_sel_skill = str(GameState.quick_skill(idx))
-				_sel_quick = idx
-				_thread_slot_sel = -1
-				_refresh())
-			_skill_grid.add_child(chip2)
+			b.text = "%d: замінити «%s»" % [i + 1, str(sn.get("name", "?"))]
+		else:
+			b.text = "%d: порожнє" % (i + 1)
+		FolkTheme.apply_button(b, Palette.EMBROIDERY, 15)
+		b.custom_minimum_size = Vector2(0, 44)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var slot := i
+		b.pressed.connect(func() -> void: _do_equip_into_socket(slot))
+		_socket_pick_row.add_child(b)
+	var cancel := Button.new()
+	cancel.text = "Скасувати"
+	FolkTheme.apply_button(cancel, Palette.PANEL_LIGHT, 15)
+	cancel.custom_minimum_size = Vector2(120, 44)
+	cancel.pressed.connect(func() -> void:
+		_equip_pick_mode = false
+		_refresh())
+	_socket_pick_row.add_child(cancel)
+
+
+func _fill_nauz_bag_grid() -> void:
+	_skill_grid.columns = 4
+	var any := false
 	for bi in range(GameState.bag.size()):
 		var it2: Dictionary = GameState.bag[bi]
 		if not Nauzi.is_nauz(it2):
 			continue
-		var sid1 := str(it2.get("skill", ""))
-		var chip3 := SkillChip.new(72.0)
-		chip3.set_skill(sid1)
-		chip3.selected = (_nauz_focus.get("where") == "bag" and int(_nauz_focus.get("index", -1)) == bi)
-		chip3.note = "сумка · р.%d" % int(it2.get("level", 1))
-		var bidx := bi
+		any = true
+		var chip3 := SkillChip.new(68.0)
+		chip3.set_skill(str(it2.get("skill", "")))
+		var uid := int(it2.get("uid", 0))
+		chip3.selected = uid == _sel_nauz_uid
+		chip3.note = "р.%d" % int(it2.get("level", 1))
 		chip3.tapped.connect(func(_c: SkillChip) -> void:
-			_nauz_focus = {"where": "bag", "index": bidx}
-			_sel_skill = sid1
-			_thread_slot_sel = -1
+			_select_nauz_uid(uid)
 			_refresh())
 		_skill_grid.add_child(chip3)
-	_refresh_thread_slots()
+	if not any:
+		_skill_grid.add_child(FolkTheme.label("У сумці немає наузів.", 18, Palette.TEXT_DIM))
+
+
+func _fill_thread_bag_grid() -> void:
 	var nauz := _focused_nauz()
-	if nauz.is_empty():
-		_skill_info.text = "Обери науз у гнізді героя або в сумці, щоб вплести нитки."
-	else:
-		_skill_info.text = "%s · р.%d — гнізда ниток нижче." % [str(nauz.get("name", "")), int(nauz.get("level", 1))]
+	var rows: Array = []
+	for bi in range(GameState.bag.size()):
+		var th2: Dictionary = GameState.bag[bi]
+		if not Nauzi.is_thread(th2):
+			continue
+		var reason := ""
+		if nauz.is_empty():
+			reason = "Спочатку обери науз"
+		else:
+			reason = Nauzi.thread_fit_reason(nauz, th2)
+		rows.append({"bi": bi, "th": th2, "reason": reason, "ok": reason == ""})
+	rows.sort_custom(func(a, b): return (1 if a["ok"] else 0) > (1 if b["ok"] else 0))
+	if rows.is_empty():
+		_skill_grid.add_child(FolkTheme.label("У сумці немає ниток.", 18, Palette.TEXT_DIM))
+		return
+	# одна колонка кнопок у сітці 1 — зручніше читати причини
+	_skill_grid.columns = 1
+	for row in rows:
+		var th2: Dictionary = row["th"]
+		var uid := int(th2.get("uid", 0))
+		var b := Button.new()
+		var nm := str(th2.get("name", "Нитка"))
+		var rar := DescFormat.rarity_name(int(th2.get("rarity", 0)))
+		if row["ok"]:
+			b.text = "✓ %s · %s" % [nm, rar]
+			FolkTheme.apply_button(b, Palette.TURQUOISE.darkened(0.2) if uid != _sel_thread_uid else Palette.EMBROIDERY, 15)
+			b.disabled = false
+		else:
+			b.text = "✗ %s — %s" % [nm, str(row["reason"])]
+			FolkTheme.apply_button(b, Palette.PANEL, 14)
+			b.disabled = true
+		b.custom_minimum_size = Vector2(280, 44)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if row["ok"]:
+			b.pressed.connect(func() -> void:
+				_select_thread_uid(uid)
+				_refresh())
+		_skill_grid.add_child(b)
 
 
 func _refresh_thread_slots() -> void:
 	for c in _thread_slot_row.get_children():
 		_thread_slot_row.remove_child(c)
 		c.queue_free()
-	for c2 in _thread_pick_box.get_children():
-		_thread_pick_box.remove_child(c2)
-		c2.queue_free()
+	if _nauz_inner != 1:
+		return
 	var nauz := _focused_nauz()
 	if nauz.is_empty():
+		_thread_slot_row.add_child(FolkTheme.label("Обери науз — побачиш 3 гнізда ниток.", 16, Palette.TEXT_DIM))
 		return
 	var open_slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
 	var threads: Array = nauz.get("threads", [])
 	var unlocks := [1, 8, 15]
+	_thread_slot_row.add_child(FolkTheme.label("Гнізда:", 16, Palette.GOLD))
 	for i in range(3):
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(150, 56)
+		b.custom_minimum_size = Vector2(140, 48)
 		if i >= open_slots:
 			b.text = "🔒 з р.%d" % unlocks[i]
 			b.disabled = true
-			FolkTheme.apply_button(b, Palette.PANEL, 16)
+			FolkTheme.apply_button(b, Palette.PANEL, 14)
 		elif i < threads.size() and typeof(threads[i]) == TYPE_DICTIONARY:
 			var th: Dictionary = threads[i]
 			b.text = str(th.get("name", "Нитка"))
-			FolkTheme.apply_button(b, Palette.GOLD.darkened(0.25), 15)
+			FolkTheme.apply_button(b, Palette.GOLD.darkened(0.25), 13)
 			b.disabled = true
 		else:
 			b.text = "Порожнє %d" % (i + 1)
-			FolkTheme.apply_button(b, Palette.EMBROIDERY if _thread_slot_sel == i else Palette.PANEL_LIGHT, 16)
+			FolkTheme.apply_button(b, Palette.EMBROIDERY if _thread_slot_sel == i else Palette.PANEL_LIGHT, 14)
 			var slot_i := i
 			b.pressed.connect(func() -> void:
 				_thread_slot_sel = slot_i
-				_refresh_thread_slots())
+				_refresh())
 		_thread_slot_row.add_child(b)
-	if _thread_slot_sel < 0 or _thread_slot_sel >= open_slots or _thread_slot_sel < threads.size():
-		return
-	# list compatible threads in bag
-	for bi in range(GameState.bag.size()):
-		var th2: Dictionary = GameState.bag[bi]
-		if not Nauzi.is_thread(th2):
-			continue
-		if not Nauzi.thread_fits(nauz, th2):
-			continue
-		var row := Button.new()
-		row.text = "%s · %s" % [str(th2.get("name", "Нитка")), DescFormat.rarity_name(int(th2.get("rarity", 0)))]
-		FolkTheme.apply_button(row, Palette.TURQUOISE.darkened(0.25), 17)
-		row.custom_minimum_size = Vector2(0, 48)
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var tbi := bi
-		row.pressed.connect(func() -> void: _attach_focused(tbi))
-		_thread_pick_box.add_child(row)
-	if _thread_pick_box.get_child_count() == 0:
-		var empty := FolkTheme.label("У сумці немає сумісних ниток.", 18, Palette.TEXT_DIM)
-		_thread_pick_box.add_child(empty)
 
 
 func _attach_focused(thread_bag_index: int) -> void:
-	var ok := false
-	if _nauz_focus.get("where") == "socket":
-		ok = GameState.attach_thread_to_socket(int(_nauz_focus.get("index", -1)), thread_bag_index)
-	elif _nauz_focus.get("where") == "bag":
-		ok = GameState.attach_thread(int(_nauz_focus.get("index", -1)), thread_bag_index)
-	if not ok and GameState.last_error != "":
-		_skill_info.text = GameState.last_error
-	_thread_slot_sel = -1
-	_refresh()
+	if thread_bag_index >= 0 and thread_bag_index < GameState.bag.size():
+		_sel_thread_uid = int(GameState.bag[thread_bag_index].get("uid", 0))
+	var nauz := _focused_nauz()
+	if not nauz.is_empty():
+		var ths: Array = nauz.get("threads", [])
+		_thread_slot_sel = ths.size()
+	_on_weave_pressed()
 
 
 func _on_skill_tapped(id: String) -> void:
 	_sel_skill = id
 	GameState.set_quick(_sel_quick, id)
 	_refresh()
-
 
 func _build_stats_page() -> Control:
 	var sc := ScrollContainer.new()
