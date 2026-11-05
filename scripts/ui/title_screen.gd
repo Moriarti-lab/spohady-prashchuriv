@@ -40,6 +40,12 @@ func _ready() -> void:
 	FolkTheme.apply_button(sb, Palette.PANEL_LIGHT, 24)
 	sb.pressed.connect(_open_slots)
 	v.add_child(sb)
+	var eb := Button.new()
+	eb.name = "TreeEditorButton"
+	eb.text = "Редактор Древа"
+	FolkTheme.apply_button(eb, Palette.PANEL_LIGHT, 24)
+	eb.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/tree_editor.tscn"))
+	v.add_child(eb)
 	if not OS.has_feature("android") and not OS.has_feature("ios"):
 		var qb := Button.new()
 		qb.text = "Вийти"

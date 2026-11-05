@@ -53,5 +53,18 @@ fi
 grep -E "^  (ok|FAIL)|Підсумок|shot |rect |SCRIPT ERROR|zoom=" /tmp/layout.log | tail -80
 if grep -q "FAIL\|SCRIPT ERROR" /tmp/layout.log; then fail=1; fi
 
+
+echo "== Гра: редактор Древа (модель/фон/чернетка) =="
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 res://tests/tree_editor_test.tscn > /tmp/tree_editor.log 2>&1 || fail=1
+else
+  "$GODOT" --headless --path . res://tests/tree_editor_test.tscn > /tmp/tree_editor.log 2>&1 || fail=1
+fi
+grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR|note Android" /tmp/tree_editor.log | tail -80
+if grep -q "FAIL\|SCRIPT ERROR" /tmp/tree_editor.log; then fail=1; fi
+
+echo "== Реєстр характеристик ↔ HTML STAT_KEYS =="
+python3 tools/sync_stat_registry.py --check || fail=1
+
 [ $fail -eq 0 ] && echo "ВСЕ ГАРАЗД" || echo "Є ПОМИЛКИ"
 exit $fail

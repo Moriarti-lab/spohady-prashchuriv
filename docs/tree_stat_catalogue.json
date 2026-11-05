@@ -1,0 +1,720 @@
+{
+  "format": "spohady-stat-catalogue",
+  "version": 1,
+  "game_version_context": "0.5.4.2",
+  "sources": {
+    "game_stat_text": "scripts/data/perk_tree.gd :: PerkTree.STAT_TEXT",
+    "html_editor_stat_keys": "tools/tree-editor/index.html :: STAT_KEYS",
+    "html_editor_mod_keys": "tools/tree-editor/index.html :: MOD_KEYS",
+    "mechanics": "scripts/core/hero_stats.gd + callers of HeroStats.bonus / tree_sum"
+  },
+  "counts": {
+    "total_entries": 70,
+    "mechanics_wired": 34,
+    "registry_display_only": 24,
+    "nauz_thread_mod": 8,
+    "weapon_item_field": 4
+  },
+  "entries": [
+    {
+      "id": "agi",
+      "ua_template": "%s Спритності",
+      "ua_short": "Спритність",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "aoe_pct",
+      "ua_template": "%s%% до площі",
+      "ua_short": "% площі",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "arc",
+      "ua_template": "%s° дуги",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "weapon_item_field",
+      "notes": "Поле зброї/предмета, не бонус вузла Древа. Лише форматування описів."
+    },
+    {
+      "id": "armor",
+      "ua_template": "%s до броні",
+      "ua_short": "броня",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "armor_pen_pct",
+      "ua_template": "%s%% пробиття броні",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "atk_speed_pct",
+      "ua_template": "%s%% до швидкості атаки",
+      "ua_short": "% швидкості атаки",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "block_no_shield",
+      "ua_template": "Блок без щита",
+      "ua_short": "блок без щита",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "block_pct",
+      "ua_template": "%s%% блоку",
+      "ua_short": "% блоку",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "block_power_pct",
+      "ua_template": "%s%% сили блоку",
+      "ua_short": "% сили блоку",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "cd_pct",
+      "ua_template": "%s%% до часу відновлення",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "cdr_pct",
+      "ua_template": "%s%% до швидкості відновлення навичок",
+      "ua_short": "% швидшого відновлення навичок",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "count",
+      "ua_template": "%s до кількості",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "crit_dmg_pct",
+      "ua_template": "%s%% до шкоди крита",
+      "ua_short": "% шкоди крита",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "crit_pct",
+      "ua_template": "%s%% до шансу крита",
+      "ua_short": "% крита",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "crit_stun",
+      "ua_template": "Крити оглушують",
+      "ua_short": "крити оглушують",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "dmg",
+      "ua_template": "%s до шкоди",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "weapon_item_field",
+      "notes": "Поле зброї/предмета, не бонус вузла Древа. Лише форматування описів."
+    },
+    {
+      "id": "dmg_pct",
+      "ua_template": "%s%% до шкоди",
+      "ua_short": "% шкоди",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "dodge_pct",
+      "ua_template": "%s%% ухилення",
+      "ua_short": "% ухилення",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "double_hit_pct",
+      "ua_template": "%s%% подвійного удару",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "dr_pct",
+      "ua_template": "%s%% менше отриманої шкоди",
+      "ua_short": "% менше шкоди",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "drop_pct",
+      "ua_template": "%s%% до шансу здобичі",
+      "ua_short": "% здобичі",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "duration_pct",
+      "ua_template": "%s%% до тривалості",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "effect_dur_pct",
+      "ua_template": "%s%% до тривалості ефектів",
+      "ua_short": "% тривалості ефектів",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "faith",
+      "ua_template": "%s Віри",
+      "ua_short": "Віра",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "free_skills",
+      "ua_template": "Уміння без вартості чару",
+      "ua_short": "уміння без чару",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "gold_pct",
+      "ua_template": "%s%% до здобичі гривень",
+      "ua_short": "% гривень",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "heal_pct",
+      "ua_template": "%s%% до лікування",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "hp",
+      "ua_template": "%s до життя",
+      "ua_short": "Життя",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "hp_pct",
+      "ua_template": "%s%% до життя",
+      "ua_short": "% життя",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "hp_regen_pct",
+      "ua_template": "%s%% життя за секунду",
+      "ua_short": "% життя/с",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "interval",
+      "ua_template": "%s с між ударами",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "weapon_item_field",
+      "notes": "Поле зброї/предмета, не бонус вузла Древа. Лише форматування описів."
+    },
+    {
+      "id": "kill_haste",
+      "ua_template": "Вбивство дає прискорення",
+      "ua_short": "прискорення за вбивство",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "life_on_kill",
+      "ua_template": "%s життя за вбивство",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "life_pay_skills",
+      "ua_template": "Уміння можна платити життям",
+      "ua_short": "плата життям",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "lifesteal_pct",
+      "ua_template": "%s%% шкоди повертається життям",
+      "ua_short": "% вампіризму",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "mana_on_kill",
+      "ua_template": "%s чару за вбивство",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "mana_pct",
+      "ua_template": "%s%% до чару",
+      "ua_short": "% чару",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "mana_regen",
+      "ua_template": "%s до відновлення чару за секунду",
+      "ua_short": "відновлення чару/с",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "mana_regen_pct",
+      "ua_template": "%s%% до відновлення чару",
+      "ua_short": "% відновлення чару",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "move_pct",
+      "ua_template": "%s%% до швидкості руху",
+      "ua_short": "% руху",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "nauz_level",
+      "ua_template": "%s до рівня наузів",
+      "ua_short": "рівень наузів",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "nauz_thread_slots",
+      "ua_template": "%s гніздо нитки на наузах",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "nauz_xp_pct",
+      "ua_template": "%s%% до росту наузів",
+      "ua_short": "% росту наузів",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "one_path",
+      "ua_template": "Лише 1 науз; нитки сильніші",
+      "ua_short": "лише 1 науз",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "pen_all_pct",
+      "ua_template": "%s%% пробиття всім",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_fate_pct",
+      "ua_template": "%s%% пробиття долі",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_fire_pct",
+      "ua_template": "%s%% пробиття вогню",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_frost_pct",
+      "ua_template": "%s%% пробиття морозу",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_light_pct",
+      "ua_template": "%s%% пробиття світлу",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_nature_pct",
+      "ua_template": "%s%% пробиття природі",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "pen_thunder_pct",
+      "ua_template": "%s%% пробиття грому",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "power_pct",
+      "ua_template": "%s%% сили ефекту",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "proj_speed_pct",
+      "ua_template": "%s%% швидкості снарядів",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "radius_pct",
+      "ua_template": "%s%% до радіусу",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "range",
+      "ua_template": "%s до дальності зброї",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "weapon_item_field",
+      "notes": "Поле зброї/предмета, не бонус вузла Древа. Лише форматування описів."
+    },
+    {
+      "id": "range_pct",
+      "ua_template": "%s%% до дальності",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "res_all_pct",
+      "ua_template": "%s%% опору всім стихіям",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_fate_pct",
+      "ua_template": "%s%% опору долі",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_fire_pct",
+      "ua_template": "%s%% опору вогню",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_frost_pct",
+      "ua_template": "%s%% опору морозу",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_light_pct",
+      "ua_template": "%s%% опору світлу",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_nature_pct",
+      "ua_template": "%s%% опору природі",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "res_thunder_pct",
+      "ua_template": "%s%% опору грому",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "skill_cost_pct",
+      "ua_template": "%s%% до вартості вмінь",
+      "ua_short": "% вартості вмінь",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "str",
+      "ua_template": "%s Сили",
+      "ua_short": "Сила",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "stun",
+      "ua_template": "%s с оглушення",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": false,
+      "in_html_editor_MOD_KEYS": true,
+      "in_game_STAT_TEXT": true,
+      "availability": "nauz_thread_mod",
+      "notes": "Модифікатор науза/нитки (Skills/Nauzi). На вузлі Древа через HeroStats.bonus зараз НЕ застосовується (для площі дерева є aoe_pct)."
+    },
+    {
+      "id": "stun_chance_pct",
+      "ua_template": "%s%% шансу оглушення",
+      "ua_short": "",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "registry_display_only",
+      "notes": "Є в реєстрі/описах; механіка бою для цього ключа не знайдена (потрібна окрема робота в грі, щоб «оживити»)."
+    },
+    {
+      "id": "thorns_pct",
+      "ua_template": "%s%% отриманої шкоди вертається ворогові",
+      "ua_short": "% відбиття",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "thread_power_pct",
+      "ua_template": "%s%% сили ниток",
+      "ua_short": "% сили ниток",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    },
+    {
+      "id": "xp_pct",
+      "ua_template": "%s%% до звитяги",
+      "ua_short": "% звитяги",
+      "in_html_editor_STAT_KEYS": true,
+      "in_html_editor_MOD_KEYS": false,
+      "in_game_STAT_TEXT": true,
+      "availability": "mechanics_wired",
+      "notes": "Читається в бою/формулах (HeroStats або пов’язаний код)."
+    }
+  ]
+}

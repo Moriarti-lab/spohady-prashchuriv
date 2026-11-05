@@ -1,5 +1,15 @@
 # Журнал змін
 
+## 0.5.4.2 (2026-11-05)
+
+- In-APK редактор Древа (меню): режими Огляд/Рух/Зв’язки/Фон, властивості UA, пошук, undo/redo, валідація.
+- Чернетки `user://tree_drafts/`; Apply → `user://tree_active/` + `user://tree_backups/`; сейви героя за замовчуванням не чіпаються.
+- Реєстр `data/stat_registry.json`; sync HTML `STAT_KEYS`; display_only з міткою «експериментально».
+- t76: world-space фон PNG/JPEG, lock/opacity/aspect; імпорт через FileDialog ACCESS_FILESYSTEM + native (SAF на Android — device QA).
+- Тести: `tests/tree_editor_test.tscn`; docs: `docs/tree_editor/README.md`.
+- Збереження героя: SAVE_VERSION 4 без змін. Shipped tree ~922 вузли без росту.
+
+
 ## 0.5.4.1 (2026-11-05)
 
 - Фікс: науз можна було зняти, але не одягнути — вкладка «Наузи» не мала явного «Одягнути»; `equip_nauz` не перевіряв вимоги/`last_error`.

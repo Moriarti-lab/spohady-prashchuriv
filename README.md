@@ -1,7 +1,14 @@
 # Спогади пращурів
 
 Офлайн action-RPG для Android про пам'ять пращурів і богів Київської Русі.
-Без реклами, без інтернету, один гравець. Це **пробна версія 0.5.4.1**.
+Без реклами, без інтернету, один гравець. Це **пробна версія 0.5.4.2**.
+
+## Що є у версії 0.5.4.2
+- Усе з **0.5.4.1** (Наузи/Нитки).
+- **In-APK «Редактор Древа»** з головного меню: pan/pinch, режими Огляд/Рух/Зв’язки/Фон, пошук, undo/redo, валідація, чернетки `user://tree_drafts/` (окремо від сейвів героя), явне «Застосувати» → `user://tree_active/` з backup.
+- **Спільний реєстр** `data/stat_registry.json` + підписи «експериментально / без ефекту в бою» для display_only (механіку не «оживлюємо»).
+- **Фон-трасування (t76):** world-space PNG/JPEG, opacity, aspect, lock, visibility; копія в чернетку; Android FileDialog SAF pipeline (device QA).
+- Документація компонента: [`docs/tree_editor/README.md`](docs/tree_editor/README.md).
 
 ## Що є у версії 0.5.4.1
 - Усе з **0.5.4** (ActionBar сумки, Древо ×10, редактор).
@@ -37,7 +44,7 @@
 ## Як зібрати
 Потрібні Godot 4.7.2 з шаблонами експорту, JDK 17 і Android SDK.
 ```bash
-godot --headless --path . --export-debug "Android debug" build/spohady-v0.5.4.1.apk
+godot --headless --path . --export-debug "Android debug" build/spohady-v0.5.4.2.apk
 ```
 Налаштування експорту: `export_presets.cfg` (arm64-v8a, підпис debug-ключем, `com.moriartilab.spohady`).
 

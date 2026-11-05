@@ -64,13 +64,26 @@ static var is_fallback := false
 
 # ---------- Завантаження ----------
 
+const ACTIVE_OVERRIDE_PATH := "user://tree_active/perk_tree.json"
+
+
 static func ensure_loaded() -> void:
 	if _loaded:
 		return
-	load_from_file()
+	# Редактор може явно застосувати чернетку в user://tree_active/ — пріоритет над shipped res://.
+	if FileAccess.file_exists(ACTIVE_OVERRIDE_PATH):
+		load_from_file(ACTIVE_OVERRIDE_PATH)
+	else:
+		load_from_file()
 
 
-## Читає res://data/perk_tree.json. Повертає список помилок (порожній — усе гаразд).
+## Примусове перезавантаження (після Apply у редакторі). Не чіпає сейви героя.
+static func reload_from_path(path: String) -> Array:
+	_loaded = false
+	return load_from_file(path)
+
+
+## Читає JSON Древа. Повертає список помилок (порожній — усе гаразд).
 ## Якщо файл зіпсований — вмикається вбудоване запасне Древо (is_fallback == true).
 static func load_from_file(path: String = TREE_PATH) -> Array:
 	_loaded = true
