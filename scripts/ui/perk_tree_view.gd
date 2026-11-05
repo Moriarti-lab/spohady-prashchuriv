@@ -228,7 +228,7 @@ func _draw() -> void:
 		elif sa == 2 or sb == 2:
 			col2 = Color(Palette.LINEN, 0.7)
 			w = 4.0
-		draw_line(a, b, col2, maxf(1.5, w * zoom * 1.3), true)
+		_draw_branch(a, b, col2, maxf(1.5, w * zoom * 1.3))
 	# вузли
 	for id in PerkTree.nodes().keys():
 		var p := to_screen(PerkTree.pos(id))
@@ -256,6 +256,31 @@ func _class_of_region(region_id: String) -> String:
 		if str(Gear.class_def(c).get("region", "")) == region_id:
 			return c
 	return ""
+
+
+
+func _draw_branch(a: Vector2, b: Vector2, col: Color, width: float) -> void:
+	# крива «гілка»: контрольна точка зміщена перпендикулярно до відрізка
+	var mid := (a + b) * 0.5
+	var d := b - a
+	var len2 := d.length()
+	if len2 < 2.0:
+		draw_line(a, b, col, width, true)
+		return
+	var n := Vector2(-d.y, d.x).normalized()
+	# вигин угору (до крони) + невеликий бічний
+	var bend := clampf(len2 * 0.18, 10.0, 70.0 * zoom + 12.0)
+	var up := -1.0 if (a.y + b.y) * 0.5 > size.y * 0.5 else 1.0
+	# у просторі екрана «вгору» = менший y
+	var ctrl := mid + n * (bend * 0.35 * signf(n.x + 0.001)) + Vector2(0, -bend * 0.85)
+	var steps := clampi(int(len2 / (10.0 / maxf(zoom, 0.2))), 6, 24)
+	var prev := a
+	for i in range(1, steps + 1):
+		var tt := float(i) / float(steps)
+		var omt := 1.0 - tt
+		var pt := omt * omt * a + 2.0 * omt * tt * ctrl + tt * tt * b
+		draw_line(prev, pt, col, width, true)
+		prev = pt
 
 
 func _draw_node(id: String, p: Vector2) -> void:

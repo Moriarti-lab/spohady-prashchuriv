@@ -6,7 +6,7 @@ signal closed
 
 var _view: PerkTreeView
 var _title: Label
-var _effect: Label
+var _effect: RichTextLabel
 var _status: Label
 var _points: Label
 var _stats: Label
@@ -15,9 +15,14 @@ var _unlock_btn: Button
 var _selected := ""
 var _modal: Control
 var _modal_row: HBoxContainer
+var _confirm: AcceptDialog
 
 
 func _ready() -> void:
+	_confirm = AcceptDialog.new()
+	_confirm.title = "Скидання Древа"
+	_confirm.ok_button_text = "Підтвердити"
+	add_child(_confirm)
 	FolkTheme.fullscreen(self)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new()
@@ -94,9 +99,14 @@ func _ready() -> void:
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	tr.add_child(_title)
-	_effect = FolkTheme.label("", 21, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
-	_effect.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(_effect)
+	var effect_sc := ScrollContainer.new()
+	effect_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	effect_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(effect_sc)
+	TouchScroll.attach(effect_sc)
+	_effect = DescFormat.make_rich()
+	_effect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	effect_sc.add_child(_effect)
 	_status = FolkTheme.label("", 19, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
 	v.add_child(_status)
 	_unlock_btn = Button.new()
@@ -214,11 +224,15 @@ func _ensure_respec_ui() -> void:
 	FolkTheme.apply_button(b2, Palette.EMBROIDERY, 16)
 	b2.custom_minimum_size = Vector2(260, 44)
 	b2.pressed.connect(func() -> void:
-		if GameState.respec_full(false):
-			_status.text = "Древо скинуто. Перки повернуто."
-			_refresh()
-		else:
-			_status.text = "Потрібно %d гривень або Вода забуття." % (200 * GameState.level)
+		_confirm.dialog_text = "Повне скидання Древа коштує %d гривень. Продовжити?" % (200 * GameState.level)
+		_confirm.confirmed.connect(func() -> void:
+			if GameState.respec_full(false):
+				_status.text = "Древо скинуто. Перки повернуто."
+				_refresh()
+			else:
+				_status.text = "Потрібно %d гривень або Вода забуття." % (200 * GameState.level)
+		, CONNECT_ONE_SHOT)
+		_confirm.popup_centered()
 	)
 	row.add_child(b2)
 	var b3 := Button.new()
@@ -226,11 +240,15 @@ func _ensure_respec_ui() -> void:
 	FolkTheme.apply_button(b3, Palette.TURQUOISE.darkened(0.2), 16)
 	b3.custom_minimum_size = Vector2(160, 44)
 	b3.pressed.connect(func() -> void:
-		if GameState.respec_full(true):
-			_status.text = "Вода забуття: Древо скинуто."
-			_refresh()
-		else:
-			_status.text = "Немає Води забуття (oblivion_water=%d)." % GameState.oblivion_water
+		_confirm.dialog_text = "Використати Воду забуття (залишок: %d)?" % GameState.oblivion_water
+		_confirm.confirmed.connect(func() -> void:
+			if GameState.respec_full(true):
+				_status.text = "Вода забуття: Древо скинуто."
+				_refresh()
+			else:
+				_status.text = "Немає Води забуття (залишок %d)." % GameState.oblivion_water
+		, CONNECT_ONE_SHOT)
+		_confirm.popup_centered()
 	)
 	row.add_child(b3)
 	# try attach under root
@@ -294,7 +312,7 @@ func _refresh(keep_status: bool = false) -> void:
 	var desc := str(d.get("description", ""))
 	if desc != "":
 		fx += ("\n\n" if fx != "" else "") + desc
-	_effect.text = PerkTree.dedupe_text(fx)
+	_effect.text = DescFormat.node_bb(_selected) if _selected != "" else ""
 	var reason := GameState.unlock_block_reason(_selected)
 	_unlock_btn.disabled = reason != ""
 	if not keep_status:

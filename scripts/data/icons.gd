@@ -5,7 +5,7 @@
 class_name Icons
 
 const REGISTRY_PATH := "res://data/icons.json"
-const AUTO_DIRS := ["weapons", "armor", "items", "skills", "passives", "perks", "extra", ""]
+const AUTO_DIRS := ["weapons", "armor", "items", "skills", "passives", "perks", "threads", "nauzi", "misc", "extra", ""]
 
 static var _loaded := false
 static var _reg: Dictionary = {}

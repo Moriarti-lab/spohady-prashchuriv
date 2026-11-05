@@ -1,517 +1,677 @@
 {
- "format": "spohady-icons",
- "version": 1,
- "comment": "icon_id -> малюнок. path порожній = арту ще немає (гра малює заглушку з підписом). Формат: docs/icons.md",
- "icons": {
-  "w_sword": {
-   "path": "res://art/icons/weapons/w_sword.png",
-   "label": "Меч",
-   "color": "#9AA3AD"
-  },
-  "w_greatsword": {
-   "path": "res://art/icons/weapons/w_greatsword.png",
-   "label": "Дв.меч",
-   "color": "#9AA3AD"
-  },
-  "w_axe": {
-   "path": "res://art/icons/weapons/w_axe.png",
-   "label": "Сокира",
-   "color": "#9AA3AD"
-  },
-  "w_greataxe": {
-   "path": "res://art/icons/weapons/w_greataxe.png",
-   "label": "Дв.сокира",
-   "color": "#9AA3AD"
-  },
-  "w_mace": {
-   "path": "res://art/icons/weapons/w_mace.png",
-   "label": "Булава",
-   "color": "#9AA3AD"
-  },
-  "w_hammer": {
-   "path": "res://art/icons/weapons/w_hammer.png",
-   "label": "Молот",
-   "color": "#9AA3AD"
-  },
-  "w_spear": {
-   "path": "res://art/icons/weapons/w_spear.png",
-   "label": "Спис",
-   "color": "#9AA3AD"
-  },
-  "w_dagger": {
-   "path": "res://art/icons/weapons/w_dagger.png",
-   "label": "Кинджал",
-   "color": "#9AA3AD"
-  },
-  "w_bow": {
-   "path": "res://art/icons/weapons/w_bow.png",
-   "label": "Лук",
-   "color": "#9AA3AD"
-  },
-  "w_longbow": {
-   "path": "res://art/icons/weapons/w_longbow.png",
-   "label": "Дв.лук",
-   "color": "#9AA3AD"
-  },
-  "w_crossbow": {
-   "path": "res://art/icons/weapons/w_crossbow.png",
-   "label": "Арбалет",
-   "color": "#9AA3AD"
-  },
-  "w_staff": {
-   "path": "res://art/icons/weapons/w_staff.png",
-   "label": "Кий",
-   "color": "#9AA3AD"
-  },
-  "w_magic_staff": {
-   "path": "res://art/icons/weapons/w_magic_staff.png",
-   "label": "Посох",
-   "color": "#9AA3AD"
-  },
-  "w_wand": {
-   "path": "",
-   "label": "Жезл",
-   "color": "#9AA3AD"
-  },
-  "sh_round": {
-   "path": "res://art/icons/weapons/sh_round.png",
-   "label": "Щит",
-   "color": "#8B6B45"
-  },
-  "sh_kite": {
-   "path": "res://art/icons/weapons/sh_kite.png",
-   "label": "Щит",
-   "color": "#8B6B45"
-  },
-  "sh_sun": {
-   "path": "res://art/icons/weapons/sh_sun.png",
-   "label": "Щит",
-   "color": "#8B6B45"
-  },
-  "h_leather": {
-   "path": "res://art/icons/armor/h_leather.png",
-   "label": "Шапка",
-   "color": "#7A8794"
-  },
-  "h_iron": {
-   "path": "res://art/icons/armor/h_iron.png",
-   "label": "Шолом",
-   "color": "#7A8794"
-  },
-  "h_ornate": {
-   "path": "res://art/icons/armor/h_ornate.png",
-   "label": "Шолом",
-   "color": "#7A8794"
-  },
-  "g_leather": {
-   "path": "res://art/icons/armor/g_leather.png",
-   "label": "Рукав.",
-   "color": "#7A8794"
-  },
-  "g_chain": {
-   "path": "res://art/icons/armor/g_chain.png",
-   "label": "Рукав.",
-   "color": "#7A8794"
-  },
-  "b_gambeson": {
-   "path": "res://art/icons/armor/b_gambeson.png",
-   "label": "Каптан",
-   "color": "#7A8794"
-  },
-  "b_mail": {
-   "path": "res://art/icons/armor/b_mail.png",
-   "label": "Кольч.",
-   "color": "#7A8794"
-  },
-  "b_lamellar": {
-   "path": "res://art/icons/armor/b_lamellar.png",
-   "label": "Лати",
-   "color": "#7A8794"
-  },
-  "b_robe": {
-   "path": "",
-   "label": "Балахон",
-   "color": "#7A8794"
-  },
-  "f_leather": {
-   "path": "res://art/icons/armor/f_leather.png",
-   "label": "Чоботи",
-   "color": "#7A8794"
-  },
-  "f_iron": {
-   "path": "res://art/icons/armor/f_iron.png",
-   "label": "Чоботи",
-   "color": "#7A8794"
-  },
-  "r_silver": {
-   "path": "res://art/icons/armor/r_silver.png",
-   "label": "Перст.",
-   "color": "#7A8794"
-  },
-  "r_ruby": {
-   "path": "res://art/icons/armor/r_ruby.png",
-   "label": "Перст.",
-   "color": "#7A8794"
-  },
-  "r_emerald": {
-   "path": "res://art/icons/armor/r_emerald.png",
-   "label": "Перст.",
-   "color": "#7A8794"
-  },
-  "a_sun": {
-   "path": "res://art/icons/armor/a_sun.png",
-   "label": "Оберіг",
-   "color": "#7A8794"
-  },
-  "a_wolf": {
-   "path": "res://art/icons/armor/a_wolf.png",
-   "label": "Ікло",
-   "color": "#7A8794"
-  },
-  "a_crystal": {
-   "path": "res://art/icons/armor/a_crystal.png",
-   "label": "Оберіг",
-   "color": "#7A8794"
-  },
-  "potion_hp": {
-   "path": "res://art/icons/items/potion_hp_small.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "potion_mana": {
-   "path": "res://art/icons/items/potion_mana_small.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "potion_hp_small": {
-   "path": "res://art/icons/items/potion_hp_small.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "potion_hp_big": {
-   "path": "res://art/icons/items/potion_hp_big.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "potion_mana_small": {
-   "path": "res://art/icons/items/potion_mana_small.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "potion_mana_big": {
-   "path": "res://art/icons/items/potion_mana_big.png",
-   "label": "Зілля",
-   "color": "#B88A4A"
-  },
-  "coins": {
-   "path": "res://art/icons/items/coins.png",
-   "label": "Гривні",
-   "color": "#B88A4A"
-  },
-  "pouch": {
-   "path": "res://art/icons/items/pouch.png",
-   "label": "Калита",
-   "color": "#B88A4A"
-  },
-  "herb": {
-   "path": "res://art/icons/items/herb.png",
-   "label": "Трави",
-   "color": "#B88A4A"
-  },
-  "fern_flower": {
-   "path": "res://art/icons/items/fern_flower.png",
-   "label": "Квітка",
-   "color": "#B88A4A"
-  },
-  "mushroom": {
-   "path": "res://art/icons/items/mushroom.png",
-   "label": "Гриб",
-   "color": "#B88A4A"
-  },
-  "rusty_key": {
-   "path": "res://art/icons/items/rusty_key.png",
-   "label": "Ключ",
-   "color": "#B88A4A"
-  },
-  "letter": {
-   "path": "res://art/icons/items/letter.png",
-   "label": "Лист",
-   "color": "#B88A4A"
-  },
-  "idol": {
-   "path": "res://art/icons/items/idol.png",
-   "label": "Оберіг",
-   "color": "#B88A4A"
-  },
-  "rushnyk": {
-   "path": "res://art/icons/items/rushnyk.png",
-   "label": "Рушник",
-   "color": "#B88A4A"
-  },
-  "jug": {
-   "path": "res://art/icons/items/jug.png",
-   "label": "Глек",
-   "color": "#B88A4A"
-  },
-  "wolf_pelt": {
-   "path": "res://art/icons/items/wolf_pelt.png",
-   "label": "Шкура",
-   "color": "#B88A4A"
-  },
-  "bone_talisman": {
-   "path": "res://art/icons/items/bone_talisman.png",
-   "label": "Талісман",
-   "color": "#B88A4A"
-  },
-  "sk_power_strike": {
-   "path": "res://art/icons/skills/power_strike.png",
-   "label": "Удар",
-   "color": "#C8753A"
-  },
-  "sk_shield_bash": {
-   "path": "res://art/icons/skills/sk_shield_bash.png",
-   "label": "Щит",
-   "color": "#C8753A"
-  },
-  "sk_triple_slash": {
-   "path": "res://art/icons/skills/sk_triple_slash.png",
-   "label": "Різ",
-   "color": "#C8753A"
-  },
-  "sk_whirlwind": {
-   "path": "res://art/icons/skills/sk_whirlwind.png",
-   "label": "Вихор",
-   "color": "#C8753A"
-  },
-  "sk_battle_cry": {
-   "path": "res://art/icons/skills/sk_battle_cry.png",
-   "label": "Клич",
-   "color": "#C8753A"
-  },
-  "sk_ground_slam": {
-   "path": "res://art/icons/skills/sk_ground_slam.png",
-   "label": "Поштовх",
-   "color": "#C8753A"
-  },
-  "sk_chain_lightning": {
-   "path": "res://art/icons/skills/sk_chain_lightning.png",
-   "label": "Блискавка",
-   "color": "#C8753A"
-  },
-  "sk_iron_wall": {
-   "path": "",
-   "label": "Стіна",
-   "color": "#C8753A"
-  },
-  "sk_arrow_volley": {
-   "path": "res://art/icons/skills/arrow_volley.png",
-   "label": "Стріли",
-   "color": "#C8753A"
-  },
-  "sk_piercing_shot": {
-   "path": "res://art/icons/skills/sk_piercing_shot.png",
-   "label": "Постріл",
-   "color": "#C8753A"
-  },
-  "sk_rapid_shot": {
-   "path": "",
-   "label": "Швидка",
-   "color": "#C8753A"
-  },
-  "sk_arrow_rain": {
-   "path": "res://art/icons/skills/sk_arrow_rain.png",
-   "label": "Злива",
-   "color": "#C8753A"
-  },
-  "sk_poison_cloud": {
-   "path": "res://art/icons/skills/sk_poison_cloud.png",
-   "label": "Отрута",
-   "color": "#C8753A"
-  },
-  "sk_wolf_spirit": {
-   "path": "res://art/icons/skills/sk_wolf_spirit.png",
-   "label": "Вовк",
-   "color": "#C8753A"
-  },
-  "sk_stribog_dash": {
-   "path": "res://art/icons/skills/stribog_dash.png",
-   "label": "Ривок",
-   "color": "#C8753A"
-  },
-  "sk_hunters_trap": {
-   "path": "",
-   "label": "Пастка",
-   "color": "#C8753A"
-  },
-  "sk_element_wave": {
-   "path": "res://art/icons/skills/element_wave_perun.png",
-   "label": "Хвиля",
-   "color": "#C8753A"
-  },
-  "sk_sun_beam": {
-   "path": "res://art/icons/skills/sk_sun_beam.png",
-   "label": "Промінь",
-   "color": "#C8753A"
-  },
-  "sk_ice_shards": {
-   "path": "res://art/icons/skills/sk_ice_shards.png",
-   "label": "Крига",
-   "color": "#C8753A"
-  },
-  "sk_ancestral_heal": {
-   "path": "res://art/icons/skills/sk_ancestral_heal.png",
-   "label": "Поклик",
-   "color": "#C8753A"
-  },
-  "sk_fire_wave": {
-   "path": "res://art/icons/skills/sk_fire_wave.png",
-   "label": "Вогонь",
-   "color": "#C8753A"
-  },
-  "sk_raven_swarm": {
-   "path": "res://art/icons/skills/sk_raven_swarm.png",
-   "label": "Круки",
-   "color": "#C8753A"
-  },
-  "sk_earth_spikes": {
-   "path": "res://art/icons/skills/sk_earth_spikes.png",
-   "label": "Списи",
-   "color": "#C8753A"
-  },
-  "sk_ancestral_ward": {
-   "path": "",
-   "label": "Захист",
-   "color": "#C8753A"
-  },
-  "sk_ancestors_wrath": {
-   "path": "res://art/icons/passives/pa_crown.png",
-   "label": "Гнів",
-   "color": "#C8753A"
-  },
-  "sk_element_wave_perun": {
-   "path": "res://art/icons/skills/element_wave_perun.png",
-   "label": "Хвиля",
-   "color": "#3FB9B3"
-  },
-  "sk_element_wave_veles": {
-   "path": "res://art/icons/skills/element_wave_veles.png",
-   "label": "Хвиля",
-   "color": "#3FB9B3"
-  },
-  "sk_element_wave_dazhbog": {
-   "path": "res://art/icons/skills/element_wave_dazhbog.png",
-   "label": "Хвиля",
-   "color": "#3FB9B3"
-  },
-  "sk_element_wave_mokosh": {
-   "path": "res://art/icons/skills/element_wave_mokosh.png",
-   "label": "Хвиля",
-   "color": "#3FB9B3"
-  },
-  "sk_element_wave_svarog": {
-   "path": "res://art/icons/skills/element_wave_svarog.png",
-   "label": "Хвиля",
-   "color": "#3FB9B3"
-  },
-  "pa_strength": {
-   "path": "res://art/icons/passives/pa_strength.png",
-   "label": "Сила",
-   "color": "#8A6FB0"
-  },
-  "pa_life": {
-   "path": "res://art/icons/passives/pa_life.png",
-   "label": "Життя",
-   "color": "#8A6FB0"
-  },
-  "pa_faith": {
-   "path": "res://art/icons/passives/pa_faith.png",
-   "label": "Віра",
-   "color": "#8A6FB0"
-  },
-  "pa_speed": {
-   "path": "res://art/icons/passives/pa_speed.png",
-   "label": "Вітер",
-   "color": "#8A6FB0"
-  },
-  "pa_stone_skin": {
-   "path": "res://art/icons/passives/pa_stone_skin.png",
-   "label": "Шкіра",
-   "color": "#8A6FB0"
-  },
-  "pa_crit": {
-   "path": "res://art/icons/passives/pa_crit.png",
-   "label": "Крит",
-   "color": "#8A6FB0"
-  },
-  "pa_accuracy": {
-   "path": "res://art/icons/passives/pa_accuracy.png",
-   "label": "Око",
-   "color": "#8A6FB0"
-  },
-  "pa_cooldown": {
-   "path": "res://art/icons/passives/pa_cooldown.png",
-   "label": "Час",
-   "color": "#8A6FB0"
-  },
-  "pa_regen": {
-   "path": "res://art/icons/passives/pa_regen.png",
-   "label": "Лоза",
-   "color": "#8A6FB0"
-  },
-  "pa_lifesteal": {
-   "path": "res://art/icons/passives/pa_lifesteal.png",
-   "label": "Кров",
-   "color": "#8A6FB0"
-  },
-  "pa_thorns": {
-   "path": "res://art/icons/passives/pa_thorns.png",
-   "label": "Терен",
-   "color": "#8A6FB0"
-  },
-  "pa_luck": {
-   "path": "res://art/icons/passives/pa_luck.png",
-   "label": "Статок",
-   "color": "#8A6FB0"
-  },
-  "pa_oak": {
-   "path": "res://art/icons/passives/pa_oak.png",
-   "label": "Дуб",
-   "color": "#8A6FB0"
-  },
-  "pa_lightning": {
-   "path": "res://art/icons/passives/pa_lightning.png",
-   "label": "Грім",
-   "color": "#8A6FB0"
-  },
-  "pa_fire": {
-   "path": "res://art/icons/passives/pa_fire.png",
-   "label": "Жар",
-   "color": "#8A6FB0"
-  },
-  "pa_crown": {
-   "path": "res://art/icons/passives/pa_crown.png",
-   "label": "Корона",
-   "color": "#8A6FB0"
-  },
-  "perk_region_str": {
-   "path": "res://art/icons/perks/region_str.png",
-   "label": "Сила",
-   "color": "#D8A74B"
-  },
-  "perk_region_agi": {
-   "path": "res://art/icons/perks/region_agi.png",
-   "label": "Сприт.",
-   "color": "#D8A74B"
-  },
-  "perk_region_faith": {
-   "path": "res://art/icons/perks/region_faith.png",
-   "label": "Віра",
-   "color": "#D8A74B"
-  },
-  "perk_core": {
-   "path": "res://art/icons/perks/core.png",
-   "label": "Серце",
-   "color": "#D8A74B"
+  "format": "spohady-icons",
+  "version": 1,
+  "comment": "icon_id -> малюнок. path порожній = арту ще немає (гра малює заглушку з підписом). Формат: docs/icons.md",
+  "icons": {
+    "w_sword": {
+      "path": "res://art/icons/weapons/w_sword.png",
+      "label": "Меч",
+      "color": "#9AA3AD"
+    },
+    "w_greatsword": {
+      "path": "res://art/icons/weapons/w_greatsword.png",
+      "label": "Дв.меч",
+      "color": "#9AA3AD"
+    },
+    "w_axe": {
+      "path": "res://art/icons/weapons/w_axe.png",
+      "label": "Сокира",
+      "color": "#9AA3AD"
+    },
+    "w_greataxe": {
+      "path": "res://art/icons/weapons/w_greataxe.png",
+      "label": "Дв.сокира",
+      "color": "#9AA3AD"
+    },
+    "w_mace": {
+      "path": "res://art/icons/weapons/w_mace.png",
+      "label": "Булава",
+      "color": "#9AA3AD"
+    },
+    "w_hammer": {
+      "path": "res://art/icons/weapons/w_hammer.png",
+      "label": "Молот",
+      "color": "#9AA3AD"
+    },
+    "w_spear": {
+      "path": "res://art/icons/weapons/w_spear.png",
+      "label": "Спис",
+      "color": "#9AA3AD"
+    },
+    "w_dagger": {
+      "path": "res://art/icons/weapons/w_dagger.png",
+      "label": "Кинджал",
+      "color": "#9AA3AD"
+    },
+    "w_bow": {
+      "path": "res://art/icons/weapons/w_bow.png",
+      "label": "Лук",
+      "color": "#9AA3AD"
+    },
+    "w_longbow": {
+      "path": "res://art/icons/weapons/w_longbow.png",
+      "label": "Дв.лук",
+      "color": "#9AA3AD"
+    },
+    "w_crossbow": {
+      "path": "res://art/icons/weapons/w_crossbow.png",
+      "label": "Арбалет",
+      "color": "#9AA3AD"
+    },
+    "w_staff": {
+      "path": "res://art/icons/weapons/w_staff.png",
+      "label": "Кий",
+      "color": "#9AA3AD"
+    },
+    "w_magic_staff": {
+      "path": "res://art/icons/weapons/w_magic_staff.png",
+      "label": "Посох",
+      "color": "#9AA3AD"
+    },
+    "w_wand": {
+      "path": "",
+      "label": "Жезл",
+      "color": "#9AA3AD"
+    },
+    "sh_round": {
+      "path": "res://art/icons/weapons/sh_round.png",
+      "label": "Щит",
+      "color": "#8B6B45"
+    },
+    "sh_kite": {
+      "path": "res://art/icons/weapons/sh_kite.png",
+      "label": "Щит",
+      "color": "#8B6B45"
+    },
+    "sh_sun": {
+      "path": "res://art/icons/weapons/sh_sun.png",
+      "label": "Щит",
+      "color": "#8B6B45"
+    },
+    "h_leather": {
+      "path": "res://art/icons/armor/h_leather.png",
+      "label": "Шапка",
+      "color": "#7A8794"
+    },
+    "h_iron": {
+      "path": "res://art/icons/armor/h_iron.png",
+      "label": "Шолом",
+      "color": "#7A8794"
+    },
+    "h_ornate": {
+      "path": "res://art/icons/armor/h_ornate.png",
+      "label": "Шолом",
+      "color": "#7A8794"
+    },
+    "g_leather": {
+      "path": "res://art/icons/armor/g_leather.png",
+      "label": "Рукав.",
+      "color": "#7A8794"
+    },
+    "g_chain": {
+      "path": "res://art/icons/armor/g_chain.png",
+      "label": "Рукав.",
+      "color": "#7A8794"
+    },
+    "b_gambeson": {
+      "path": "res://art/icons/armor/b_gambeson.png",
+      "label": "Каптан",
+      "color": "#7A8794"
+    },
+    "b_mail": {
+      "path": "res://art/icons/armor/b_mail.png",
+      "label": "Кольч.",
+      "color": "#7A8794"
+    },
+    "b_lamellar": {
+      "path": "res://art/icons/armor/b_lamellar.png",
+      "label": "Лати",
+      "color": "#7A8794"
+    },
+    "b_robe": {
+      "path": "",
+      "label": "Балахон",
+      "color": "#7A8794"
+    },
+    "f_leather": {
+      "path": "res://art/icons/armor/f_leather.png",
+      "label": "Чоботи",
+      "color": "#7A8794"
+    },
+    "f_iron": {
+      "path": "res://art/icons/armor/f_iron.png",
+      "label": "Чоботи",
+      "color": "#7A8794"
+    },
+    "r_silver": {
+      "path": "res://art/icons/armor/r_silver.png",
+      "label": "Перст.",
+      "color": "#7A8794"
+    },
+    "r_ruby": {
+      "path": "res://art/icons/armor/r_ruby.png",
+      "label": "Перст.",
+      "color": "#7A8794"
+    },
+    "r_emerald": {
+      "path": "res://art/icons/armor/r_emerald.png",
+      "label": "Перст.",
+      "color": "#7A8794"
+    },
+    "a_sun": {
+      "path": "res://art/icons/armor/a_sun.png",
+      "label": "Оберіг",
+      "color": "#7A8794"
+    },
+    "a_wolf": {
+      "path": "res://art/icons/armor/a_wolf.png",
+      "label": "Ікло",
+      "color": "#7A8794"
+    },
+    "a_crystal": {
+      "path": "res://art/icons/armor/a_crystal.png",
+      "label": "Оберіг",
+      "color": "#7A8794"
+    },
+    "potion_hp": {
+      "path": "res://art/icons/items/potion_hp.png",
+      "label": "Зілля життя",
+      "color": "#C7352B"
+    },
+    "potion_mana": {
+      "path": "res://art/icons/items/potion_mana.png",
+      "label": "Зілля чару",
+      "color": "#2AA8A2"
+    },
+    "potion_hp_small": {
+      "path": "res://art/icons/items/potion_hp_small.png",
+      "label": "Зілля",
+      "color": "#B88A4A"
+    },
+    "potion_hp_big": {
+      "path": "res://art/icons/items/potion_hp_big.png",
+      "label": "Зілля",
+      "color": "#B88A4A"
+    },
+    "potion_mana_small": {
+      "path": "res://art/icons/items/potion_mana_small.png",
+      "label": "Зілля",
+      "color": "#B88A4A"
+    },
+    "potion_mana_big": {
+      "path": "res://art/icons/items/potion_mana_big.png",
+      "label": "Зілля",
+      "color": "#B88A4A"
+    },
+    "coins": {
+      "path": "res://art/icons/items/coins.png",
+      "label": "Гривні",
+      "color": "#B88A4A"
+    },
+    "pouch": {
+      "path": "res://art/icons/items/pouch.png",
+      "label": "Калита",
+      "color": "#B88A4A"
+    },
+    "herb": {
+      "path": "res://art/icons/items/herb.png",
+      "label": "Трави",
+      "color": "#B88A4A"
+    },
+    "fern_flower": {
+      "path": "res://art/icons/items/fern_flower.png",
+      "label": "Квітка",
+      "color": "#B88A4A"
+    },
+    "mushroom": {
+      "path": "res://art/icons/items/mushroom.png",
+      "label": "Гриб",
+      "color": "#B88A4A"
+    },
+    "rusty_key": {
+      "path": "res://art/icons/items/rusty_key.png",
+      "label": "Ключ",
+      "color": "#B88A4A"
+    },
+    "letter": {
+      "path": "res://art/icons/items/letter.png",
+      "label": "Лист",
+      "color": "#B88A4A"
+    },
+    "idol": {
+      "path": "res://art/icons/items/idol.png",
+      "label": "Оберіг",
+      "color": "#B88A4A"
+    },
+    "rushnyk": {
+      "path": "res://art/icons/items/rushnyk.png",
+      "label": "Рушник",
+      "color": "#B88A4A"
+    },
+    "jug": {
+      "path": "res://art/icons/items/jug.png",
+      "label": "Глек",
+      "color": "#B88A4A"
+    },
+    "wolf_pelt": {
+      "path": "res://art/icons/items/wolf_pelt.png",
+      "label": "Шкура",
+      "color": "#B88A4A"
+    },
+    "bone_talisman": {
+      "path": "res://art/icons/items/bone_talisman.png",
+      "label": "Талісман",
+      "color": "#B88A4A"
+    },
+    "sk_power_strike": {
+      "path": "res://art/icons/skills/power_strike.png",
+      "label": "Удар",
+      "color": "#C8753A"
+    },
+    "sk_shield_bash": {
+      "path": "res://art/icons/skills/sk_shield_bash.png",
+      "label": "Щит",
+      "color": "#C8753A"
+    },
+    "sk_triple_slash": {
+      "path": "res://art/icons/skills/sk_triple_slash.png",
+      "label": "Різ",
+      "color": "#C8753A"
+    },
+    "sk_whirlwind": {
+      "path": "res://art/icons/skills/sk_whirlwind.png",
+      "label": "Вихор",
+      "color": "#C8753A"
+    },
+    "sk_battle_cry": {
+      "path": "res://art/icons/skills/sk_battle_cry.png",
+      "label": "Клич",
+      "color": "#C8753A"
+    },
+    "sk_ground_slam": {
+      "path": "res://art/icons/skills/sk_ground_slam.png",
+      "label": "Поштовх",
+      "color": "#C8753A"
+    },
+    "sk_chain_lightning": {
+      "path": "res://art/icons/skills/sk_chain_lightning.png",
+      "label": "Блискавка",
+      "color": "#C8753A"
+    },
+    "sk_iron_wall": {
+      "path": "",
+      "label": "Стіна",
+      "color": "#C8753A"
+    },
+    "sk_arrow_volley": {
+      "path": "res://art/icons/skills/arrow_volley.png",
+      "label": "Стріли",
+      "color": "#C8753A"
+    },
+    "sk_piercing_shot": {
+      "path": "res://art/icons/skills/sk_piercing_shot.png",
+      "label": "Постріл",
+      "color": "#C8753A"
+    },
+    "sk_rapid_shot": {
+      "path": "",
+      "label": "Швидка",
+      "color": "#C8753A"
+    },
+    "sk_arrow_rain": {
+      "path": "res://art/icons/skills/sk_arrow_rain.png",
+      "label": "Злива",
+      "color": "#C8753A"
+    },
+    "sk_poison_cloud": {
+      "path": "res://art/icons/skills/sk_poison_cloud.png",
+      "label": "Отрута",
+      "color": "#C8753A"
+    },
+    "sk_wolf_spirit": {
+      "path": "res://art/icons/skills/sk_wolf_spirit.png",
+      "label": "Вовк",
+      "color": "#C8753A"
+    },
+    "sk_stribog_dash": {
+      "path": "res://art/icons/skills/stribog_dash.png",
+      "label": "Ривок",
+      "color": "#C8753A"
+    },
+    "sk_hunters_trap": {
+      "path": "",
+      "label": "Пастка",
+      "color": "#C8753A"
+    },
+    "sk_element_wave": {
+      "path": "res://art/icons/skills/element_wave_perun.png",
+      "label": "Хвиля",
+      "color": "#C8753A"
+    },
+    "sk_sun_beam": {
+      "path": "res://art/icons/skills/sk_sun_beam.png",
+      "label": "Промінь",
+      "color": "#C8753A"
+    },
+    "sk_ice_shards": {
+      "path": "res://art/icons/skills/sk_ice_shards.png",
+      "label": "Крига",
+      "color": "#C8753A"
+    },
+    "sk_ancestral_heal": {
+      "path": "res://art/icons/skills/sk_ancestral_heal.png",
+      "label": "Поклик",
+      "color": "#C8753A"
+    },
+    "sk_fire_wave": {
+      "path": "res://art/icons/skills/sk_fire_wave.png",
+      "label": "Вогонь",
+      "color": "#C8753A"
+    },
+    "sk_raven_swarm": {
+      "path": "res://art/icons/skills/sk_raven_swarm.png",
+      "label": "Круки",
+      "color": "#C8753A"
+    },
+    "sk_earth_spikes": {
+      "path": "res://art/icons/skills/sk_earth_spikes.png",
+      "label": "Списи",
+      "color": "#C8753A"
+    },
+    "sk_ancestral_ward": {
+      "path": "",
+      "label": "Захист",
+      "color": "#C8753A"
+    },
+    "sk_ancestors_wrath": {
+      "path": "res://art/icons/passives/pa_crown.png",
+      "label": "Гнів",
+      "color": "#C8753A"
+    },
+    "sk_element_wave_perun": {
+      "path": "res://art/icons/skills/element_wave_perun.png",
+      "label": "Хвиля",
+      "color": "#3FB9B3"
+    },
+    "sk_element_wave_veles": {
+      "path": "res://art/icons/skills/element_wave_veles.png",
+      "label": "Хвиля",
+      "color": "#3FB9B3"
+    },
+    "sk_element_wave_dazhbog": {
+      "path": "res://art/icons/skills/element_wave_dazhbog.png",
+      "label": "Хвиля",
+      "color": "#3FB9B3"
+    },
+    "sk_element_wave_mokosh": {
+      "path": "res://art/icons/skills/element_wave_mokosh.png",
+      "label": "Хвиля",
+      "color": "#3FB9B3"
+    },
+    "sk_element_wave_svarog": {
+      "path": "res://art/icons/skills/element_wave_svarog.png",
+      "label": "Хвиля",
+      "color": "#3FB9B3"
+    },
+    "pa_strength": {
+      "path": "res://art/icons/passives/pa_strength.png",
+      "label": "Сила",
+      "color": "#8A6FB0"
+    },
+    "pa_life": {
+      "path": "res://art/icons/passives/pa_life.png",
+      "label": "Життя",
+      "color": "#8A6FB0"
+    },
+    "pa_faith": {
+      "path": "res://art/icons/passives/pa_faith.png",
+      "label": "Віра",
+      "color": "#8A6FB0"
+    },
+    "pa_speed": {
+      "path": "res://art/icons/passives/pa_speed.png",
+      "label": "Вітер",
+      "color": "#8A6FB0"
+    },
+    "pa_stone_skin": {
+      "path": "res://art/icons/passives/pa_stone_skin.png",
+      "label": "Шкіра",
+      "color": "#8A6FB0"
+    },
+    "pa_crit": {
+      "path": "res://art/icons/passives/pa_crit.png",
+      "label": "Крит",
+      "color": "#8A6FB0"
+    },
+    "pa_accuracy": {
+      "path": "res://art/icons/passives/pa_accuracy.png",
+      "label": "Око",
+      "color": "#8A6FB0"
+    },
+    "pa_cooldown": {
+      "path": "res://art/icons/passives/pa_cooldown.png",
+      "label": "Час",
+      "color": "#8A6FB0"
+    },
+    "pa_regen": {
+      "path": "res://art/icons/passives/pa_regen.png",
+      "label": "Лоза",
+      "color": "#8A6FB0"
+    },
+    "pa_lifesteal": {
+      "path": "res://art/icons/passives/pa_lifesteal.png",
+      "label": "Кров",
+      "color": "#8A6FB0"
+    },
+    "pa_thorns": {
+      "path": "res://art/icons/passives/pa_thorns.png",
+      "label": "Терен",
+      "color": "#8A6FB0"
+    },
+    "pa_luck": {
+      "path": "res://art/icons/passives/pa_luck.png",
+      "label": "Статок",
+      "color": "#8A6FB0"
+    },
+    "pa_oak": {
+      "path": "res://art/icons/passives/pa_oak.png",
+      "label": "Дуб",
+      "color": "#8A6FB0"
+    },
+    "pa_lightning": {
+      "path": "res://art/icons/passives/pa_lightning.png",
+      "label": "Грім",
+      "color": "#8A6FB0"
+    },
+    "pa_fire": {
+      "path": "res://art/icons/passives/pa_fire.png",
+      "label": "Жар",
+      "color": "#8A6FB0"
+    },
+    "pa_crown": {
+      "path": "res://art/icons/passives/pa_crown.png",
+      "label": "Корона",
+      "color": "#8A6FB0"
+    },
+    "perk_region_str": {
+      "path": "res://art/icons/perks/region_str.png",
+      "label": "Сила",
+      "color": "#D8A74B"
+    },
+    "perk_region_agi": {
+      "path": "res://art/icons/perks/region_agi.png",
+      "label": "Сприт.",
+      "color": "#D8A74B"
+    },
+    "perk_region_faith": {
+      "path": "res://art/icons/perks/region_faith.png",
+      "label": "Віра",
+      "color": "#D8A74B"
+    },
+    "perk_core": {
+      "path": "res://art/icons/perks/core.png",
+      "label": "Серце",
+      "color": "#D8A74B"
+    },
+    "thread_red": {
+      "path": "res://art/icons/threads/thread_red.png",
+      "label": "Нитка (Червона)",
+      "color": "#E0A526"
+    },
+    "thread_green": {
+      "path": "res://art/icons/threads/thread_green.png",
+      "label": "Нитка (Зелена)",
+      "color": "#E0A526"
+    },
+    "thread_blue": {
+      "path": "res://art/icons/threads/thread_blue.png",
+      "label": "Нитка (Синя)",
+      "color": "#E0A526"
+    },
+    "thread_white": {
+      "path": "res://art/icons/threads/thread_white.png",
+      "label": "Нитка (Біла)",
+      "color": "#E0A526"
+    },
+    "thread": {
+      "path": "res://art/icons/threads/thread.png",
+      "label": "Нитка",
+      "color": "#E0A526"
+    },
+    "nauz_power_strike": {
+      "path": "res://art/icons/nauzi/nauz_power_strike.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_shield_bash": {
+      "path": "res://art/icons/nauzi/nauz_shield_bash.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_triple_slash": {
+      "path": "res://art/icons/nauzi/nauz_triple_slash.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_whirlwind": {
+      "path": "res://art/icons/nauzi/nauz_whirlwind.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_battle_cry": {
+      "path": "res://art/icons/nauzi/nauz_battle_cry.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_ground_slam": {
+      "path": "res://art/icons/nauzi/nauz_ground_slam.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_chain_lightning": {
+      "path": "res://art/icons/nauzi/nauz_chain_lightning.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_iron_wall": {
+      "path": "res://art/icons/nauzi/nauz_iron_wall.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_arrow_volley": {
+      "path": "res://art/icons/nauzi/nauz_arrow_volley.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_piercing_shot": {
+      "path": "res://art/icons/nauzi/nauz_piercing_shot.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_rapid_shot": {
+      "path": "res://art/icons/nauzi/nauz_rapid_shot.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_arrow_rain": {
+      "path": "res://art/icons/nauzi/nauz_arrow_rain.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_poison_cloud": {
+      "path": "res://art/icons/nauzi/nauz_poison_cloud.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_wolf_spirit": {
+      "path": "res://art/icons/nauzi/nauz_wolf_spirit.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_stribog_dash": {
+      "path": "res://art/icons/nauzi/nauz_stribog_dash.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_hunters_trap": {
+      "path": "res://art/icons/nauzi/nauz_hunters_trap.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_element_wave": {
+      "path": "res://art/icons/nauzi/nauz_element_wave.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_sun_beam": {
+      "path": "res://art/icons/nauzi/nauz_sun_beam.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_ice_shards": {
+      "path": "res://art/icons/nauzi/nauz_ice_shards.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_ancestral_heal": {
+      "path": "res://art/icons/nauzi/nauz_ancestral_heal.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_fire_wave": {
+      "path": "res://art/icons/nauzi/nauz_fire_wave.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_raven_swarm": {
+      "path": "res://art/icons/nauzi/nauz_raven_swarm.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_earth_spikes": {
+      "path": "res://art/icons/nauzi/nauz_earth_spikes.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_ancestral_ward": {
+      "path": "res://art/icons/nauzi/nauz_ancestral_ward.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz_ancestors_wrath": {
+      "path": "res://art/icons/nauzi/nauz_ancestors_wrath.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "nauz": {
+      "path": "res://art/icons/nauzi/nauz.png",
+      "label": "Науз",
+      "color": "#E0A526"
+    },
+    "oblivion_water": {
+      "path": "res://art/icons/misc/oblivion_water.png",
+      "label": "Вода забуття",
+      "color": "#8FC8FF"
+    }
   }
- }
 }
