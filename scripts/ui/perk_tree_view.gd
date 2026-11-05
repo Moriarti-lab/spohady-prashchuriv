@@ -5,7 +5,7 @@ extends Control
 signal node_selected(id: String)
 signal empty_tapped
 
-const ZOOM_MIN := 0.12
+const ZOOM_MIN := 0.012
 const ZOOM_MAX := 1.7
 const TAP_SLOP := 14.0
 const RADIUS := {"small": 20.0, "notable": 38.0, "keystone": 48.0, "skill": 34.0, "start": 40.0, "core": 56.0}

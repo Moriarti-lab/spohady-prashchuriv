@@ -19,6 +19,7 @@ func _ready() -> void:
 	add_child(center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	panel.clip_contents = true
 	center.add_child(panel)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)

@@ -53,6 +53,10 @@ func _run() -> void:
 	ch.queue_free()
 	await frames(2)
 	GameState.new_hero("Ярослав", "perun", "druzhynnyk")
+	if GameState.starter_pending():
+		var sch: Array = GameState.starter_choices()
+		if sch.size() > 0 and typeof(sch[0]) == TYPE_DICTIONARY:
+			GameState.choose_starter(str(sch[0].get("node", "")))
 	GameState.add_xp(GameState.xp_needed())
 	var w: GameWorld = load("res://scenes/world.tscn").instantiate()
 	add_child(w)
@@ -74,6 +78,19 @@ func _run() -> void:
 	w.hud.open_inventory(InventoryScreen.TAB_BAG)
 	await frames(3)
 	await shot("07a_bag")
+	# довгий опис науза + видимі дії (регресія 0.5.4)
+	var long_nauz := Nauzi.make_nauz("element_wave", 12, 2)
+	long_nauz["threads"] = [Nauzi.make_thread("circle", "red", 2), Nauzi.make_thread("far", "white", 1)]
+	GameState.add_item(long_nauz)
+	w.hud._inventory._refresh()
+	await frames(2)
+	for sl in w.hud._inventory._bag_slots:
+		var bi: int = sl.index
+		if bi >= 0 and bi < GameState.bag.size() and Nauzi.is_nauz(GameState.bag[bi]):
+			w.hud._inventory._on_slot_tapped(sl)
+			break
+	await frames(3)
+	await shot("07a_bag_long_desc")
 	w.hud.open_inventory(InventoryScreen.TAB_SKILLS)
 	await frames(3)
 	await shot("07b_skills")
@@ -83,8 +100,11 @@ func _run() -> void:
 	await shot("07c_map")
 	w.hud._close_overlay()
 	w.hud.open_perks()
-	await frames(3)
-	w.hud._perk_screen._on_node_selected("s_t2")
+	await frames(4)
+	await shot("07_perks_default_zoom")
+	var st := PerkTree.class_start(GameState.hero_class)
+	w.hud._perk_screen._on_node_selected(st)
+	await frames(2)
 	await shot("07_perks")
 	w.hud._close_overlay()
 	w.hud._open_pause()

@@ -549,6 +549,12 @@ func _run() -> void:
 	if bow_slot != null:
 		hud._inventory._on_slot_tapped(bow_slot)
 	ok(hud._inventory._btn_equip.visible, "після вибору предмета є кнопка «Одягти»")
+	var vp_r := get_viewport().get_visible_rect()
+	var er := hud._inventory._btn_equip.get_global_rect()
+	ok(er.end.y <= vp_r.end.y + 2.0 and er.position.y >= vp_r.position.y - 2.0, "кнопка «Одягти» в межах екрана %s" % er)
+	if hud._inventory._action_bar:
+		var ar := hud._inventory._action_bar.get_global_rect()
+		ok(ar.end.y <= vp_r.end.y + 2.0, "ActionBar низ у межах екрана %s" % ar)
 	hud._inventory._on_equip()
 	await frames(2)
 	ok(HeroStats.attack_kind() == "arrow", "екран сумки: лук одягнено")

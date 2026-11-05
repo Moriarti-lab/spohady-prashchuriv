@@ -44,6 +44,9 @@ var _bag_filter := "all"  # all|weapon|armor|nauz|thread|other
 var _filter_btns: Dictionary = {}
 var _btn_socket: Button
 var _btn_stash: Button
+var _action_bar: VBoxContainer
+var _detail_scroll: ScrollContainer
+var _more_menu: MenuButton
 var _btn_attach: Button
 var _stash_slots: Array = []
 var _sel_stash := -1
@@ -68,9 +71,12 @@ func _ready() -> void:
 	add_child(margin)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	panel.clip_contents = true
 	margin.add_child(panel)
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 6)
+	root.add_theme_constant_override("separation", 4)
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.clip_contents = true
 	panel.add_child(root)
 	# заголовок
 	var head := HBoxContainer.new()
@@ -155,30 +161,41 @@ func _show_tab(t: int) -> void:
 
 func _build_bag_page() -> Control:
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 14)
-	# спорядження
+	h.add_theme_constant_override("separation", 10)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# спорядження (у вузькому landscape скролиться, щоб не виштовхувати ActionBar)
+	var left_sc := ScrollContainer.new()
+	left_sc.name = "EquipScroll"
+	left_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	left_sc.custom_minimum_size = Vector2(250, 80)
+	left_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left_sc.clip_contents = true
+	h.add_child(left_sc)
+	TouchScroll.attach(left_sc)
 	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 8)
-	left.custom_minimum_size = Vector2(290, 0)
-	h.add_child(left)
-	left.add_child(FolkTheme.label("Спорядження", 24, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	left.add_theme_constant_override("separation", 4)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_sc.add_child(left)
+	left.add_child(FolkTheme.label("Спорядження", 20, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 	var eg := GridContainer.new()
 	eg.columns = 3
-	eg.add_theme_constant_override("h_separation", 8)
-	eg.add_theme_constant_override("v_separation", 8)
+	eg.add_theme_constant_override("h_separation", 6)
+	eg.add_theme_constant_override("v_separation", 6)
 	left.add_child(eg)
 	for s in EQUIP_ORDER:
-		var sl := ItemSlot.new(88.0)
+		var sl := ItemSlot.new(70.0)
 		sl.equip_slot = s
 		sl.caption = Items.SLOT_NAMES[s]
 		sl.tapped.connect(_on_slot_tapped)
 		eg.add_child(sl)
 		_equip_slots[s] = sl
-	_stats_label = FolkTheme.label("", 19, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	_stats_label = FolkTheme.label("", 17, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
 	left.add_child(_stats_label)
 	# сітка сумки
 	var mid := VBoxContainer.new()
-	mid.add_theme_constant_override("separation", 6)
+	mid.add_theme_constant_override("separation", 4)
+	mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	h.add_child(mid)
 	mid.add_child(FolkTheme.label("Сумка", 24, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 	var filt := HBoxContainer.new()
@@ -203,13 +220,13 @@ func _build_bag_page() -> Control:
 	var bag_sc := ScrollContainer.new()
 	bag_sc.name = "BagScroll"
 	bag_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	bag_sc.custom_minimum_size = Vector2(COLUMNS * 80.0 + 14.0, 80.0 * 5.0)
+	bag_sc.custom_minimum_size = Vector2(COLUMNS * 68.0 + 8.0, 68.0)
 	bag_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	mid.add_child(bag_sc)
 	bag_sc.add_child(grid)
 	TouchScroll.attach(bag_sc)
 	for i in range(GameState.BAG_SIZE):
-		var sl2 := ItemSlot.new(74.0)
+		var sl2 := ItemSlot.new(68.0)
 		sl2.index = i
 		sl2.tapped.connect(_on_slot_tapped)
 		grid.add_child(sl2)
@@ -221,93 +238,105 @@ func _build_bag_page() -> Control:
 	stash_grid.add_theme_constant_override("v_separation", 6)
 	var stash_sc := ScrollContainer.new()
 	stash_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	stash_sc.custom_minimum_size = Vector2(COLUMNS * 80.0 + 14.0, 80.0 * 2.0)
+	stash_sc.custom_minimum_size = Vector2(COLUMNS * 68.0 + 8.0, 48.0)
+	stash_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	mid.add_child(stash_sc)
 	stash_sc.add_child(stash_grid)
 	TouchScroll.attach(stash_sc)
 	for i in range(GameState.STASH_SIZE):
-		var ss := ItemSlot.new(64.0)
+		var ss := ItemSlot.new(56.0)
 		ss.index = 1000 + i
 		ss.tapped.connect(_on_stash_tapped)
 		stash_grid.add_child(ss)
 		_stash_slots.append(ss)
-	# опис
-	var right := VBoxContainer.new()
-	right.add_theme_constant_override("separation", 8)
+	# опис скролиться; ActionBar прибитий до низу правої колонки (якорі), щоб не йшов під низ екрана
+	var right := Control.new()
+	right.name = "DetailPane"
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.custom_minimum_size = Vector2(250, 0)
+	right.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.custom_minimum_size = Vector2(240, 120)
+	right.clip_contents = true
 	h.add_child(right)
-	# Опис гортається, кнопки завжди внизу.
-	var dsc := ScrollContainer.new()
-	dsc.name = "DetailScroll"
-	dsc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	dsc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	dsc.custom_minimum_size = Vector2(250, 120)
-	right.add_child(dsc)
-	TouchScroll.attach(dsc)
+	_action_bar = VBoxContainer.new()
+	_action_bar.name = "ActionBar"
+	_action_bar.add_theme_constant_override("separation", 4)
+	_action_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_action_bar.offset_top = -56
+	_action_bar.offset_bottom = -2
+	_action_bar.offset_left = 0
+	_action_bar.offset_right = 0
+	_action_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	right.add_child(_action_bar)
+	_detail_scroll = ScrollContainer.new()
+	_detail_scroll.name = "DetailScroll"
+	_detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_detail_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_scroll.offset_bottom = -60
+	_detail_scroll.offset_top = 0
+	_detail_scroll.offset_left = 0
+	_detail_scroll.offset_right = 0
+	right.add_child(_detail_scroll)
+	TouchScroll.attach(_detail_scroll)
 	var dv := VBoxContainer.new()
 	dv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	dv.add_theme_constant_override("separation", 6)
-	dsc.add_child(dv)
-	_detail_name = FolkTheme.label("Торкнись предмета", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_theme_constant_override("separation", 4)
+	_detail_scroll.add_child(dv)
+	_detail_name = FolkTheme.label("Торкнись предмета", 22, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
 	_detail_name.visible = false
 	dv.add_child(_detail_name)
 	_detail_rich = DescFormat.make_rich()
 	_detail_rich.bbcode_enabled = true
+	_detail_rich.fit_content = true
+	_detail_rich.scroll_active = false
+	_detail_rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dv.add_child(_detail_rich)
-	_detail_body = FolkTheme.label("", 19, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
+	_detail_body = FolkTheme.label("", 18, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
 	_detail_body.visible = false
 	dv.add_child(_detail_body)
-	_detail_cmp = FolkTheme.label("", 16, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
+	_detail_cmp = FolkTheme.label("", 15, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
 	_detail_cmp.visible = false
 	dv.add_child(_detail_cmp)
 	var btns := HBoxContainer.new()
+	btns.name = "PrimaryActions"
 	btns.add_theme_constant_override("separation", 6)
-	right.add_child(btns)
+	_action_bar.add_child(btns)
 	_btn_equip = Button.new()
 	_btn_equip.text = "Одягти"
-	FolkTheme.apply_button(_btn_equip, Palette.EMBROIDERY, 19)
-	_btn_equip.custom_minimum_size.y = 52
+	FolkTheme.apply_button(_btn_equip, Palette.EMBROIDERY, 17)
+	_btn_equip.custom_minimum_size = Vector2(0, 48)
 	_btn_equip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_btn_equip.pressed.connect(_on_equip)
 	btns.add_child(_btn_equip)
-	_btn_equip2 = Button.new()
-	FolkTheme.apply_button(_btn_equip2, Palette.PANEL_LIGHT, 17)
-	_btn_equip2.custom_minimum_size.y = 52
-	_btn_equip2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_btn_equip2.pressed.connect(func() -> void: _on_equip(true))
-	btns.add_child(_btn_equip2)
 	_btn_sell = Button.new()
 	_btn_sell.text = "Продати"
-	FolkTheme.apply_button(_btn_sell, Palette.PANEL_LIGHT, 18)
-	_btn_sell.custom_minimum_size.y = 52
+	FolkTheme.apply_button(_btn_sell, Palette.PANEL_LIGHT, 16)
+	_btn_sell.custom_minimum_size = Vector2(0, 48)
 	_btn_sell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_btn_sell.pressed.connect(_on_sell)
 	btns.add_child(_btn_sell)
-	var btns2 := HBoxContainer.new()
-	btns2.add_theme_constant_override("separation", 6)
-	right.add_child(btns2)
+	_more_menu = MenuButton.new()
+	_more_menu.text = "Ще ▾"
+	FolkTheme.apply_button(_more_menu, Palette.PANEL_LIGHT, 16)
+	_more_menu.custom_minimum_size = Vector2(96, 48)
+	btns.add_child(_more_menu)
+	_more_menu.get_popup().id_pressed.connect(_on_more_action)
+	_btn_equip2 = Button.new()
+	_btn_equip2.visible = false
+	_btn_equip2.pressed.connect(func() -> void: _on_equip(true))
+	_action_bar.add_child(_btn_equip2)
 	_btn_socket = Button.new()
-	_btn_socket.text = "У гніздо науза"
-	FolkTheme.apply_button(_btn_socket, Palette.TURQUOISE.darkened(0.2), 17)
-	_btn_socket.custom_minimum_size.y = 48
-	_btn_socket.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_socket.visible = false
 	_btn_socket.pressed.connect(_on_socket)
-	btns2.add_child(_btn_socket)
+	_action_bar.add_child(_btn_socket)
 	_btn_stash = Button.new()
-	_btn_stash.text = "У скриню"
-	FolkTheme.apply_button(_btn_stash, Palette.PANEL_LIGHT, 17)
-	_btn_stash.custom_minimum_size.y = 48
-	_btn_stash.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_btn_stash.visible = false
 	_btn_stash.pressed.connect(_on_to_stash)
-	btns2.add_child(_btn_stash)
+	_action_bar.add_child(_btn_stash)
 	_btn_attach = Button.new()
-	_btn_attach.text = "Вплести нитку"
 	_btn_attach.visible = false
-	FolkTheme.apply_button(_btn_attach, Palette.PANEL_LIGHT, 16)
-	_btn_attach.custom_minimum_size.y = 44
 	_btn_attach.pressed.connect(_on_attach_thread)
-	right.add_child(_btn_attach)
+	_action_bar.add_child(_btn_attach)
+
 	return h
 
 
@@ -410,6 +439,18 @@ func _on_attach_thread() -> void:
 	_refresh()
 
 
+func _on_more_action(id: int) -> void:
+	match id:
+		1:
+			_on_equip(true)
+		2:
+			_on_socket()
+		3:
+			_on_to_stash()
+		4:
+			_on_attach_thread()
+
+
 func _on_sell() -> void:
 	if _sel_bag < 0 or _sel_bag >= GameState.bag.size():
 		return
@@ -427,6 +468,30 @@ func _do_sell_confirmed() -> void:
 	if _sel_bag >= 0 and GameState.sell(_sel_bag) > 0:
 		_sel_bag = -1
 	_refresh()
+
+
+func _rebuild_more_menu(it: Dictionary) -> void:
+	if _more_menu == null:
+		return
+	var popup := _more_menu.get_popup()
+	popup.clear()
+	var any := false
+	if not it.is_empty() and _sel_bag >= 0:
+		var alt := _alt_slot(it)
+		if alt != "" and not Nauzi.is_nauz(it) and not Nauzi.is_thread(it):
+			popup.add_item("У ліву руку" if Items.type_of(it) == "hand1" else "У слот «%s»" % Items.SLOT_NAMES[alt], 1)
+			any = true
+		if Nauzi.is_nauz(it):
+			popup.add_item("У гніздо науза", 2)
+			any = true
+		if Nauzi.is_thread(it):
+			popup.add_item("Вплести нитку", 4)
+			any = true
+	if GameState.location == Locations.START and (_sel_bag >= 0 or _sel_stash >= 0):
+		popup.add_item("Зі скрині" if _sel_stash >= 0 else "У скриню", 3)
+		any = true
+	_more_menu.visible = not it.is_empty() or _sel_stash >= 0
+	_more_menu.disabled = not any
 
 
 func _refresh() -> void:
@@ -478,13 +543,14 @@ func _refresh_bag() -> void:
 		int(round(HeroStats.damage_reduction() * 100.0)), int(HeroStats.weapon_damage()),
 		Strings.num(snappedf(1.0 / HeroStats.attack_interval(), 0.01)), Items.kind_name(str(wd["kind"])).to_lower()]
 	var it := _selected_item()
-	_btn_equip.visible = not it.is_empty() and not Nauzi.is_nauz(it) and not Nauzi.is_thread(it) and str(it.get("kind", "")) != "oblivion"
+	var can_equip := not it.is_empty() and not Nauzi.is_nauz(it) and not Nauzi.is_thread(it) and str(it.get("kind", "")) != "oblivion"
+	_btn_equip.visible = can_equip or (_sel_equip != "" and not it.is_empty())
 	_btn_sell.visible = _sel_bag >= 0 and not it.is_empty()
 	_btn_equip2.visible = false
-	_btn_socket.visible = _sel_bag >= 0 and Nauzi.is_nauz(it)
-	_btn_stash.visible = GameState.location == Locations.START and (_sel_bag >= 0 or _sel_stash >= 0)
-	_btn_stash.text = "Зі скрині" if _sel_stash >= 0 else "У скриню"
+	_btn_socket.visible = false
+	_btn_stash.visible = false
 	_btn_attach.visible = false
+	_rebuild_more_menu(it)
 	if it.is_empty():
 		if _detail_rich:
 			_detail_rich.text = "[i]Торкнись предмета в сумці чи спорядженні.[/i]"
@@ -495,13 +561,9 @@ func _refresh_bag() -> void:
 		var disp: Array = GameState.displaced_by(it, tslot)
 		if disp.size() > 0 and typeof(disp[0]) == TYPE_DICTIONARY:
 			cmp_item = disp[0]
-		var alt := _alt_slot(it)
-		if alt != "":
-			_btn_equip2.visible = _btn_equip.visible
-			_btn_equip2.text = "У ліву руку" if Items.type_of(it) == "hand1" else "У слот «%s»" % Items.SLOT_NAMES[alt]
-		_btn_equip.text = "Одягти (%s)" % Items.SLOT_NAMES.get(tslot, "")
+		_btn_equip.text = "Одягти"
 		_btn_equip.disabled = false
-		_btn_sell.text = "Продати за %d гривень" % Items.sell_value(it)
+		_btn_sell.text = "Продати"
 	else:
 		_btn_equip.text = "Зняти" if GameState.bag_free() > 0 else "Сумка повна"
 		_btn_equip.disabled = GameState.bag_free() <= 0

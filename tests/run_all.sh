@@ -32,5 +32,16 @@ fi
 grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR|TIMEOUT" /tmp/flow.log
 if grep -q "FAIL\|SCRIPT ERROR\|TIMEOUT" /tmp/flow.log; then fail=1; fi
 
+
+echo "== Гра: регресія layout (1024x473 / 1280x576 / 854x480) =="
+mkdir -p /tmp/layout_shots
+if command -v xvfb-run >/dev/null 2>&1; then
+  xvfb-run -a -s "-screen 0 1280x720x24" "$GODOT" --path . --rendering-driver opengl3 res://tests/layout_regression.tscn -- /tmp/layout_shots > /tmp/layout.log 2>&1 || fail=1
+else
+  "$GODOT" --path . res://tests/layout_regression.tscn -- /tmp/layout_shots > /tmp/layout.log 2>&1 || fail=1
+fi
+grep -E "^  (ok|FAIL)|Підсумок|shot |rect |SCRIPT ERROR|zoom=" /tmp/layout.log | tail -80
+if grep -q "FAIL\|SCRIPT ERROR" /tmp/layout.log; then fail=1; fi
+
 [ $fail -eq 0 ] && echo "ВСЕ ГАРАЗД" || echo "Є ПОМИЛКИ"
 exit $fail
