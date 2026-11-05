@@ -1,4 +1,4 @@
-## Екран «Древо звитяги»: велике дерево з прокруткою й масштабом та панель опису вузла.
+## Повноекранне Древо: карта на весь екран; деталі вузла — висувна панель праворуч.
 class_name PerkTreeScreen
 extends Control
 
@@ -6,46 +6,94 @@ signal closed
 
 var _view: PerkTreeView
 var _title: Label
-var _effect: Label
+var _effect: RichTextLabel
 var _status: Label
 var _points: Label
-var _stats: Label
+var _stats: RichTextLabel
 var _icon: TextureRect
 var _unlock_btn: Button
 var _selected := ""
 var _modal: Control
 var _modal_row: HBoxContainer
+var _confirm: AcceptDialog
+var _detail: PanelContainer
+var _detail_open := false
+var _respec_row: HBoxContainer
 
 
 func _ready() -> void:
+	_confirm = AcceptDialog.new()
+	_confirm.title = "Скидання Древа"
+	_confirm.ok_button_text = "Підтвердити"
+	add_child(_confirm)
 	FolkTheme.fullscreen(self)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var bg := ColorRect.new()
 	bg.color = Color(0.07, 0.05, 0.05, 1.0)
 	FolkTheme.fullscreen(bg)
 	add_child(bg)
-	var margin := MarginContainer.new()
-	FolkTheme.fullscreen(margin)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 10)
-	add_child(margin)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 12)
-	margin.add_child(h)
 
-	var left := Control.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	h.add_child(left)
+	# повноекранна карта
 	_view = PerkTreeView.new()
 	FolkTheme.fullscreen(_view)
 	_view.node_selected.connect(_on_node_selected)
-	left.add_child(_view)
-	# кнопки керування виглядом
+	_view.empty_tapped.connect(_hide_detail)
+	add_child(_view)
+
+	# верхня панель: непрозора підкладка, щоб вузли не перекривали текст
+	var top_panel := PanelContainer.new()
+	top_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top_panel.offset_bottom = 84
+	top_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	var top_sb := StyleBoxFlat.new()
+	top_sb.bg_color = Color(0.09, 0.06, 0.05, 1.0)
+	top_sb.border_color = Color(Palette.GOLD, 0.4)
+	top_sb.set_border_width_all(0)
+	top_sb.border_width_bottom = 2
+	top_sb.content_margin_left = 10
+	top_sb.content_margin_right = 10
+	top_sb.content_margin_top = 10
+	top_sb.content_margin_bottom = 8
+	top_panel.add_theme_stylebox_override("panel", top_sb)
+	add_child(top_panel)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	head.mouse_filter = Control.MOUSE_FILTER_STOP
+	top_panel.add_child(head)
+	head.add_child(FolkTheme.label("Древо звитяги", 28, Palette.GOLD))
+	_points = FolkTheme.label("", 18, Palette.LINEN)
+	_points.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.add_child(_points)
+	_stats = DescFormat.make_rich()
+	_stats.fit_content = true
+	_stats.scroll_active = false
+	_stats.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_stats.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_stats.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_stats.custom_minimum_size = Vector2(0, 28)
+	_stats.add_theme_font_size_override("normal_font_size", 17)
+	head.add_child(_stats)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(sp)
+	_respec_row = HBoxContainer.new()
+	_respec_row.add_theme_constant_override("separation", 6)
+	head.add_child(_respec_row)
+	_build_respec_buttons(_respec_row)
+	var close := Button.new()
+	close.text = "Закрити"
+	FolkTheme.apply_button(close, Palette.EMBROIDERY, 22)
+	close.custom_minimum_size = Vector2(140, 52)
+	close.pressed.connect(func() -> void: closed.emit())
+	head.add_child(close)
+
+	# zoom tools
 	var tools := VBoxContainer.new()
 	tools.add_theme_constant_override("separation", 8)
-	tools.position = Vector2(10, 10)
-	left.add_child(tools)
+	tools.position = Vector2(14, 98)
+	tools.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(tools)
 	for spec in [["+", 1.25], ["−", 0.8]]:
 		var b := Button.new()
 		b.text = spec[0]
@@ -55,61 +103,154 @@ func _ready() -> void:
 		b.pressed.connect(func() -> void: _view.zoom_center(f))
 		tools.add_child(b)
 	var cb := Button.new()
-	cb.text = "Центр"
-	FolkTheme.apply_button(cb, Palette.PANEL_LIGHT, 20)
-	cb.custom_minimum_size = Vector2(96, 64)
+	cb.text = "Корінь"
+	FolkTheme.apply_button(cb, Palette.PANEL_LIGHT, 18)
+	cb.custom_minimum_size = Vector2(96, 56)
 	cb.pressed.connect(_focus_start)
 	tools.add_child(cb)
-	var hint := FolkTheme.label("Тягни — рухати · щипок — масштаб", 18, Palette.TEXT_DIM)
-	hint.position = Vector2(14, 0)
-	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	hint.position.y -= 34.0
-	hint.position.x = 14.0
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	left.add_child(hint)
+	var cb2 := Button.new()
+	cb2.text = "Крона"
+	FolkTheme.apply_button(cb2, Palette.PANEL_LIGHT, 18)
+	cb2.custom_minimum_size = Vector2(96, 56)
+	cb2.pressed.connect(func() -> void:
+		if PerkTree.has_node("core"):
+			_view.focus_on("core", 0.35))
+	tools.add_child(cb2)
 
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
-	panel.custom_minimum_size = Vector2(390, 0)
-	h.add_child(panel)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
-	panel.add_child(v)
-	v.add_child(FolkTheme.label("Древо звитяги", 32, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(OrnamentBand.new(26))
-	_points = FolkTheme.label("", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER)
-	v.add_child(_points)
-	_stats = FolkTheme.label("", 18, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER, true)
-	v.add_child(_stats)
-	v.add_child(HSeparator.new())
-	var tr := HBoxContainer.new()
-	tr.add_theme_constant_override("separation", 10)
-	v.add_child(tr)
+	var hint := FolkTheme.label("Тягни — рухати · щипок — масштаб · торкнись вузла", 17, Palette.TEXT_DIM)
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	hint.position = Vector2(14, -36)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hint)
+
+	# висувна панель деталей (праворуч)
+	_detail = PanelContainer.new()
+	_detail.add_theme_stylebox_override("panel", FolkTheme.frame_style(0.5))
+	_detail.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
+	_detail.offset_left = -360
+	_detail.offset_top = 92
+	_detail.offset_bottom = -16
+	_detail.offset_right = -12
+	_detail.visible = false
+	_detail.clip_contents = true
+	add_child(_detail)
+	var dv_pad := MarginContainer.new()
+	dv_pad.clip_contents = true
+	for side in ["left", "right", "top", "bottom"]:
+		dv_pad.add_theme_constant_override("margin_" + side, 4)
+	_detail.add_child(dv_pad)
+	var dv := VBoxContainer.new()
+	dv.add_theme_constant_override("separation", 6)
+	dv.clip_contents = true
+	dv_pad.add_child(dv)
+	var dhead := HBoxContainer.new()
+	dhead.add_theme_constant_override("separation", 8)
+	dv.add_child(dhead)
 	_icon = TextureRect.new()
-	_icon.custom_minimum_size = Vector2(72, 72)
+	_icon.custom_minimum_size = Vector2(48, 48)
 	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tr.add_child(_icon)
-	_title = FolkTheme.label("Торкнись вузла", 26, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dhead.add_child(_icon)
+	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_box.add_theme_constant_override("separation", 0)
+	_title = FolkTheme.label("Вузол", 20, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, true)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tr.add_child(_title)
-	_effect = FolkTheme.label("", 21, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
-	_effect.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(_effect)
-	_status = FolkTheme.label("", 19, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
-	v.add_child(_status)
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title.max_lines_visible = 2
+	title_box.add_child(_title)
+	dhead.add_child(title_box)
+	var hide_btn := Button.new()
+	hide_btn.text = "×"
+	FolkTheme.apply_button(hide_btn, Palette.PANEL_LIGHT, 22)
+	hide_btn.custom_minimum_size = Vector2(48, 48)
+	hide_btn.pressed.connect(_hide_detail)
+	dhead.add_child(hide_btn)
+	var band_wrap := MarginContainer.new()
+	band_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	band_wrap.clip_contents = true
+	band_wrap.add_theme_constant_override("margin_right", 2)
+	band_wrap.add_theme_constant_override("margin_left", 2)
+	var band := OrnamentBand.new(18)
+	band.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	band.clip_contents = true
+	band_wrap.add_child(band)
+	dv.add_child(band_wrap)
+	var effect_sc := ScrollContainer.new()
+	effect_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	effect_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	dv.add_child(effect_sc)
+	TouchScroll.attach(effect_sc)
+	_effect = DescFormat.make_rich()
+	_effect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	effect_sc.add_child(_effect)
+	_status = FolkTheme.label("", 18, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
+	dv.add_child(_status)
 	_unlock_btn = Button.new()
 	_unlock_btn.text = "Відкрити перк"
-	FolkTheme.apply_button(_unlock_btn, Palette.EMBROIDERY)
+	FolkTheme.apply_button(_unlock_btn, Palette.EMBROIDERY, 22)
+	_unlock_btn.custom_minimum_size = Vector2(0, 56)
 	_unlock_btn.pressed.connect(_on_unlock)
-	v.add_child(_unlock_btn)
-	var close := Button.new()
-	close.text = "Закрити"
-	FolkTheme.apply_button(close, Palette.PANEL_LIGHT)
-	close.pressed.connect(func() -> void: closed.emit())
-	v.add_child(close)
+	dv.add_child(_unlock_btn)
+
 	_build_starter_modal()
+
+
+func _build_respec_buttons(row: HBoxContainer) -> void:
+	var menu := MenuButton.new()
+	menu.text = "Скидання ▾"
+	FolkTheme.apply_button(menu, Palette.PANEL_LIGHT, 16)
+	menu.custom_minimum_size = Vector2(140, 48)
+	var popup := menu.get_popup()
+	popup.add_item("Скинути вузол (−50×рівень)", 0)
+	popup.add_item("Повне скидання (−200×рівень)", 1)
+	popup.add_item("Вода забуття", 2)
+	popup.id_pressed.connect(func(id: int) -> void:
+		match id:
+			0:
+				var nid := _selected
+				if nid == "":
+					_status_toast("Обери вузол для часткового скиду.")
+					return
+				if GameState.respec_node(nid):
+					_status_toast("Вузол і залежні повернуто.")
+					_refresh()
+				else:
+					_status_toast("Не вдалося (ціна %d гривень)." % (50 * GameState.level))
+			1:
+				_confirm.dialog_text = "Повне скидання Древа (−%d гривень)?" % (200 * GameState.level)
+				_confirm.confirmed.connect(func() -> void:
+					if GameState.respec_full(false):
+						_status_toast("Древо скинуто.")
+						_refresh()
+					else:
+						_status_toast("Недостатньо гривень.")
+				, CONNECT_ONE_SHOT)
+				_confirm.popup_centered()
+			2:
+				_confirm.dialog_text = "Використати Воду забуття (залишок: %d)?" % GameState.oblivion_water
+				_confirm.confirmed.connect(func() -> void:
+					if GameState.respec_full(true):
+						_status_toast("Вода забуття: Древо скинуто.")
+						_refresh()
+					else:
+						_status_toast("Немає Води забуття.")
+				, CONNECT_ONE_SHOT)
+				_confirm.popup_centered()
+	)
+	row.add_child(menu)
+
+
+
+func _status_toast(msg: String) -> void:
+	_status.text = msg
+	if _detail_open:
+		pass
+
+
+func _ensure_respec_ui() -> void:
+	# кнопки вже в верхній панелі
+	pass
 
 
 func _build_starter_modal() -> void:
@@ -131,8 +272,8 @@ func _build_starter_modal() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
-	v.add_child(FolkTheme.label("Обери стартову навичку", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(FolkTheme.label("Одну з трьох: безкоштовно, один раз. Решту навичок відкриєш на Древі.", 21, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(FolkTheme.label("Обери стартовий науз", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(FolkTheme.label("Одну з трьох: безкоштовно, один раз.", 21, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(OrnamentBand.new(24))
 	_modal_row = HBoxContainer.new()
 	_modal_row.add_theme_constant_override("separation", 14)
@@ -183,65 +324,14 @@ func _on_starter_picked(node_id: String) -> void:
 		_view.selected = st
 		_focus_start()
 		_refresh()
-		_status.text = "Стартовий науз обрано. Далі відкривай пасивні вузли Древа."
-
-
-
-func _ensure_respec_ui() -> void:
-	if has_meta("respec_ui"):
-		return
-	set_meta("respec_ui", true)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	var b1 := Button.new()
-	b1.text = "Скинути вузол (−50×рівень)"
-	FolkTheme.apply_button(b1, Palette.PANEL_LIGHT, 16)
-	b1.custom_minimum_size = Vector2(240, 44)
-	b1.pressed.connect(func() -> void:
-		var id := str(get_meta("sel_node", ""))
-		if id == "":
-			_status.text = "Обери вузол для часткового скиду."
-			return
-		if GameState.respec_node(id):
-			_status.text = "Вузол і залежні повернуто. Перки оновлено."
-			_refresh()
-		else:
-			_status.text = "Не вдалося (ціна %d гривень або вузол потрібний для шляху)." % (50 * GameState.level)
-	)
-	row.add_child(b1)
-	var b2 := Button.new()
-	b2.text = "Повне скидання (−200×рівень)"
-	FolkTheme.apply_button(b2, Palette.EMBROIDERY, 16)
-	b2.custom_minimum_size = Vector2(260, 44)
-	b2.pressed.connect(func() -> void:
-		if GameState.respec_full(false):
-			_status.text = "Древо скинуто. Перки повернуто."
-			_refresh()
-		else:
-			_status.text = "Потрібно %d гривень або Вода забуття." % (200 * GameState.level)
-	)
-	row.add_child(b2)
-	var b3 := Button.new()
-	b3.text = "Вода забуття"
-	FolkTheme.apply_button(b3, Palette.TURQUOISE.darkened(0.2), 16)
-	b3.custom_minimum_size = Vector2(160, 44)
-	b3.pressed.connect(func() -> void:
-		if GameState.respec_full(true):
-			_status.text = "Вода забуття: Древо скинуто."
-			_refresh()
-		else:
-			_status.text = "Немає Води забуття (oblivion_water=%d)." % GameState.oblivion_water
-	)
-	row.add_child(b3)
-	# try attach under root
-	if _status.get_parent() != null:
-		_status.get_parent().add_child(row)
+		_status_toast("Стартовий науз обрано. Далі відкривай пасивні вузли Древа.")
 
 
 func open() -> void:
 	_ensure_respec_ui()
 	visible = true
 	_modal.visible = false
+	_hide_detail()
 	if GameState.starter_pending():
 		_show_starter_modal()
 	_selected = ""
@@ -252,52 +342,62 @@ func open() -> void:
 
 func _focus_start() -> void:
 	var st := PerkTree.class_start(GameState.hero_class)
-	_view.focus_on(st, 0.55)
+	_view.focus_on(st, 0.42)
 
 
 func _on_node_selected(id: String) -> void:
 	_selected = id
 	set_meta("sel_node", id)
+	_show_detail()
 	_refresh()
+
+
+func _show_detail() -> void:
+	_detail.visible = true
+	_detail_open = true
+
+
+func _hide_detail() -> void:
+	_detail.visible = false
+	_detail_open = false
+	_selected = ""
+	if _view:
+		_view.selected = ""
 
 
 func _on_unlock() -> void:
 	if _selected == "":
 		return
 	if GameState.unlock(_selected):
-		var d: Dictionary = PerkTree.get_def(_selected)
-		if str(d.get("skill", "")) != "":
-			_status.text = "Вузол відкрито. Активні вміння — це наузи: дивись вкладку «Наузи»."
-			_refresh(true)
-			return
+		_status_toast("Вузол відкрито.")
+		_refresh(true)
+		return
 	_refresh()
 
 
 func _refresh(keep_status: bool = false) -> void:
-	_points.text = "Вільних перків: %d" % GameState.perk_points
-	_stats.text = "%s %d · %s %d · %s %d\nЖиття %d · Чар %d" % [
-		Strings.stat_name("str"), HeroStats.stat_shown("str"),
-		Strings.stat_name("agi"), HeroStats.stat_shown("agi"),
-		Strings.stat_name("faith"), HeroStats.stat_shown("faith"),
-		int(HeroStats.max_hp()), int(HeroStats.max_mana())]
-	if _selected == "":
+	_points.text = "Перки: %d" % GameState.perk_points
+	var hs: String = str(Palette.STAT_BB.get("str", "D8574B"))
+	var ha: String = str(Palette.STAT_BB.get("agi", "7CBF5A"))
+	var hf: String = str(Palette.STAT_BB.get("faith", "E0A526"))
+	_stats.text = "[color=#%s]%s %d[/color] · [color=#%s]%s %d[/color] · [color=#%s]%s %d[/color] · Життя %d · Чар %d · Вода %d" % [
+		hs, Strings.stat_name("str"), HeroStats.stat_shown("str"),
+		ha, Strings.stat_name("agi"), HeroStats.stat_shown("agi"),
+		hf, Strings.stat_name("faith"), HeroStats.stat_shown("faith"),
+		int(HeroStats.max_hp()), int(HeroStats.max_mana()), GameState.oblivion_water]
+	if _selected == "" or not _detail_open:
 		_unlock_btn.disabled = true
-		_icon.texture = null
 		return
 	var d: Dictionary = PerkTree.get_def(_selected)
 	_title.text = str(d.get("name", _selected))
 	_icon.texture = _view._icon_for(_selected)
-	var fx := PerkTree.effect_text(_selected)
-	if str(d.get("skill", "")) != "" and Skills.has(str(d["skill"])):
-		var sk: String = str(d["skill"])
-		fx += ("\n\n" if fx != "" else "") + Skills.describe(sk)
-	var desc := str(d.get("description", ""))
-	if desc != "":
-		fx += ("\n\n" if fx != "" else "") + desc
-	_effect.text = PerkTree.dedupe_text(fx)
-	var reason := GameState.unlock_block_reason(_selected)
-	_unlock_btn.disabled = reason != ""
+	_effect.text = DescFormat.node_bb(_selected)
+	var openable := false
+	if not GameState.is_unlocked(_selected) and not GameState.starter_pending() and GameState.perk_points > 0:
+		for nb in PerkTree.neighbors(_selected):
+			if GameState.is_unlocked(nb):
+				openable = true
+				break
+	_unlock_btn.disabled = not openable
 	if not keep_status:
-		_status.text = "Можна відкрити." if reason == "" else reason
-	_view.selected = _selected
-	_view.queue_redraw()
+		_status.text = ""

@@ -1,0 +1,141 @@
+{
+  "fruits": [
+    {
+      "id": "fruit0",
+      "theme": "броня",
+      "name": "Щит роду",
+      "region": "str"
+    },
+    {
+      "id": "fruit1",
+      "theme": "кров",
+      "name": "Кривавий удар",
+      "region": "str"
+    },
+    {
+      "id": "fruit2",
+      "theme": "пробиття",
+      "name": "Пробивач",
+      "region": "str"
+    },
+    {
+      "id": "fruit3",
+      "theme": "опір",
+      "name": "Залізна шкіра",
+      "region": "str"
+    },
+    {
+      "id": "fruit4",
+      "theme": "рух",
+      "name": "Тінь вовка",
+      "region": "agi"
+    },
+    {
+      "id": "fruit5",
+      "theme": "крит",
+      "name": "Влучне око",
+      "region": "agi"
+    },
+    {
+      "id": "fruit6",
+      "theme": "снаряди",
+      "name": "Град стріл",
+      "region": "agi"
+    },
+    {
+      "id": "fruit7",
+      "theme": "звитяга",
+      "name": "Шлях учня",
+      "region": "agi"
+    },
+    {
+      "id": "fruit8",
+      "theme": "площа",
+      "name": "Коло пращурів",
+      "region": "faith"
+    },
+    {
+      "id": "fruit9",
+      "theme": "нитки",
+      "name": "Нитка долі",
+      "region": "faith"
+    },
+    {
+      "id": "fruit10",
+      "theme": "наузи",
+      "name": "Сила науза",
+      "region": "faith"
+    },
+    {
+      "id": "fruit11",
+      "theme": "опір",
+      "name": "Опір стихіям",
+      "region": "faith"
+    },
+    {
+      "id": "fruit12",
+      "theme": "здобич",
+      "name": "Щедра здобич",
+      "region": "agi"
+    },
+    {
+      "id": "fruit13",
+      "theme": "бій",
+      "name": "Бойовий дух",
+      "region": "str"
+    },
+    {
+      "id": "fruit14",
+      "theme": "зір",
+      "name": "Ясне око",
+      "region": "agi"
+    }
+  ],
+  "layout": {
+    "y_root": 500,
+    "y_crown": -2000,
+    "y_trunk_top": -200,
+    "y_trunk_base": 500,
+    "canopy_rx": 1280.0,
+    "canopy_ry": 980.0,
+    "trunk_rad_base": 210.0,
+    "trunk_rad_top": 105.0,
+    "bands": [
+      {
+        "id": "roots",
+        "name": "Коріння",
+        "y0": 500,
+        "y1": 2100
+      },
+      {
+        "id": "trunk",
+        "name": "Стовбур",
+        "y0": -200,
+        "y1": 500
+      },
+      {
+        "id": "crown",
+        "name": "Крона",
+        "y0": -2080,
+        "y1": -200
+      }
+    ],
+    "trunk_spine": [
+      "trunk0",
+      "trunk_c1",
+      "trunk_c2",
+      "trunk_c3",
+      "trunk_c4",
+      "trunk_c5",
+      "trunk_c6",
+      "trunk_c7",
+      "trunk_c8",
+      "trunk_c9",
+      "trunk_c10",
+      "trunk_c11",
+      "trunk_c12",
+      "trunk_c13",
+      "trunk_c14"
+    ]
+  }
+}

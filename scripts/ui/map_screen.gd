@@ -28,20 +28,29 @@ func _ready() -> void:
 	h.add_child(map)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
-	v.custom_minimum_size = Vector2(250, 0)
+	v.custom_minimum_size = Vector2(280, 0)
 	h.add_child(v)
-	v.add_child(FolkTheme.label("Карта земель", 30, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(OrnamentBand.new(22))
-	v.add_child(FolkTheme.label("Біла стрілка — ти.\nЗолотий ромб — Капище: там лікуються.\nЖовті кружки — люди, квадрати — будинки.\nЧервоні цятки — вороги, бірюзові — привиди, фіолетовий — міні-бос.\nЗолоті крапки — здобич і скрині.\nБірюзова брама — вихід до іншої місцевості.", 19, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true))
-	var fill := Control.new()
-	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(fill)
+	var mhead := HBoxContainer.new()
+	mhead.add_theme_constant_override("separation", 8)
+	v.add_child(mhead)
+	mhead.add_child(FolkTheme.label("Карта земель", 28, Palette.GOLD))
+	var msp := Control.new()
+	msp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mhead.add_child(msp)
 	var close := Button.new()
 	close.text = "Закрити"
-	FolkTheme.apply_button(close, Palette.EMBROIDERY, 24)
-	close.custom_minimum_size = Vector2(0, 60)
+	FolkTheme.apply_button(close, Palette.EMBROIDERY, 22)
+	close.custom_minimum_size = Vector2(130, 56)
 	close.pressed.connect(func() -> void: closed.emit())
-	v.add_child(close)
+	mhead.add_child(close)
+	v.add_child(OrnamentBand.new(22))
+	var desc_sc := ScrollContainer.new()
+	desc_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	desc_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(desc_sc)
+	TouchScroll.attach(desc_sc)
+	var desc := FolkTheme.label("Біла стрілка — ти.\nЗолотий ромб — Капище: там лікуються.\nЖовті кружки — люди, квадрати — будинки.\nЧервоні цятки — вороги, бірюзові — привиди, фіолетовий — міні-бос.\nЗолоті крапки — здобич і скрині.\nБірюзова брама — вихід до іншої місцевості.", 19, Palette.LINEN, HORIZONTAL_ALIGNMENT_LEFT, true)
+	desc_sc.add_child(desc)
 
 
 func open(world: GameWorld, player: Player) -> void:

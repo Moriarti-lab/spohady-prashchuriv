@@ -159,7 +159,29 @@ static func can_equip_slot(slot: String, item: Dictionary) -> bool:
 
 
 static func icon_of(item: Dictionary) -> String:
+	if Nauzi.is_nauz(item):
+		var sk := str(item.get("skill", ""))
+		var nid := "nauz_" + sk
+		return nid if Icons.has_id(nid) or Icons.has_art(nid) else "nauz"
+	if Nauzi.is_thread(item):
+		var c := str(item.get("color", "white"))
+		var tid := "thread_" + c
+		return tid if Icons.has_id(tid) or Icons.has_art(tid) else "thread"
+	if str(item.get("kind", "")) == "oblivion" or str(item.get("base", "")) == "oblivion_water":
+		return "oblivion_water"
+	if str(item.get("kind", "")) == "potion_hp":
+		return "potion_hp"
+	if str(item.get("kind", "")) == "potion_mana":
+		return "potion_mana"
 	return str(base_of(item).get("icon", ""))
+
+
+static func make_oblivion_water(uid: int = 0) -> Dictionary:
+	return {
+		"uid": uid, "base": "oblivion_water", "kind": "oblivion",
+		"rarity": 2, "ilvl": 1, "name": "Вода забуття",
+		"stats": {}, "icon": "oblivion_water",
+	}
 
 
 ## Іконка порожнього слота спорядження (підказка, що там має лежати).
@@ -342,8 +364,24 @@ static func stat_lines(item: Dictionary) -> Array:
 	if Nauzi.is_thread(item):
 		var tid := str(item.get("thread", ""))
 		var td: Dictionary = Nauzi.THREADS.get(tid, {})
-		out.append("Нитка · %s" % Nauzi.COLOR_NAMES.get(str(item.get("color", "white")), ""))
-		out.append(str(td.get("desc", td.get("name", tid))))
+		var color := str(item.get("color", "white"))
+		var r := int(item.get("rarity", 0))
+		out.append("Нитка · %s" % Nauzi.COLOR_NAMES.get(color, color))
+		var tags: Array = td.get("tags", [])
+		var tag_txt := ""
+		if not tags.is_empty():
+			var ts: PackedStringArray = []
+			for tg in tags:
+				ts.append(str(tg))
+			tag_txt = " · " + ", ".join(ts)
+		out.append("Сумісність: %s%s" % [
+			"будь-який" if color == "white" else Strings.stat_name(str(Nauzi.COLOR_STAT.get(color, ""))),
+			tag_txt
+		])
+		var rmult := 1.0 + 0.1 * float(r)
+		for k in td.get("mods", {}):
+			out.append(PerkTree.stat_line(str(k), float(td["mods"][k]) * rmult))
+		out.append("Сила рідкості ×%s" % Strings.num(snappedf(rmult, 0.1)))
 		return out
 	var st: Dictionary = item.get("stats", {})
 	var b: Dictionary = base_of(item)

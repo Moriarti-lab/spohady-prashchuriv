@@ -12,9 +12,12 @@ func _init(h: float = 22.0, p_bottom: bool = false) -> void:
 	custom_minimum_size.y = h
 	bottom = p_bottom
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip_contents = true
 
 
 func _draw() -> void:
+	if size.x < 4.0 or size.y < 2.0:
+		return
 	var tex := FolkTheme.art_texture(FolkTheme.UI_DIR + ("band_bottom.png" if bottom else "band_top.png"))
 	if tex != null:
 		_draw_art(tex)
@@ -53,9 +56,14 @@ func _draw_art(tex: Texture2D) -> void:
 	var tile_w := float(small.get_width())
 	var n := maxi(1, int(round(size.x / tile_w)))
 	var w := size.x / float(n)
+	var max_x := size.x
 	for i in range(n):
+		var x0 := float(i) * w
+		if x0 >= max_x:
+			break
+		var tw := minf(w, max_x - x0)
 		# кожна друга плитка віддзеркалена: шов між повторами не видно
 		if i % 2 == 0:
-			draw_texture_rect(small, Rect2(float(i) * w, 0, w, size.y), false)
+			draw_texture_rect(small, Rect2(x0, 0, tw, size.y), false)
 		else:
-			draw_texture_rect(small, Rect2(float(i + 1) * w, 0, -w, size.y), false)
+			draw_texture_rect(small, Rect2(x0 + tw, 0, -tw, size.y), false)

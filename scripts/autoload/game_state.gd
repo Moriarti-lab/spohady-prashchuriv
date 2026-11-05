@@ -445,6 +445,38 @@ func mokryna_extract(bag_index: int, thread_index: int) -> bool:
 	return true
 
 
+
+
+## Вплести нитку з сумки в науз у гнізді героя.
+func attach_thread_to_socket(socket_index: int, thread_bag_index: int) -> bool:
+	last_error = ""
+	if socket_index < 0 or socket_index >= QUICK_SLOTS:
+		return false
+	if typeof(sockets[socket_index]) != TYPE_DICTIONARY or sockets[socket_index] == null:
+		last_error = "У гнізді немає науза"
+		return false
+	if thread_bag_index < 0 or thread_bag_index >= bag.size() or not Nauzi.is_thread(bag[thread_bag_index]):
+		last_error = "Обери нитку в сумці"
+		return false
+	var nauz: Dictionary = sockets[socket_index]
+	var th: Dictionary = bag[thread_bag_index]
+	if not Nauzi.thread_fits(nauz, th):
+		last_error = "Нитка не пасує до цього науза"
+		return false
+	var slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
+	var threads: Array = nauz.get("threads", [])
+	if threads.size() >= slots:
+		last_error = "Усі гнізда ниток зайняті"
+		return false
+	threads.append({"thread": str(th.get("thread", "")), "color": str(th.get("color", "white")), "rarity": int(th.get("rarity", 0)), "name": str(th.get("name", ""))})
+	nauz["threads"] = threads
+	bag.remove_at(thread_bag_index)
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
 func attach_thread(nauz_bag_index: int, thread_bag_index: int) -> bool:
 	last_error = ""
 	if nauz_bag_index < 0 or thread_bag_index < 0 or nauz_bag_index >= bag.size() or thread_bag_index >= bag.size():
@@ -604,6 +636,12 @@ func bag_free() -> int:
 
 ## Кладе предмет у сумку. false — сумка повна.
 func add_item(item: Dictionary) -> bool:
+	if str(item.get("kind", "")) == "oblivion" or str(item.get("base", "")) == "oblivion_water":
+		oblivion_water += 1
+		Sound.play("sfx_coins", -3.0)
+		changed.emit()
+		save_game()
+		return true
 	if bag.size() >= BAG_SIZE:
 		return false
 	if int(item.get("uid", 0)) == 0:
@@ -744,8 +782,12 @@ func refresh_stock(force: bool = false) -> bool:
 			rar = 2
 		elif x > 0.60:
 			rar = 1
-		var it := Items.generate(ilvl, rng, t, rar)
-		it["uid"] = _next_uid()
+		var it: Dictionary
+		if i == STOCK_SIZE - 1 and (level >= 5 or rng.randf() < 0.55):
+			it = Items.make_oblivion_water(_next_uid())
+		else:
+			it = Items.generate(ilvl, rng, t, rar)
+			it["uid"] = _next_uid()
 		merchant_stock.append(it)
 	merchant_refresh_at = now + STOCK_REFRESH_SECONDS
 	changed.emit()
@@ -767,12 +809,16 @@ func buy(index: int) -> bool:
 	if gold < price:
 		last_error = "Не вистачає гривень"
 		return false
-	if bag.size() >= BAG_SIZE:
+	var is_oblivion := str(item.get("kind", "")) == "oblivion" or str(item.get("base", "")) == "oblivion_water"
+	if not is_oblivion and bag.size() >= BAG_SIZE:
 		last_error = "Сумка повна"
 		return false
 	gold -= price
 	merchant_stock.remove_at(index)
-	bag.append(item)
+	if is_oblivion:
+		oblivion_water += 1
+	else:
+		bag.append(item)
 	changed.emit()
 	save_game()
 	return true
@@ -1105,6 +1151,8 @@ func _clean_item(v: Variant) -> Dictionary:
 		if not (color in Nauzi.COLORS):
 			color = "white"
 		return Nauzi.make_thread(tid2, color, int(v.get("rarity", 0)), int(v.get("uid", 0)))
+	if kind == "oblivion" or str(v.get("base", "")) == "oblivion_water":
+		return Items.make_oblivion_water(int(v.get("uid", 0)))
 	var base := str(v.get("base", ""))
 	if not Items.BASES.has(base):
 		return {}

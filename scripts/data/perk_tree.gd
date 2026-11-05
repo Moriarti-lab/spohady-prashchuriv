@@ -4,8 +4,8 @@
 class_name PerkTree
 
 const FORMAT := "spohady-perk-tree"
-const VERSION := 3
-const SUPPORTED_VERSIONS := [1, 2, 3]
+const VERSION := 4
+const SUPPORTED_VERSIONS := [1, 2, 3, 4]
 const TREE_PATH := "res://data/perk_tree.json"
 const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]  # skill застарів у v3, лишається для сумісності
 ## Ключ бонусу -> шаблон тексту (%s — число зі знаком).
@@ -211,7 +211,7 @@ static func validate(data: Variant) -> Dictionary:
 	if str(d.get("format", "")) != FORMAT:
 		errors.append("Поле format має бути «%s»." % FORMAT)
 	if typeof(d.get("version", null)) not in [TYPE_INT, TYPE_FLOAT] or not (int(d.get("version", 0)) in SUPPORTED_VERSIONS):
-		errors.append("Поле version має бути 1, 2 або 3 (поточна — %d)." % VERSION)
+		errors.append("Поле version має бути 1–4 (поточна — %d)." % VERSION)
 	var nodes: Variant = d.get("nodes", null)
 	if typeof(nodes) != TYPE_ARRAY or (nodes as Array).is_empty():
 		errors.append("Список nodes порожній або відсутній.")

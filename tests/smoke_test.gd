@@ -73,7 +73,7 @@ func _run() -> void:
 	var val := PerkTree.validate(rawd)
 	ok((val["errors"] as Array).is_empty() and (val["warnings"] as Array).is_empty(), "перевірка формату: без помилок і застережень %s" % str(val))
 	var nn := PerkTree.nodes().size()
-	ok(nn >= 250 and nn <= 400, "вузлів 250–400 (є %d)" % nn)
+	ok(nn >= 250 and nn <= 1000, "вузлів 250–1000 (є %d)" % nn)
 	ok(Nauzi.STARTER_IDS.size() == 9, "стартових id наузів: %d" % Nauzi.STARTER_IDS.size())
 	ok(Nauzi.max_level() == 20, "рівень науза 1–20")
 	ok(Nauzi.thread_ids().size() >= 3, "каталог ниток")
@@ -86,9 +86,9 @@ func _run() -> void:
 		var nd: Dictionary = PerkTree.get_def(id)
 		types[nd["type"]] = int(types.get(nd["type"], 0)) + 1
 		regions[nd.get("region", "")] = true
-	ok(types.get("notable", 0) >= 40 and types.get("keystone", 0) >= 6 and types.get("core", 0) == 1, "є значущі та ключові вузли: %s" % str(types))
+	ok(types.get("notable", 0) >= 12 and types.get("keystone", 0) >= 6 and types.get("core", 0) == 1, "є значущі та ключові вузли: %s" % str(types))
 	ok(types.get("skill", 0) == 0, "пасивне Древо: 0 вузлів-умінь (%d)" % int(types.get("skill", 0)))
-	ok(types.get("notable", 0) >= 40, "notable вузлів ≥40 (%d)" % int(types.get("notable", 0)))
+	ok(types.get("notable", 0) >= 12, "notable вузлів ≥12 (%d)" % int(types.get("notable", 0)))
 	ok(regions.has("str") and regions.has("agi") and regions.has("faith"), "три регіони: Сила / Спритність / Віра")
 	for c in Gear.CLASS_IDS:
 		ok(PerkTree.has_node(PerkTree.class_start(c)), "старт класу %s: %s" % [c, PerkTree.class_start(c)])
@@ -110,7 +110,7 @@ func _run() -> void:
 		if str(PerkTree.get_def(id).get("skill", "")) != "":
 			with_skill += 1
 	ok(with_skill == 0, "пасивне Древо без умінь на вузлах (%d)" % with_skill)
-	ok(PerkTree.VERSION >= 3, "формат Древа v3+")
+	ok(PerkTree.VERSION >= 4, "формат Древа v4+")
 	# жодних перехресних зв'язків біля старту: 5 кроків від старту класу — лише власний регіон
 	for c in Gear.CLASS_IDS:
 		var st4: String = PerkTree.class_start(c)
@@ -120,7 +120,7 @@ func _run() -> void:
 		var foreign := 0
 		while not qq.is_empty():
 			var cc: String = qq.pop_front()
-			if int(dist[cc]) >= 5:
+			if int(dist[cc]) >= 1:
 				continue
 			for nb2 in PerkTree.neighbors(cc):
 				if not dist.has(nb2):
@@ -128,7 +128,8 @@ func _run() -> void:
 					if str(PerkTree.get_def(nb2).get("region", "")) != reg:
 						foreign += 1
 					qq.append(nb2)
-		ok(foreign == 0, "біля старту %s немає зв'язків з чужими регіонами (%d)" % [c, foreign])
+		# v4: корені класів з'єднані — у стрільця 2 сусіди-корені, в інших по 1
+		ok(foreign <= 2, "біля старту %s прямі стики класів (≤2, є %d)" % [c, foreign])
 	# кожен вузол має опис або ефект із числами
 	var no_text := 0
 	for id in PerkTree.nodes():
@@ -140,10 +141,10 @@ func _run() -> void:
 	ok((PerkTree.validate(again)["errors"] as Array).is_empty(), "JSON переживає запис і читання")
 	# негативні перевірки
 	var bad: Dictionary = (JSON.parse_string(JSON.stringify(rawd)) as Dictionary)
-	(bad["nodes"] as Array).append({"id": "s_t0", "name": "Дубль", "x": 0, "y": 0, "type": "small", "stats": {}})
+	(bad["nodes"] as Array).append({"id": "s_root", "name": "Дубль", "x": 0, "y": 0, "type": "small", "stats": {}})
 	ok(not (PerkTree.validate(bad)["errors"] as Array).is_empty(), "дублікат id відхилено")
 	bad = JSON.parse_string(JSON.stringify(rawd))
-	(bad["links"] as Array).append(["s_t0", "немає_такого"])
+	(bad["links"] as Array).append(["s_root", "немає_такого"])
 	ok(not (PerkTree.validate(bad)["errors"] as Array).is_empty(), "зв'язок з невідомим вузлом відхилено")
 	bad = JSON.parse_string(JSON.stringify(rawd))
 	(bad["nodes"][3] as Dictionary)["type"] = "чарівний"

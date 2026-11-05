@@ -14,8 +14,8 @@ const errs = (d) => ctx.validateTree(d).errors.length;
 ok(JSON.stringify(embedded) === JSON.stringify(file), "вбудоване Древо == data/perk_tree.json");
 const v = ctx.validateTree(file);
 ok(v.errors.length === 0 && v.warnings.length === 0, "data/perk_tree.json проходить перевірку редактора " + JSON.stringify(v));
-ok(file.nodes.length >= 250 && file.nodes.length <= 350, "вузлів 250–350: " + file.nodes.length);
-ok(file.version === 3 && file.nodes.filter(n => n.type === "core").length === 1, "версія 3 і одне Серце роду");
+ok(file.nodes.length >= 250 && file.nodes.length <= 1000, "вузлів 250–1000: " + file.nodes.length);
+ok((file.version === 3 || file.version === 4) && file.nodes.filter(n => n.type === "core").length === 1, "версія 3/4 і одне Серце роду");
 ok(file.nodes.filter(n => n.skill || n.mod_skill).length === 0, "пасивне Древо без skill/mod_skill");
 // експорт того, що читає редактор, дає той самий файл
 const exported = JSON.parse(ctx.serializeTree({ format: file.format, version: file.version, title: file.title, comment: file.comment,
@@ -24,9 +24,9 @@ let same = true; try { assert.deepStrictEqual(exported, file); } catch (e) { sam
 ok(same, "нормалізація + серіалізація не змінюють файл");
 ok(ctx.serializeTree(file).endsWith("}\n") && ctx.serializeTree(file).startsWith('{\n "format"'), "формат запису: відступ 1, новий рядок у кінці");
 // негативні випадки — ті самі, що в tests/smoke_test.gd
-let d = clone(file); d.nodes.push({ id: "s_t0", name: "Дубль", x: 0, y: 0, type: "small", stats: {} }); ok(errs(d) > 0, "дублікат id відхилено");
-d = clone(file); d.links.push(["s_t0", "немає_такого"]); ok(errs(d) > 0, "зв'язок з невідомим вузлом відхилено");
-d = clone(file); d.links.push(["s_t0", "s_t0"]); ok(errs(d) > 0, "зв'язок вузла із собою відхилено");
+let d = clone(file); d.nodes.push({ id: "s_root", name: "Дубль", x: 0, y: 0, type: "small", stats: {} }); ok(errs(d) > 0, "дублікат id відхилено");
+d = clone(file); d.links.push(["s_root", "немає_такого"]); ok(errs(d) > 0, "зв'язок з невідомим вузлом відхилено");
+d = clone(file); d.links.push(["s_root", "s_root"]); ok(errs(d) > 0, "зв'язок вузла із собою відхилено");
 d = clone(file); d.links.push(clone(file.links[0])); ok(errs(d) > 0, "повтор зв'язку відхилено");
 d = clone(file); d.nodes[3].type = "чарівний"; ok(errs(d) > 0, "невідомий тип відхилено");
 d = clone(file); d.nodes[3].stats = { "літання": 5 }; ok(errs(d) > 0, "невідомий бонус відхилено");

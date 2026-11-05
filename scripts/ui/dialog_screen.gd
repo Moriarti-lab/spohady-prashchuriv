@@ -41,20 +41,31 @@ func _ready() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
+	var dhead := HBoxContainer.new()
+	dhead.add_theme_constant_override("separation", 8)
+	v.add_child(dhead)
+	_title = FolkTheme.label("", 34, Palette.GOLD)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dhead.add_child(_title)
+	var close := Button.new()
+	close.text = "Закрити"
+	FolkTheme.apply_button(close, Palette.EMBROIDERY, 22)
+	close.custom_minimum_size = Vector2(130, 56)
+	close.pressed.connect(func() -> void: closed.emit())
+	dhead.add_child(close)
 	v.add_child(OrnamentBand.new())
-	_title = FolkTheme.label("", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	v.add_child(_title)
+	var body_sc := ScrollContainer.new()
+	body_sc.custom_minimum_size = Vector2(0, 220)
+	body_sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(body_sc)
+	TouchScroll.attach(body_sc)
 	_body = VBoxContainer.new()
 	_body.add_theme_constant_override("separation", 10)
-	v.add_child(_body)
+	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body_sc.add_child(_body)
 	_msg = FolkTheme.label("", 21, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_CENTER, true)
 	v.add_child(_msg)
-	var close := Button.new()
-	close.text = "Бувай"
-	FolkTheme.apply_button(close, Palette.PANEL_LIGHT, 24)
-	close.custom_minimum_size = Vector2(0, 58)
-	close.pressed.connect(func() -> void: closed.emit())
-	v.add_child(close)
 	v.add_child(OrnamentBand.new())
 
 
