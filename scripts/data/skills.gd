@@ -94,9 +94,14 @@ static func icon_id(id: String, blessing: String = "") -> String:
 	return "sk_" + id
 
 
-## Сума поліпшень навички з відкритих вузлів Древа (або з заданого списку вузлів).
+## Поліпшення вміння: з вставленого науза (рівень + нитки). node_ids лишається для сумісності тестів старого формату.
 static func mods_for(id: String, node_ids: Array = []) -> Dictionary:
 	var out := {}
+	# v0.5: науз у гнізді
+	for s in GameState.sockets:
+		if typeof(s) == TYPE_DICTIONARY and str(s.get("skill", "")) == id:
+			return Nauzi.mods_for_nauz(s)
+	# сумісність: старі mod_skill вузли (якщо ще є в тестовому Древі)
 	var list: Array = node_ids if not node_ids.is_empty() else GameState.unlocked
 	for nid in list:
 		var d: Dictionary = PerkTree.get_def(str(nid))

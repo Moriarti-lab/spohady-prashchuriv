@@ -1,5 +1,5 @@
 ## Регресійний тест (з 0.3.1): справжній шлях нового гравця без скорочень
-## (створення героя → бог → клас → «Вирушити в дорогу» → світ із прогрівом → вибір стартової навички).
+## (створення героя → бог → клас → «Вирушити в дорогу» → світ із прогрівом → вибір стартового науза).
 ## У 0.3.0 тут був чорний екран: Древо ставило гру на паузу, і заслона прогріву не зникала.
 ## Запуск: godot --path . res://tests/flow_test.tscn  (бажано не headless: xvfb-run … --rendering-driver opengl3)
 extends Node
@@ -57,11 +57,11 @@ func _run() -> void:
 	if w is GameWorld:
 		ok(w._fade_rect.modulate.a <= 0.01, "темна заслона зникла (a=%.2f)" % w._fade_rect.modulate.a)
 		ok(not w.has_node("WarmUp"), "екран прогріву прибрано")
-		ok(w.hud._perk_screen.visible and w.hud._perk_screen._modal.visible, "одразу показано вибір стартової навички")
+		ok(w.hud._perk_screen.visible and w.hud._perk_screen._modal.visible, "одразу показано вибір стартового науза")
 		var picks: Array = GameState.starter_choices()
 		w.hud._perk_screen._on_starter_picked(str(picks[0]["node"]))
 		await tree.create_timer(0.3, true).timeout
-		ok(not GameState.starter_pending(), "стартову навичку обрано")
+		ok(not GameState.starter_pending(), "стартовий науз обрано")
 		w.hud._close_overlay()
 		await tree.create_timer(0.3, true).timeout
 		ok(not tree.paused, "гра знята з паузи")

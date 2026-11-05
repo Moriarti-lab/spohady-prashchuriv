@@ -13,12 +13,13 @@ const SLOT_COUNT := 3
 const SETTINGS_PATH := "user://settings.cfg"
 ## Поточна комірка збереження (1..SLOT_COUNT).
 var slot := 1
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 const MAX_LEVEL := 50
 const PERKS_PER_LEVEL := 3
 const START_PERKS := 3
 const DEATH_XP_LOSS := 0.10
 const BAG_SIZE := 48
+const STASH_SIZE := 32
 const QUICK_SLOTS := 4
 const START_HP_POTIONS := 3
 const START_MANA_POTIONS := 2
@@ -47,11 +48,19 @@ var mana_potions := 0
 var bag: Array = []
 var equipment: Dictionary = {}
 var quick: Array = ["", "", "", ""]
+## Чотири гнізда наузів (Dictionary або null).
+var sockets: Array = [null, null, null, null]
+## Скриня в селі.
+var stash: Array = []
+var attr_points := 0
+var attr_spent: Dictionary = {"str": 0, "agi": 0, "faith": 0}
+var oblivion_water := 0
 ## Досліджена мапа для кожної локації: {id: PackedByteArray}.
 var explored_by: Dictionary = {}
 var item_seq := 0
-## Вузол стартової навички з Древа. Порожньо — гравець ще не обирав.
+## Стартовий науз (skill_id). starter_node — застарілий id вузла / skill_id.
 var starter_node := ""
+var starter_skill := ""
 var location := "village"
 ## Звідки прийшов у цю локацію (id локації; порожньо — зайшов із меню або після смерті).
 var arrive_from := ""
@@ -126,13 +135,19 @@ func new_hero(p_name: String, p_blessing: String, p_class: String) -> void:
 	hp_potions = START_HP_POTIONS
 	mana_potions = START_MANA_POTIONS
 	bag = []
+	stash = []
 	equipment = Items.starter(p_class)
 	for it in equipment.values():
 		it["uid"] = _next_uid()
 	quick = ["", "", "", ""]
+	sockets = [null, null, null, null]
+	attr_points = 0
+	attr_spent = {"str": 0, "agi": 0, "faith": 0}
+	oblivion_water = 0
+	starter_skill = ""
 	explored_by = {}
 	notice = ""
-	auto_fill_quick()
+	_sync_quick_from_sockets()
 	has_hero = true
 	save_game()
 	changed.emit()
@@ -159,6 +174,7 @@ func add_xp(amount: int) -> int:
 		xp -= xp_needed()
 		level += 1
 		perk_points += PERKS_PER_LEVEL
+		attr_points += 1
 		gained += 1
 		leveled_up.emit(level)
 		Sound.play("sfx_levelup", 0.0, 0.0)
@@ -197,7 +213,7 @@ func unlock_block_reason(node_id: String) -> String:
 	if is_unlocked(node_id):
 		return "Уже відкрито"
 	if starter_pending():
-		return "Спершу обери стартову навичку"
+		return "Спершу обери стартовий науз"
 	if perk_points <= 0:
 		return "Немає вільних перків"
 	var is_starter := bool(PerkTree.get_def(node_id).get("starter", false))
@@ -226,100 +242,358 @@ func unlock(node_id: String) -> bool:
 
 func _learn_node_skill(node_id: String) -> void:
 	var d: Dictionary = PerkTree.get_def(node_id)
-	if str(d.get("skill", "")) != "" and not (d["skill"] in skills_learned):
-		skills_learned.append(d["skill"])
-		auto_fill_quick()
+	var sk := str(d.get("skill", ""))
+	if sk != "" and Skills.DATA.has(sk) and not (sk in skills_learned):
+		skills_learned.append(sk)
+		if bag_free() > 0:
+			add_item(Nauzi.make_nauz(sk, 1, 0, _next_uid()))
 
 
-## Герой ще не обрав стартову навичку: при першому вході у світ показується вибір.
+## Герой ще не обрав стартовий науз.
 func starter_pending() -> bool:
-	return has_hero and starter_node == ""
+	return has_hero and starter_skill == "" and starter_node == ""
 
 
-## Три стартові навички класу героя: вузли Древа {node_id, skill}.
+## Три стартові наузи класу: {node, skill} (node = skill_id).
 func starter_choices() -> Array:
 	var out: Array = []
-	for nid in PerkTree.nodes():
-		var d: Dictionary = PerkTree.get_def(nid)
-		if bool(d.get("starter", false)) and str(d.get("skill", "")) in Gear.STARTER_SKILLS.get(hero_class, []) \
-				and PerkTree.neighbors(nid).has(PerkTree.class_start(hero_class)):
-			out.append({"node": nid, "skill": str(d["skill"])})
-	out.sort_custom(func(a, b): return Gear.STARTER_SKILLS[hero_class].find(a["skill"]) < Gear.STARTER_SKILLS[hero_class].find(b["skill"]))
+	for sk in Gear.STARTER_SKILLS.get(hero_class, []):
+		out.append({"node": sk, "skill": sk})
 	return out
 
 
-## Обирає одну зі стартових навичок безкоштовно (без перка).
-func choose_starter(node_id: String) -> bool:
-	if starter_node != "":
+## Обирає стартовий науз (skill_id).
+func choose_starter(node_or_skill: String) -> bool:
+	if starter_skill != "":
 		return false
-	var ok := false
+	# після міграції starter_node може вже бути skill_id
+	if starter_node != "" and starter_node in Gear.STARTER_SKILLS.get(hero_class, []):
+		return false
+	var skill := ""
 	for c in starter_choices():
-		if c["node"] == node_id:
-			ok = true
-	if not ok:
+		if c["skill"] == node_or_skill or c["node"] == node_or_skill:
+			skill = c["skill"]
+			break
+	if skill == "":
 		return false
-	starter_node = node_id
-	if not (node_id in unlocked):
-		unlocked.append(node_id)
-	_learn_node_skill(node_id)
+	starter_skill = skill
+	starter_node = skill
+	var nauz := Nauzi.make_nauz(skill, 1, 0, _next_uid())
+	sockets[0] = nauz
+	if not (skill in skills_learned):
+		skills_learned.append(skill)
+	_sync_quick_from_sockets()
 	perk_points = expected_perk_points()
 	changed.emit()
 	save_game()
 	return true
 
 
-## Скільки перків має бути вільно за рівнем, нагородами й відкритими вузлами.
 func expected_perk_points() -> int:
 	var total := START_PERKS + PERKS_PER_LEVEL * (level - 1) + bonus_perks
-	var spent := maxi(0, unlocked.size() - 1 - (1 if starter_node != "" else 0))
+	var spent := maxi(0, unlocked.size() - 1)
 	return maxi(0, total - spent)
 
 
-# ---------- Навички ----------
+func spend_attr(stat_id: String) -> bool:
+	if attr_points <= 0 or not (stat_id in ["str", "agi", "faith"]):
+		return false
+	attr_points -= 1
+	attr_spent[stat_id] = int(attr_spent.get(stat_id, 0)) + 1
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
 
-## Усі вивчені активні навички: вміння благословення (якщо активне) і навички з Древа.
+
+func respec_full(use_water: bool = false) -> bool:
+	var cost := 200 * level
+	if use_water:
+		if oblivion_water <= 0:
+			return false
+		oblivion_water -= 1
+	else:
+		if gold < cost:
+			return false
+		gold -= cost
+	unlocked = [PerkTree.class_start(hero_class)]
+	perk_points = expected_perk_points()
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
+func respec_node(node_id: String) -> bool:
+	var cost := 50 * level
+	if gold < cost or node_id == PerkTree.class_start(hero_class) or not (node_id in unlocked):
+		return false
+	var start := PerkTree.class_start(hero_class)
+	var keep: Dictionary = {}
+	var stack: Array = [start]
+	while not stack.is_empty():
+		var cur: String = stack.pop_back()
+		if keep.has(cur):
+			continue
+		keep[cur] = true
+		for nb in PerkTree.neighbors(cur):
+			if nb == node_id:
+				continue
+			if nb in unlocked and not keep.has(nb):
+				stack.append(nb)
+	var neu: Array = []
+	var removed := 0
+	for id in unlocked:
+		if keep.has(str(id)):
+			neu.append(id)
+		else:
+			removed += 1
+	if removed <= 0:
+		return false
+	gold -= cost
+	unlocked = neu
+	perk_points = expected_perk_points()
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
+func stash_free() -> int:
+	return STASH_SIZE - stash.size()
+
+
+func move_bag_to_stash(bag_index: int) -> bool:
+	if bag_index < 0 or bag_index >= bag.size() or stash.size() >= STASH_SIZE:
+		return false
+	stash.append(bag[bag_index])
+	bag.remove_at(bag_index)
+	changed.emit()
+	save_game()
+	return true
+
+
+func move_stash_to_bag(stash_index: int) -> bool:
+	if stash_index < 0 or stash_index >= stash.size() or bag.size() >= BAG_SIZE:
+		return false
+	bag.append(stash[stash_index])
+	stash.remove_at(stash_index)
+	changed.emit()
+	save_game()
+	return true
+
+
+
+## Мокрина: розв'язати науз → знищує, шанс ниток.
+func mokryna_untie(bag_index: int) -> Dictionary:
+	last_error = ""
+	if bag_index < 0 or bag_index >= bag.size() or not Nauzi.is_nauz(bag[bag_index]):
+		last_error = "Обери науз у сумці"
+		return {}
+	var nauz: Dictionary = bag[bag_index]
+	var cost := Nauzi.untie_cost(nauz)
+	if gold < cost:
+		last_error = "Потрібно %d гривень" % cost
+		return {}
+	gold -= cost
+	bag.remove_at(bag_index)
+	var got: Array = []
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	if rng.randf() < Nauzi.untie_thread_chance(nauz):
+		var n := 1 + (1 if int(nauz.get("rarity", 0)) >= 2 and rng.randf() < 0.4 else 0)
+		for _i in range(n):
+			var th := Nauzi.random_thread(rng, clampi(int(nauz.get("rarity", 0)), 0, 3), Nauzi.skill_stat(str(nauz.get("skill", ""))))
+			th["uid"] = _next_uid()
+			if bag.size() < BAG_SIZE:
+				bag.append(th)
+				got.append(th)
+			elif stash.size() < STASH_SIZE:
+				stash.append(th)
+				got.append(th)
+	changed.emit()
+	save_game()
+	return {"cost": cost, "threads": got}
+
+
+## Мокрина: обережно вийняти одну нитку без знищення науза.
+func mokryna_extract(bag_index: int, thread_index: int) -> bool:
+	last_error = ""
+	if bag_index < 0 or bag_index >= bag.size() or not Nauzi.is_nauz(bag[bag_index]):
+		last_error = "Обери науз"
+		return false
+	var nauz: Dictionary = bag[bag_index]
+	var threads: Array = nauz.get("threads", [])
+	if thread_index < 0 or thread_index >= threads.size():
+		last_error = "Немає такої нитки"
+		return false
+	var cost := Nauzi.extract_cost(nauz)
+	if gold < cost:
+		last_error = "Потрібно %d гривень" % cost
+		return false
+	if bag.size() >= BAG_SIZE:
+		last_error = "Сумка повна"
+		return false
+	gold -= cost
+	var th: Dictionary = threads[thread_index]
+	threads.remove_at(thread_index)
+	nauz["threads"] = threads
+	var item := Nauzi.make_thread(str(th.get("thread", "")), str(th.get("color", "white")), int(th.get("rarity", 0)), _next_uid())
+	bag.append(item)
+	changed.emit()
+	save_game()
+	return true
+
+
+func attach_thread(nauz_bag_index: int, thread_bag_index: int) -> bool:
+	last_error = ""
+	if nauz_bag_index < 0 or thread_bag_index < 0 or nauz_bag_index >= bag.size() or thread_bag_index >= bag.size():
+		return false
+	if nauz_bag_index == thread_bag_index:
+		return false
+	var nauz: Dictionary = bag[nauz_bag_index]
+	var th: Dictionary = bag[thread_bag_index]
+	if not Nauzi.is_nauz(nauz) or not Nauzi.is_thread(th):
+		last_error = "Потрібен науз і нитка"
+		return false
+	if not Nauzi.thread_fits(nauz, th):
+		last_error = "Нитка не пасує до цього науза"
+		return false
+	var slots := Nauzi.thread_slots(int(nauz.get("level", 1)))
+	var threads: Array = nauz.get("threads", [])
+	if threads.size() >= slots:
+		last_error = "Усі гнізда ниток зайняті (рівень науза %d)" % int(nauz.get("level", 1))
+		return false
+	threads.append({"thread": str(th.get("thread", "")), "color": str(th.get("color", "white")), "rarity": int(th.get("rarity", 0)), "name": str(th.get("name", ""))})
+	nauz["threads"] = threads
+	bag.remove_at(thread_bag_index)
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
+# ---------- Наузи ----------
+
 func learned_skills() -> Array:
 	var out: Array = []
 	var b: Dictionary = Blessings.get_def(blessing)
 	if b.get("skill_kind", "") == "active":
 		out.append(b["skill"])
-	for s in skills_learned:
-		if not (s in out):
-			out.append(s)
+	for s in sockets:
+		if typeof(s) == TYPE_DICTIONARY and s != null and str(s.get("skill", "")) != "":
+			var sk := str(s["skill"])
+			if not (sk in out):
+				out.append(sk)
 	return out
 
 
-## Розкладає нові навички по вільних швидких слотах і прибирає ті, що більше не вивчені.
-func auto_fill_quick() -> void:
-	var learned := learned_skills()
+func _sync_quick_from_sockets() -> void:
 	while quick.size() < QUICK_SLOTS:
 		quick.append("")
+	while sockets.size() < QUICK_SLOTS:
+		sockets.append(null)
 	for i in range(QUICK_SLOTS):
-		if quick[i] != "" and not (quick[i] in learned):
-			quick[i] = ""
-	for s in learned:
-		if not (s in quick):
-			var idx := quick.find("")
-			if idx >= 0 and idx < QUICK_SLOTS:
-				quick[idx] = s
+		var s: Variant = sockets[i]
+		quick[i] = str(s.get("skill", "")) if typeof(s) == TYPE_DICTIONARY and s != null else ""
 
 
-## Ставить навичку (або порожньо) у швидкий слот. Якщо вона вже в іншому слоті, вони міняються місцями.
+func auto_fill_quick() -> void:
+	_sync_quick_from_sockets()
+
+
 func set_quick(slot: int, skill_id: String) -> void:
+	if skill_id == "":
+		unequip_nauz(slot)
+		return
 	if slot < 0 or slot >= QUICK_SLOTS:
 		return
-	if skill_id != "" and not (skill_id in learned_skills()):
-		return
-	var other := quick.find(skill_id) if skill_id != "" else -1
-	if other >= 0 and other != slot:
-		quick[other] = quick[slot]
-	quick[slot] = skill_id
-	changed.emit()
-	save_game()
+	# вже в іншому гнізді — міняємо місцями
+	for i in range(QUICK_SLOTS):
+		var s: Variant = sockets[i]
+		if typeof(s) == TYPE_DICTIONARY and s != null and str(s.get("skill", "")) == skill_id:
+			if i == slot:
+				return
+			var tmp: Variant = sockets[slot]
+			sockets[slot] = s
+			sockets[i] = tmp
+			_sync_quick_from_sockets()
+			HeroStats.invalidate()
+			changed.emit()
+			save_game()
+			return
+	for it in bag:
+		if Nauzi.is_nauz(it) and str(it.get("skill", "")) == skill_id:
+			equip_nauz(slot, int(it.get("uid", 0)))
+			return
 
 
 func quick_skill(slot: int) -> String:
-	return str(quick[slot]) if slot >= 0 and slot < quick.size() else ""
+	if slot < 0 or slot >= sockets.size():
+		return ""
+	var s: Variant = sockets[slot]
+	if typeof(s) == TYPE_DICTIONARY and s != null:
+		return str(s.get("skill", ""))
+	return ""
+
+
+func socket_nauz(slot: int) -> Variant:
+	if slot < 0 or slot >= sockets.size():
+		return null
+	return sockets[slot]
+
+
+func equip_nauz(slot: int, uid: int) -> bool:
+	if slot < 0 or slot >= QUICK_SLOTS:
+		return false
+	var idx := -1
+	var item: Dictionary = {}
+	for i in range(bag.size()):
+		if int(bag[i].get("uid", 0)) == uid and Nauzi.is_nauz(bag[i]):
+			idx = i
+			item = bag[i]
+			break
+	if idx < 0:
+		return false
+	if int(HeroStats.bonus("one_path")) > 0:
+		for i in range(QUICK_SLOTS):
+			if i != slot and typeof(sockets[i]) == TYPE_DICTIONARY and sockets[i] != null:
+				return false
+	bag.remove_at(idx)
+	if typeof(sockets[slot]) == TYPE_DICTIONARY and sockets[slot] != null:
+		bag.append(sockets[slot])
+	sockets[slot] = item
+	_sync_quick_from_sockets()
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
+func unequip_nauz(slot: int) -> bool:
+	if slot < 0 or slot >= QUICK_SLOTS:
+		return false
+	if typeof(sockets[slot]) != TYPE_DICTIONARY or sockets[slot] == null:
+		return false
+	if bag.size() >= BAG_SIZE:
+		return false
+	bag.append(sockets[slot])
+	sockets[slot] = null
+	_sync_quick_from_sockets()
+	HeroStats.invalidate()
+	changed.emit()
+	save_game()
+	return true
+
+
+func on_nauz_used(slot: int) -> void:
+	if slot < 0 or slot >= sockets.size():
+		return
+	var s: Variant = sockets[slot]
+	if typeof(s) != TYPE_DICTIONARY or s == null:
+		return
+	Nauzi.add_nauz_xp(s, 1)
+	changed.emit()
 
 
 # ---------- Сумка й спорядження ----------
@@ -767,12 +1041,18 @@ func to_dict() -> Dictionary:
 	var ex := {}
 	for loc in explored_by:
 		ex[loc] = Marshalls.raw_to_base64(_explored_of(str(loc)))
+	var sock_out: Array = []
+	for s in sockets:
+		sock_out.append(s if typeof(s) == TYPE_DICTIONARY and s != null else null)
 	return {
 		"version": SAVE_VERSION, "name": hero_name, "blessing": blessing, "class": hero_class,
 		"level": level, "xp": xp, "perk_points": perk_points,
-		"unlocked": unlocked, "skills": skills_learned, "starter_node": starter_node,
+		"unlocked": unlocked, "skills": skills_learned,
+		"starter_node": starter_node, "starter_skill": starter_skill,
 		"gold": gold, "hp_potions": hp_potions, "mana_potions": mana_potions,
-		"bag": bag, "equipment": equipment, "quick": quick, "item_seq": item_seq,
+		"bag": bag, "stash": stash, "equipment": equipment, "quick": quick,
+		"sockets": sock_out, "attr_points": attr_points, "attr_spent": attr_spent,
+		"oblivion_water": oblivion_water, "item_seq": item_seq,
 		"explored": ex, "location": location,
 		"cave_from": cave_from, "cave_level": cave_level,
 		"quests": quests, "quest_items": quest_items, "opened_chests": opened_chests,
@@ -784,6 +1064,47 @@ func to_dict() -> Dictionary:
 func _clean_item(v: Variant) -> Dictionary:
 	if typeof(v) != TYPE_DICTIONARY:
 		return {}
+	var kind := str(v.get("kind", ""))
+	if kind == "nauz" or str(v.get("base", "")).begins_with("nauz_"):
+		var skill := str(v.get("skill", ""))
+		if skill == "" and str(v.get("base", "")).begins_with("nauz_"):
+			skill = str(v.get("base", "")).substr(5)
+		if not Skills.DATA.has(skill):
+			return {}
+		var threads: Array = []
+		var tr: Variant = v.get("threads", [])
+		if typeof(tr) == TYPE_ARRAY:
+			for th in tr:
+				if typeof(th) != TYPE_DICTIONARY:
+					continue
+				var tid := str(th.get("thread", ""))
+				if tid == "" or not Nauzi.THREADS.has(tid):
+					continue
+				threads.append({
+					"thread": tid,
+					"color": str(th.get("color", "white")),
+					"rarity": clampi(int(th.get("rarity", 0)), 0, Items.RARITIES.size() - 1),
+					"name": str(th.get("name", "")),
+				})
+		return {
+			"uid": int(v.get("uid", 0)), "base": "nauz_" + skill, "kind": "nauz", "skill": skill,
+			"rarity": clampi(int(v.get("rarity", 0)), 0, Items.RARITIES.size() - 1),
+			"ilvl": clampi(int(v.get("ilvl", v.get("level", 1))), 1, Nauzi.MAX_LEVEL),
+			"level": clampi(int(v.get("level", 1)), 1, Nauzi.MAX_LEVEL),
+			"xp": maxi(0, int(v.get("xp", 0))),
+			"name": str(v.get("name", Skills.get_def(skill).get("name", skill))),
+			"stats": {}, "threads": threads,
+		}
+	if kind == "thread" or str(v.get("base", "")).begins_with("thread_"):
+		var tid2 := str(v.get("thread", ""))
+		if tid2 == "" and str(v.get("base", "")).begins_with("thread_"):
+			tid2 = str(v.get("base", "")).substr(7)
+		if not Nauzi.THREADS.has(tid2):
+			return {}
+		var color := str(v.get("color", "white"))
+		if not (color in Nauzi.COLORS):
+			color = "white"
+		return Nauzi.make_thread(tid2, color, int(v.get("rarity", 0)), int(v.get("uid", 0)))
 	var base := str(v.get("base", ""))
 	if not Items.BASES.has(base):
 		return {}
@@ -816,23 +1137,52 @@ func from_dict(d: Dictionary) -> bool:
 	var start := PerkTree.class_start(hero_class)
 	bonus_perks = 0
 	starter_node = ""
+	starter_skill = ""
+	sockets = [null, null, null, null]
+	stash = []
+	attr_points = 0
+	attr_spent = {"str": 0, "agi": 0, "faith": 0}
+	oblivion_water = 0
+	var old_skills: Array = []
 	if version < 3:
-		# У v0.3 Древо інше (понад 300 вузлів і вибір стартової навички): старі вузли не підходять.
 		unlocked = [start]
 		skills_learned = []
 		if (d.get("unlocked", []) as Array).size() > 1 or version == 2:
-			notice = "Древо звитяги стало значно більшим, тому відкриті вузли скинуто. Усі перки повернено: обери стартову навичку й розподіляй наново."
+			notice = "Древо звитяги стало значно більшим, тому відкриті вузли скинуто. Усі перки повернено: обери стартовий науз і розподіляй наново."
 	else:
 		unlocked = PerkTree.sanitize_unlocked(d.get("unlocked", []), start)
 		if unlocked.is_empty():
 			unlocked = [start]
 		starter_node = str(d.get("starter_node", ""))
-		if starter_node != "" and not (starter_node in unlocked):
-			starter_node = ""
+		starter_skill = str(d.get("starter_skill", ""))
 		bonus_perks = maxi(0, int(d.get("bonus_perks", 0)))
+		# зібрати вміння зі старих вузлів / списку skills до міграції
+		for id in unlocked:
+			var sk0 := str(PerkTree.get_def(id).get("skill", ""))
+			if sk0 != "" and Skills.DATA.has(sk0) and not (sk0 in old_skills):
+				old_skills.append(sk0)
+		for sk1 in d.get("skills", []):
+			var s1 := str(sk1)
+			if s1 != "" and Skills.DATA.has(s1) and not (s1 in old_skills):
+				old_skills.append(s1)
+		# вузли з skill більше не в пасивному дереві — прибрати й повернути перки
+		if version < 4:
+			var neu_u: Array = []
+			var refund := 0
+			for id2 in unlocked:
+				var dd: Dictionary = PerkTree.get_def(str(id2))
+				if str(dd.get("skill", "")) != "" and str(dd.get("type", "")) != "core" and str(id2) != start:
+					refund += 1
+					continue
+				neu_u.append(id2)
+			unlocked = neu_u if not neu_u.is_empty() else [start]
+			if refund > 0:
+				bonus_perks += refund
+				if notice == "":
+					notice = "Навички тепер наузи. Відкриті вміння з Древа перенесено в сумку; перки за зняті вузли повернуто."
 	skills_learned = []
-	for id in unlocked:
-		var sk := str(PerkTree.get_def(id).get("skill", ""))
+	for id3 in unlocked:
+		var sk := str(PerkTree.get_def(id3).get("skill", ""))
 		if sk != "" and Skills.DATA.has(sk) and not (sk in skills_learned):
 			skills_learned.append(sk)
 	perk_points = expected_perk_points()
@@ -840,11 +1190,22 @@ func from_dict(d: Dictionary) -> bool:
 	hp_potions = maxi(0, int(d.get("hp_potions", START_HP_POTIONS if version < 2 else 0)))
 	mana_potions = maxi(0, int(d.get("mana_potions", START_MANA_POTIONS if version < 2 else 0)))
 	item_seq = maxi(0, int(d.get("item_seq", 0)))
+	attr_points = maxi(0, int(d.get("attr_points", maxi(0, level - 1) if version < 4 else 0)))
+	var aspent: Variant = d.get("attr_spent", {})
+	if typeof(aspent) == TYPE_DICTIONARY:
+		for k in ["str", "agi", "faith"]:
+			attr_spent[k] = maxi(0, int(aspent.get(k, 0)))
+	oblivion_water = maxi(0, int(d.get("oblivion_water", 0)))
 	bag = []
 	for v in d.get("bag", []):
 		var it := _clean_item(v)
 		if not it.is_empty() and bag.size() < BAG_SIZE:
 			bag.append(it)
+	stash = []
+	for v4 in d.get("stash", []):
+		var it4 := _clean_item(v4)
+		if not it4.is_empty() and stash.size() < STASH_SIZE:
+			stash.append(it4)
 	equipment = {}
 	var eq: Variant = d.get("equipment", {})
 	if typeof(eq) == TYPE_DICTIONARY:
@@ -857,7 +1218,6 @@ func from_dict(d: Dictionary) -> bool:
 				equipment[slot] = it2
 			elif bag.size() < BAG_SIZE:
 				bag.append(it2)
-	# дворучна зброя не може стояти разом зі щитом
 	if Items.is_two_handed(equipment.get("main", null)) and equipment.get("off", null) != null:
 		if bag.size() < BAG_SIZE:
 			bag.append(equipment["off"])
@@ -866,12 +1226,26 @@ func from_dict(d: Dictionary) -> bool:
 		equipment = Items.starter(hero_class)
 		for it3 in equipment.values():
 			it3["uid"] = _next_uid()
+	# sockets
+	var sock: Variant = d.get("sockets", [])
+	if typeof(sock) == TYPE_ARRAY:
+		for i in range(mini(QUICK_SLOTS, sock.size())):
+			if sock[i] == null:
+				sockets[i] = null
+			else:
+				var si := _clean_item(sock[i])
+				sockets[i] = si if Nauzi.is_nauz(si) else null
+	# міграція v3→v4: навички → наузи
+	if version < 4:
+		_migrate_skills_to_nauzi(old_skills, d)
+	else:
+		if starter_skill == "" and starter_node != "":
+			if starter_node in Gear.STARTER_SKILLS.get(hero_class, []):
+				starter_skill = starter_node
+			elif Skills.DATA.has(starter_node):
+				starter_skill = starter_node
 	quick = ["", "", "", ""]
-	var q: Variant = d.get("quick", [])
-	if typeof(q) == TYPE_ARRAY:
-		for i in range(mini(QUICK_SLOTS, q.size())):
-			quick[i] = str(q[i])
-	auto_fill_quick()
+	_sync_quick_from_sockets()
 	explored_by = {}
 	location = Locations.START
 	arrive_from = ""
@@ -923,6 +1297,66 @@ func from_dict(d: Dictionary) -> bool:
 					merchant_stock.append(mi)
 		merchant_refresh_at = int(d.get("merchant_refresh_at", 0))
 	return true
+
+
+
+func _migrate_skills_to_nauzi(old_skills: Array, d: Dictionary) -> void:
+	# starter
+	var st := str(d.get("starter_node", ""))
+	var starters: Array = Gear.STARTER_SKILLS.get(hero_class, [])
+	if st in starters:
+		starter_skill = st
+	elif st != "" and Skills.DATA.has(st):
+		starter_skill = st
+	# з quick / old_skills
+	var want: Array = []
+	var q: Variant = d.get("quick", [])
+	if typeof(q) == TYPE_ARRAY:
+		for s in q:
+			var sid := str(s)
+			if sid != "" and Skills.DATA.has(sid) and not (sid in want):
+				want.append(sid)
+	for s2 in old_skills:
+		var sid2 := str(s2)
+		if sid2 != "" and Skills.DATA.has(sid2) and not (sid2 in want):
+			want.append(sid2)
+	if starter_skill != "" and not (starter_skill in want):
+		want.insert(0, starter_skill)
+	# вже є в sockets / bag
+	var have: Dictionary = {}
+	for s3 in sockets:
+		if typeof(s3) == TYPE_DICTIONARY and s3 != null:
+			have[str(s3.get("skill", ""))] = true
+	for it in bag:
+		if Nauzi.is_nauz(it):
+			have[str(it.get("skill", ""))] = true
+	var slot_i := 0
+	for sid3 in want:
+		if have.has(sid3):
+			continue
+		var nauz := Nauzi.make_nauz(sid3, clampi(level, 1, Nauzi.MAX_LEVEL), 0, _next_uid())
+		if starter_skill == sid3 and slot_i < QUICK_SLOTS and sockets[slot_i] == null:
+			sockets[slot_i] = nauz
+			slot_i += 1
+		elif slot_i < QUICK_SLOTS and sockets[slot_i] == null and sid3 == starter_skill:
+			sockets[slot_i] = nauz
+			slot_i += 1
+		elif bag.size() < BAG_SIZE:
+			bag.append(nauz)
+		have[sid3] = true
+		if not (sid3 in skills_learned):
+			skills_learned.append(sid3)
+	# якщо стартер обраний, але гніздо порожнє — вставити перший науз
+	if starter_skill != "" and sockets[0] == null:
+		for i in range(bag.size()):
+			if Nauzi.is_nauz(bag[i]) and str(bag[i].get("skill", "")) == starter_skill:
+				sockets[0] = bag[i]
+				bag.remove_at(i)
+				break
+		if sockets[0] == null:
+			sockets[0] = Nauzi.make_nauz(starter_skill, 1, 0, _next_uid())
+	if starter_skill != "":
+		starter_node = starter_skill
 
 
 # ---------- Комірки збереження ----------

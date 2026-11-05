@@ -443,6 +443,7 @@ func use_skill(slot: int) -> void:
 		Fx.damage_number(_fx_parent(), global_position + Vector3(0, 2.6, 0), "Нитка долі!", Color("D7A8FF"), false)
 	cooldowns[id] = cd
 	cooldown_total[id] = maxf(cd, 0.01)
+	GameState.on_nauz_used(slot)
 	_swing = 1.0
 	skill_cast.emit(slot)
 	vitals_changed.emit()

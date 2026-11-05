@@ -9,11 +9,13 @@ const GREET := {
 	"merchant": "Здоровенькі були! Дорога дальня, а речі треба добрі. Дивися, що привіз, торг не вимагаю лише з друзями.",
 	"herbalist": "Заходь, не соромся. Трави збирати — діло тонке, а в лісі тепер небезпечно.",
 	"elder": "Сідай, мій хлопче. Орден Єдиного стирає нашу пам'ять, а ми ще пам'ятаємо. Допоможеш?",
+	"mokryna": "Сідай ближче до вогнища. Я Мокрина — в'яжу нитки долі в наузи. Можу розв'язати вузол або обережно вийняти одну нитку.",
 }
 const IDLE := {
 	"merchant": "Більше жодних справ. Заходь, коли потрібні речі чи зілля.",
 	"herbalist": "Дякую тобі за все. Хай оберіг береже твою стежку.",
 	"elder": "Іди з миром. Коли повернешся з вістями, я вислухаю.",
+	"mokryna": "Коли матимеш науз чи нитку — принось. Радим ниток не тримає, то моя справа.",
 }
 
 var npc_id := ""
@@ -108,7 +110,45 @@ func _rebuild() -> void:
 		_text(str(GREET.get(npc_id, "")) if GameState.quests.is_empty() else str(IDLE.get(npc_id, "")))
 	if npc_id == "merchant":
 		_button("Торгувати", Palette.TURQUOISE.darkened(0.25), func() -> void: shop_requested.emit())
+	if npc_id == "mokryna":
+		_text("Обери науз у списку: розв'язати (шанс ниток) або вийняти одну нитку за плату.", Palette.TURQUOISE.lightened(0.3))
+		var shown := 0
+		for i in range(GameState.bag.size()):
+			var it: Variant = GameState.bag[i]
+			if not Nauzi.is_nauz(it):
+				continue
+			shown += 1
+			var idx := i
+			var cost := Nauzi.untie_cost(it)
+			_button("Розв'язати «%s» (−%d гривень)" % [it.get("name", "науз"), cost], Palette.EMBROIDERY, func() -> void: _mokryna_untie(idx))
+			var threads: Array = it.get("threads", [])
+			if threads.size() > 0:
+				var ec := Nauzi.extract_cost(it)
+				_button("Вийняти нитку з «%s» (−%d)" % [it.get("name", "науз"), ec], Palette.PANEL_LIGHT, func() -> void: _mokryna_extract(idx, 0))
+		if shown == 0:
+			_text("У сумці немає наузів. Знайди їх у бою або обери стартовий.", Palette.TEXT_DIM)
 
+
+
+func _mokryna_untie(bag_index: int) -> void:
+	var r: Dictionary = GameState.mokryna_untie(bag_index)
+	if r.is_empty():
+		_msg.text = GameState.last_error if GameState.last_error != "" else "Не вдалося розв'язати."
+	else:
+		var n := (r.get("threads", []) as Array).size()
+		if n > 0:
+			_msg.text = "Розв'язано. Ниток отримано: %d (−%d гривень)." % [n, int(r.get("cost", 0))]
+		else:
+			_msg.text = "Розв'язано. Ниток не випало (−%d гривень)." % int(r.get("cost", 0))
+	_rebuild()
+
+
+func _mokryna_extract(bag_index: int, thread_index: int) -> void:
+	if GameState.mokryna_extract(bag_index, thread_index):
+		_msg.text = "Нитку обережно вийнято."
+	else:
+		_msg.text = GameState.last_error if GameState.last_error != "" else "Не вдалося вийняти нитку."
+	_rebuild()
 
 func _accept(qid: String) -> void:
 	if GameState.accept_quest(qid):

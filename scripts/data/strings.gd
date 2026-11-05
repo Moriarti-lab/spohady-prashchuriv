@@ -2,7 +2,7 @@
 class_name Strings
 
 const GAME_TITLE := "Спогади пращурів"
-const VERSION := "Пробна версія 0.4.0"
+const VERSION := "Пробна версія 0.5.0"
 
 const STAT_NAMES := {"str": "Сила", "agi": "Спритність", "faith": "Віра"}
 

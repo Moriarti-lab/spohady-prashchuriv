@@ -4,15 +4,16 @@
 class_name PerkTree
 
 const FORMAT := "spohady-perk-tree"
-const VERSION := 2
-const SUPPORTED_VERSIONS := [1, 2]
+const VERSION := 3
+const SUPPORTED_VERSIONS := [1, 2, 3]
 const TREE_PATH := "res://data/perk_tree.json"
-const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]
+const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]  # skill застарів у v3, лишається для сумісності
 ## Ключ бонусу -> шаблон тексту (%s — число зі знаком).
 const STAT_TEXT := {
 	"str": "%s Сили", "agi": "%s Спритності", "faith": "%s Віри",
 	"hp": "%s до життя", "hp_pct": "%s%% до життя",
 	"mana_pct": "%s%% до чару", "mana_regen": "%s до відновлення чару за секунду",
+	"mana_regen_pct": "%s%% до відновлення чару",
 	"armor": "%s до броні", "dmg_pct": "%s%% до шкоди",
 	"atk_speed_pct": "%s%% до швидкості атаки", "crit_pct": "%s%% до шансу крита",
 	"move_pct": "%s%% до швидкості руху", "xp_pct": "%s%% до звитяги",
@@ -20,10 +21,30 @@ const STAT_TEXT := {
 	"cdr_pct": "%s%% до швидкості відновлення навичок", "crit_dmg_pct": "%s%% до шкоди крита",
 	"hp_regen_pct": "%s%% життя за секунду", "gold_pct": "%s%% до здобичі гривень",
 	"drop_pct": "%s%% до шансу здобичі", "dr_pct": "%s%% менше отриманої шкоди",
+	"dodge_pct": "%s%% ухилення", "block_pct": "%s%% блоку", "block_power_pct": "%s%% сили блоку",
+	"nauz_xp_pct": "%s%% до росту наузів", "aoe_pct": "%s%% до площі", "effect_dur_pct": "%s%% до тривалості ефектів",
+	"skill_cost_pct": "%s%% до вартості вмінь", "double_hit_pct": "%s%% подвійного удару",
+	"proj_speed_pct": "%s%% швидкості снарядів", "armor_pen_pct": "%s%% пробиття броні",
+	"life_on_kill": "%s життя за вбивство", "mana_on_kill": "%s чару за вбивство",
+	"stun_chance_pct": "%s%% шансу оглушення", "nauz_thread_slots": "%s гніздо нитки на наузах",
+	"nauz_level": "%s до рівня наузів", "res_all_pct": "%s%% опору всім стихіям",
+	"res_fire_pct": "%s%% опору вогню", "res_frost_pct": "%s%% опору морозу", "res_thunder_pct": "%s%% опору грому",
+	"res_nature_pct": "%s%% опору природі", "res_light_pct": "%s%% опору світлу", "res_fate_pct": "%s%% опору долі",
+	"pen_fire_pct": "%s%% пробиття вогню", "pen_frost_pct": "%s%% пробиття морозу", "pen_thunder_pct": "%s%% пробиття грому",
+	"pen_nature_pct": "%s%% пробиття природі", "pen_light_pct": "%s%% пробиття світлу", "pen_fate_pct": "%s%% пробиття долі",
+	"pen_all_pct": "%s%% пробиття всім", "one_path": "Лише 1 науз; нитки сильніші",
+	"thread_power_pct": "%s%% сили ниток", "life_pay_skills": "Уміння можна платити життям",
+	"free_skills": "Уміння без вартості чару", "crit_stun": "Крити оглушують",
+	"block_no_shield": "Блок без щита", "kill_haste": "Вбивство дає прискорення",
 }
-const STAT_ORDER := ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "armor",
+const STAT_ORDER := ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "mana_regen_pct", "armor",
 	"dmg_pct", "atk_speed_pct", "crit_pct", "crit_dmg_pct", "cdr_pct", "lifesteal_pct", "thorns_pct",
-	"hp_regen_pct", "dr_pct", "move_pct", "gold_pct", "drop_pct", "xp_pct"]
+	"hp_regen_pct", "dr_pct", "move_pct", "dodge_pct", "block_pct", "block_power_pct",
+	"aoe_pct", "effect_dur_pct", "skill_cost_pct", "double_hit_pct", "proj_speed_pct", "armor_pen_pct",
+	"stun_chance_pct", "life_on_kill", "mana_on_kill", "nauz_xp_pct", "nauz_thread_slots", "nauz_level",
+	"res_all_pct", "res_fire_pct", "res_frost_pct", "res_thunder_pct", "res_nature_pct", "res_light_pct", "res_fate_pct",
+	"pen_all_pct", "pen_fire_pct", "pen_frost_pct", "pen_thunder_pct", "pen_nature_pct", "pen_light_pct", "pen_fate_pct",
+	"gold_pct", "drop_pct", "xp_pct"]
 
 static var _loaded := false
 static var _data: Dictionary = {}
@@ -81,7 +102,7 @@ static func _use_fallback() -> void:
 	_apply(default_tree())
 
 
-## Вбудоване запасне Древо: старт, три стартові навички на клас, короткі гілки й серце.
+## Вбудоване запасне Древо (пасивне): старт, короткі гілки й серце.
 static func default_tree() -> Dictionary:
 	var regions := [
 		{"id": "str", "name": "Сила", "color": "#D8574B", "angle": -90.0},
@@ -190,7 +211,7 @@ static func validate(data: Variant) -> Dictionary:
 	if str(d.get("format", "")) != FORMAT:
 		errors.append("Поле format має бути «%s»." % FORMAT)
 	if typeof(d.get("version", null)) not in [TYPE_INT, TYPE_FLOAT] or not (int(d.get("version", 0)) in SUPPORTED_VERSIONS):
-		errors.append("Поле version має бути 1 або 2 (поточна — %d)." % VERSION)
+		errors.append("Поле version має бути 1, 2 або 3 (поточна — %d)." % VERSION)
 	var nodes: Variant = d.get("nodes", null)
 	if typeof(nodes) != TYPE_ARRAY or (nodes as Array).is_empty():
 		errors.append("Список nodes порожній або відсутній.")

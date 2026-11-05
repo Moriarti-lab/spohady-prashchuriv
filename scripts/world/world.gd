@@ -253,6 +253,9 @@ func _build_props() -> void:
 		reserved.append([Vector3(float(npc["pos"][0]), 0, float(npc["pos"][1])), 3.0])
 	if loc.has("boss"):
 		reserved.append([Vector3(float(loc["boss"]["pos"][0]), 0, float(loc["boss"]["pos"][1])), 5.0])
+	for xb in loc.get("bosses", []):
+		if typeof(xb) == TYPE_DICTIONARY:
+			reserved.append([Vector3(float(xb["pos"][0]), 0, float(xb["pos"][1])), 5.0])
 
 	# --- дерева й каміння в долині (з колізією) ---
 	var tree_target := int(loc.get("trees", 50))
@@ -447,11 +450,13 @@ func _build_npcs() -> void:
 		var hat := "cap"
 		match str(npc["id"]):
 			"herbalist": hat = "hood"
+			"mokryna": hat = "hood"
 			"elder": hat = "beard"
 		# Мешканці села — анімовані моделі KayKit Adventurers (запасний варіант — простий меш).
 		var rig_file := "Rogue"
 		match str(npc["id"]):
 			"herbalist": rig_file = "Mage"
+			"mokryna": rig_file = "Mage"
 			"elder": rig_file = "Barbarian"
 			"smith", "merchant", "trader": rig_file = "Knight"
 		var node: Node3D = RigModel.create(rig_file, 0.74)
@@ -752,23 +757,30 @@ func _spawn_enemy_at(kind: String, pos: Vector3) -> Enemy:
 
 
 func _spawn_boss() -> void:
-	if not loc.has("boss"):
+	var list: Array = []
+	if loc.has("boss"):
+		list.append(loc["boss"])
+	for extra in loc.get("bosses", []):
+		if typeof(extra) == TYPE_DICTIONARY:
+			list.append(extra)
+	if list.is_empty():
 		return
-	var b: Dictionary = loc["boss"]
 	if is_cave and _cave_won:
 		return
-	if not is_cave and not GameState.boss_ready(str(b["id"])) or (boss != null and is_instance_valid(boss) and not boss.dead):
-		return
-	var pos := Vector3(float(b["pos"][0]), 0, float(b["pos"][1]))
-	var e := Enemy.new()
-	e.name = "Boss_" + str(b["id"])
-	e.setup(str(b["kind"]), int(b["level"]), player, pos, self)
-	e.make_boss(str(b["id"]), str(b["name"]), float(b["scale"]), float(b.get("hp_mult", 1.0)))
-	e.is_cave_boss = bool(b.get("cave", false))
-	_enemy_root.add_child(e)
-	e.global_position = pos
-	e.died.connect(_on_enemy_died)
-	boss = e
+	for b in list:
+		if not is_cave and not GameState.boss_ready(str(b["id"])):
+			continue
+		var pos := Vector3(float(b["pos"][0]), 0, float(b["pos"][1]))
+		var e := Enemy.new()
+		e.name = "Boss_" + str(b["id"])
+		e.setup(str(b["kind"]), int(b["level"]), player, pos, self)
+		e.make_boss(str(b["id"]), str(b["name"]), float(b["scale"]), float(b.get("hp_mult", 1.0)))
+		e.is_cave_boss = bool(b.get("cave", false))
+		_enemy_root.add_child(e)
+		e.global_position = pos
+		e.died.connect(_on_enemy_died)
+		if boss == null or not is_instance_valid(boss) or boss.dead:
+			boss = e
 
 
 func _on_enemy_died(e: Enemy) -> void:

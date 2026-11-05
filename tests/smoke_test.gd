@@ -74,6 +74,12 @@ func _run() -> void:
 	ok((val["errors"] as Array).is_empty() and (val["warnings"] as Array).is_empty(), "перевірка формату: без помилок і застережень %s" % str(val))
 	var nn := PerkTree.nodes().size()
 	ok(nn >= 250 and nn <= 400, "вузлів 250–400 (є %d)" % nn)
+	ok(Nauzi.STARTER_IDS.size() == 9, "стартових id наузів: %d" % Nauzi.STARTER_IDS.size())
+	ok(Nauzi.max_level() == 20, "рівень науза 1–20")
+	ok(Nauzi.thread_ids().size() >= 3, "каталог ниток")
+	ok(Nauzi.socket_count() == 4, "4 сокети")
+	ok(GameState.SAVE_VERSION >= 4, "збереження v4+")
+
 	var types := {}
 	var regions := {}
 	for id in PerkTree.nodes():
@@ -81,7 +87,8 @@ func _run() -> void:
 		types[nd["type"]] = int(types.get(nd["type"], 0)) + 1
 		regions[nd.get("region", "")] = true
 	ok(types.get("notable", 0) >= 40 and types.get("keystone", 0) >= 6 and types.get("core", 0) == 1, "є значущі та ключові вузли: %s" % str(types))
-	ok(types.get("skill", 0) >= 20, "є вузли навичок (%d)" % int(types.get("skill", 0)))
+	ok(types.get("skill", 0) == 0, "пасивне Древо: 0 вузлів-умінь (%d)" % int(types.get("skill", 0)))
+	ok(types.get("notable", 0) >= 40, "notable вузлів ≥40 (%d)" % int(types.get("notable", 0)))
 	ok(regions.has("str") and regions.has("agi") and regions.has("faith"), "три регіони: Сила / Спритність / Віра")
 	for c in Gear.CLASS_IDS:
 		ok(PerkTree.has_node(PerkTree.class_start(c)), "старт класу %s: %s" % [c, PerkTree.class_start(c)])
@@ -91,16 +98,19 @@ func _run() -> void:
 		if PerkTree.neighbors(id).size() >= 3:
 			forks += 1
 	ok(forks >= 40, "розгалужень (≥3 сусіди): %d" % forks)
-	# стартові навички: рівно три на клас, вони сусідні зі стартом класу
+	# стартові наузи: рівно три на клас (не вузли Древа)
 	for c in Gear.CLASS_IDS:
-		var st3: String = PerkTree.class_start(c)
-		var found := 0
-		for nid in PerkTree.neighbors(st3):
-			var dd: Dictionary = PerkTree.get_def(nid)
-			if bool(dd.get("starter", false)):
-				found += 1
-				ok(str(dd.get("skill", "")) in Gear.STARTER_SKILLS[c], "стартова навичка %s (%s) належить класу %s" % [dd.get("skill", ""), nid, c])
-		ok(found == 3, "клас %s: три стартові навички біля старту (%d)" % [c, found])
+		var found: int = int(Gear.STARTER_SKILLS[c].size())
+		ok(found == 3, "клас %s: три стартові наузи (%d)" % [c, found])
+		for sk in Gear.STARTER_SKILLS[c]:
+			ok(Skills.DATA.has(sk), "стартовий науз %s існує для %s" % [sk, c])
+	# пасивне Древо: без skill/mod_skill на вузлах
+	var with_skill := 0
+	for id in PerkTree.nodes():
+		if str(PerkTree.get_def(id).get("skill", "")) != "":
+			with_skill += 1
+	ok(with_skill == 0, "пасивне Древо без умінь на вузлах (%d)" % with_skill)
+	ok(PerkTree.VERSION >= 3, "формат Древа v3+")
 	# жодних перехресних зв'язків біля старту: 5 кроків від старту класу — лише власний регіон
 	for c in Gear.CLASS_IDS:
 		var st4: String = PerkTree.class_start(c)
@@ -174,19 +184,16 @@ func _run() -> void:
 	ok(gs.choose_starter(choices[1]["node"]), "стартову навичку обрано: %s" % choices[1]["skill"])
 	ok(choices[1]["skill"] in gs.learned_skills() and gs.perk_points == GameState.START_PERKS, "навичка вивчена безкоштовно, перки на місці")
 	ok(not gs.choose_starter(choices[0]["node"]), "вдруге стартову навичку обрати не можна")
-	ok(not gs.unlock(choices[0]["node"]), "інша стартова навичка не відкривається просто зі старту")
+	ok(not gs.unlock(choices[0]["node"]), "id науза не є вузлом Древа — відкрити не можна")
 	ok(gs.quick_skill(0) == choices[1]["skill"], "навичка потрапила в перший швидкий слот")
 	var str0: float = HeroStats.stat("str")
 	var first_nb := ""
 	for id in nb:
-		if not bool(PerkTree.get_def(id).get("starter", false)) and PerkTree.stat_of(id, "str") > 0.0:
+		if PerkTree.stat_of(id, "str") > 0.0:
 			first_nb = id
 			break
 	if first_nb == "":
-		for id in nb:
-			if not bool(PerkTree.get_def(id).get("starter", false)):
-				first_nb = id
-				break
+		first_nb = str(nb[0]) if nb.size() > 0 else ""
 	if first_nb == "":
 		for id in PerkTree.neighbors(choices[1]["node"]):
 			if id != start and not gs.is_unlocked(id):
@@ -490,18 +497,20 @@ func _run() -> void:
 	gs.choose_starter(gs.starter_choices()[0]["node"])
 	gs.location = "forest"
 	gs.perk_points = 400
-	var skill_nodes: Array = []
-	for id in PerkTree.nodes():
-		if str(PerkTree.get_def(id).get("skill", "")) != "":
-			skill_nodes.append(id)
-	ok(skill_nodes.size() >= 3, "у Древі навичок-вузлів: %d" % skill_nodes.size())
-	# відкриваємо шлях до кількох навичок (BFS по сусідах)
-	for sn in skill_nodes:
-		if gs.learned_skills().size() >= 7:
-			break
-		_unlock_path_to(gs, sn)
+	# наузи з каталогу — одягаємо у сокети (активні вміння більше не з Древа)
+	var extra_nauzi: Array = ["stribog_dash", "ancestral_heal", "whirlwind", "battle_cry", "ancestral_ward"]
+	for sk in extra_nauzi:
+		var it: Dictionary = Nauzi.make_nauz(sk, 1)
+		gs.add_item(it)
+		var slot := -1
+		for i in range(4):
+			if gs.sockets[i] == null:
+				slot = i
+				break
+		if slot >= 0:
+			gs.equip_nauz(slot, int(it.get("uid", 0)))
 	var learned: Array = gs.learned_skills()
-	ok(learned.size() >= 4, "вивчено навичок: %d (%s)" % [learned.size(), ", ".join(learned)])
+	ok(learned.size() >= 4, "наузів у сокетах: %d (%s)" % [learned.size(), ", ".join(learned)])
 	var w2 := _make_world(true)
 	await frames(10)
 	var p2: Player = w2.player
@@ -528,12 +537,21 @@ func _run() -> void:
 	ok(hud._inventory.visible and get_tree().paused, "сумка відкрита, гра на паузі")
 	gs.add_item(Items.make("bow", 4, 1, rng))
 	await frames(2)
-	hud._inventory._on_slot_tapped(hud._inventory._bag_slots[0])
+	hud._inventory._refresh()
+	var bow_slot: ItemSlot = null
+	for sl in hud._inventory._bag_slots:
+		var bi: int = sl.index
+		if bi >= 0 and bi < gs.bag.size() and str(gs.bag[bi].get("base", "")).begins_with("bow"):
+			bow_slot = sl
+			break
+	ok(bow_slot != null, "лук у сумці видно в сітці")
+	if bow_slot != null:
+		hud._inventory._on_slot_tapped(bow_slot)
 	ok(hud._inventory._btn_equip.visible, "після вибору предмета є кнопка «Одягти»")
 	hud._inventory._on_equip()
 	await frames(2)
 	ok(HeroStats.attack_kind() == "arrow", "екран сумки: лук одягнено")
-	hud._inventory._show_tab(InventoryScreen.TAB_SKILLS)
+	hud._inventory._show_tab(InventoryScreen.TAB_NAUZI)
 	await frames(2)
 	hud._inventory._sel_quick = 2
 	hud._inventory._on_skill_tapped(str(learned[0]))
@@ -551,14 +569,17 @@ func _run() -> void:
 	ok(not hud._perk_screen._modal.visible, "стартова навичка вже обрана — вікно вибору сховане")
 	hud._close_overlay()
 	await frames(2)
-	var saved_starter: String = gs.starter_node
+	var saved_starter: String = gs.starter_skill
+	var saved_node: String = gs.starter_node
+	gs.starter_skill = ""
 	gs.starter_node = ""
 	hud.open_perks()
 	await frames(3)
 	ok(hud._perk_screen._modal.visible and hud._perk_screen._modal_row.get_child_count() == 3, "без стартової навички Древо показує вибір із трьох")
+	gs.starter_skill = saved_starter
+	gs.starter_node = saved_node
 	hud._close_overlay()
 	await frames(2)
-	gs.starter_node = saved_starter
 	# здобич на землі
 	var loot_root: Node = w2.get_node("Loot")
 	var pp: Vector3 = p2.global_position

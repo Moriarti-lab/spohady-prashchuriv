@@ -80,9 +80,9 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
 
 <script id="default-tree" type="application/json">{
  "format": "spohady-perk-tree",
- "version": 2,
- "title": "Древо звитяги",
- "comment": "Формат описано в docs/perk_tree_format.md. Координати x, y: у «умовних пікселях», центр (0, 0).",
+ "version": 3,
+ "title": "Древо звитяги — пасивне (v0.5)",
+ "comment": "Пасивне Древо: без skill/mod_skill. Наузи — окремі предмети.",
  "regions": [
   {
    "id": "str",
@@ -125,16 +125,19 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_a1",
-   "name": "Могутній удар",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Могутній удар»: Удар по землі навколо себе: шкодить усім довкола. Площа, невелика шкода.",
+   "name": "Незламний",
+   "description": "+12% до життя. +20 до броні. −5% до швидкості руху.",
    "x": -592,
    "y": -1779,
-   "type": "skill",
-   "stats": {},
-   "skill": "power_strike",
+   "type": "notable",
+   "stats": {
+    "hp_pct": 12,
+    "armor": 20,
+    "move_pct": -5
+   },
+   "skill": "",
    "icon": "sk_power_strike",
-   "region": "str",
-   "starter": true
+   "region": "str"
   },
   {
    "id": "s_a2",
@@ -153,7 +156,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a3",
    "name": "Кузня предків",
-   "description": "+6 Сили, +15 до броні.",
+   "description": "+6 Сили. +15 до броні.",
    "x": -690,
    "y": -1471,
    "type": "notable",
@@ -167,13 +170,17 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_a4",
-   "name": "Вихор лез",
-   "description": "Відкриває навичку «Вихор лез»: Кружляєте з мечем: кілька ударів поспіль по всіх довкола.",
+   "name": "Жага крові",
+   "description": "+6% вампіризму. +10% до шкоди. −5% до життя.",
    "x": -756,
    "y": -1296,
-   "type": "skill",
-   "stats": {},
-   "skill": "whirlwind",
+   "type": "notable",
+   "stats": {
+    "lifesteal_pct": 6,
+    "dmg_pct": 10,
+    "hp_pct": -5
+   },
+   "skill": "",
    "icon": "sk_whirlwind",
    "region": "str"
   },
@@ -208,7 +215,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a7",
    "name": "Шрами слави",
-   "description": "+100 до життя, +0,5% життя за секунду.",
+   "description": "+100 до життя. +0,5% життя за секунду.",
    "x": -496,
    "y": -1010,
    "type": "notable",
@@ -222,20 +229,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_a8",
-   "name": "Удар об землю",
-   "description": "Відкриває навичку «Удар об землю»: Важкий удар, що валить і приголомшує всіх поруч.",
+   "name": "Тінь Нави",
+   "description": "Вбивство дає коротке прискорення. −10% до життя.",
    "x": -462,
    "y": -887,
-   "type": "skill",
-   "stats": {},
-   "skill": "ground_slam",
+   "type": "keystone",
+   "stats": {
+    "kill_haste": 1,
+    "hp_pct": -10
+   },
+   "skill": "",
    "icon": "sk_ground_slam",
-   "region": "str"
+   "region": "agi"
   },
   {
    "id": "s_a9",
    "name": "Дубова міць",
-   "description": "+2 Сили, +3,8% до життя.",
+   "description": "+3,8% до життя. +2 Сили.",
    "x": -367,
    "y": -794,
    "type": "small",
@@ -250,14 +260,14 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a10",
    "name": "Незламний",
-   "description": "+18% до життя, +30 до броні, −5% до швидкості руху. Ціна: ви трохи повільніші.",
+   "description": "+20% до життя. +30 до броні. −12% до швидкості руху.",
    "x": -330,
    "y": -673,
    "type": "keystone",
    "stats": {
-    "hp_pct": 18,
+    "hp_pct": 20,
     "armor": 30,
-    "move_pct": -5
+    "move_pct": -12
    },
    "skill": "",
    "icon": "pa_stone_skin",
@@ -266,7 +276,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a11",
    "name": "Громовий кулак",
-   "description": "+15% до шкоди, +21% до шкоди крита.",
+   "description": "+15% до шкоди. +21% до шкоди крита.",
    "x": -248,
    "y": -574,
    "type": "notable",
@@ -281,7 +291,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a12",
    "name": "Кам'яна воля",
-   "description": "+40 до броні, +6,6% менше отриманої шкоди.",
+   "description": "+6,6% менше шкоди. +40 до броні.",
    "x": -209,
    "y": -454,
    "type": "notable",
@@ -296,7 +306,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_a13",
    "name": "Терновий вінець",
-   "description": "+9,3% отриманої шкоди вертається ворогові.",
+   "description": "+9,3% відбиття.",
    "x": -141,
    "y": -348,
    "type": "small",
@@ -309,21 +319,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_b1",
-   "name": "Удар щитом",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Удар щитом»: Потужний удар по одному ворогу з приголомшенням. Довге відновлення.",
+   "name": "Перунів суд",
+   "description": "+8% шансу оглушення. −15% до шкоди крита.",
    "x": 13,
    "y": -1875,
-   "type": "skill",
-   "stats": {},
-   "skill": "shield_bash",
+   "type": "notable",
+   "stats": {
+    "stun_chance_pct": 8,
+    "crit_dmg_pct": -15
+   },
+   "skill": "",
    "icon": "sk_shield_bash",
-   "region": "str",
-   "starter": true
+   "region": "str"
   },
   {
    "id": "s_b2",
    "name": "Кривава жага",
-   "description": "+0,7% шкоди повертається життям.",
+   "description": "+0,7% вампіризму.",
    "x": -12,
    "y": -1750,
    "type": "small",
@@ -337,7 +349,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b3",
    "name": "Громовий кулак",
-   "description": "+9% до шкоди, +12% до шкоди крита.",
+   "description": "+9% до шкоди. +12% до шкоди крита.",
    "x": 11,
    "y": -1625,
    "type": "notable",
@@ -352,7 +364,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b4",
    "name": "Терновий вінець",
-   "description": "+5,3% отриманої шкоди вертається ворогові.",
+   "description": "+5,3% відбиття.",
    "x": -10,
    "y": -1500,
    "type": "small",
@@ -379,20 +391,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_b6",
-   "name": "Залізна стіна",
-   "description": "Відкриває навичку «Залізна стіна»: Тимчасово зменшує отриману шкоду й додає броню.",
+   "name": "Кривава міць",
+   "description": "+8 життя за вбивство. +3% вампіризму.",
    "x": -9,
    "y": -1250,
-   "type": "skill",
-   "stats": {},
-   "skill": "iron_wall",
+   "type": "notable",
+   "stats": {
+    "life_on_kill": 8,
+    "lifesteal_pct": 3
+   },
+   "skill": "",
    "icon": "sk_iron_wall",
    "region": "str"
   },
   {
    "id": "s_b7",
    "name": "Кам'яна воля",
-   "description": "+30 до броні, +5% менше отриманої шкоди.",
+   "description": "+5% менше шкоди. +30 до броні.",
    "x": 8,
    "y": -1125,
    "type": "notable",
@@ -421,7 +436,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b9",
    "name": "Гарт",
-   "description": "+1,9% менше отриманої шкоди.",
+   "description": "+1,9% менше шкоди.",
    "x": 6,
    "y": -875,
    "type": "small",
@@ -435,7 +450,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b10",
    "name": "Витривалість",
-   "description": "+20 до життя, +6 до броні.",
+   "description": "+20 до життя. +6 до броні.",
    "x": -5,
    "y": -750,
    "type": "small",
@@ -450,7 +465,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b11",
    "name": "Дух поединку",
-   "description": "+6 Сили, +25% отриманої шкоди вертається ворогові.",
+   "description": "+25% відбиття. +6 Сили.",
    "x": 4,
    "y": -625,
    "type": "notable",
@@ -465,7 +480,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_b12",
    "name": "Бойовий запал",
-   "description": "+2 Сили, +3,3% до шкоди.",
+   "description": "+2 Сили. +3,3% до шкоди.",
    "x": -3,
    "y": -500,
    "type": "small",
@@ -493,21 +508,24 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_c1",
-   "name": "Потрійний розріз",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Потрійний розріз»: Швидка серія з трьох ударів по сектору. Дорожча за Чар.",
+   "name": "Коло Сварога",
+   "description": "+15 до броні. +8% пробиття вогню. −4% до швидкості руху.",
    "x": 654,
    "y": -1757,
-   "type": "skill",
-   "stats": {},
-   "skill": "triple_slash",
+   "type": "notable",
+   "stats": {
+    "armor": 15,
+    "pen_fire_pct": 8,
+    "move_pct": -4
+   },
+   "skill": "",
    "icon": "sk_triple_slash",
-   "region": "str",
-   "starter": true
+   "region": "str"
   },
   {
    "id": "s_c2",
    "name": "Гарт",
-   "description": "+1,1% менше отриманої шкоди.",
+   "description": "+1,1% менше шкоди.",
    "x": 652,
    "y": -1624,
    "type": "small",
@@ -521,7 +539,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c3",
    "name": "Дух поединку",
-   "description": "+4 Сили, +15% отриманої шкоди вертається ворогові.",
+   "description": "+15% відбиття. +4 Сили.",
    "x": 741,
    "y": -1446,
    "type": "notable",
@@ -535,20 +553,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_c4",
-   "name": "Бойовий клич",
-   "description": "Відкриває навичку «Бойовий клич»: Посилює шкоду та швидкість атаки на кілька секунд.",
+   "name": "Міцний удар",
+   "description": "+12% до шкоди. +10 Сили.",
    "x": 710,
    "y": -1321,
-   "type": "skill",
-   "stats": {},
-   "skill": "battle_cry",
+   "type": "notable",
+   "stats": {
+    "dmg_pct": 12,
+    "str": 10
+   },
+   "skill": "",
    "icon": "sk_battle_cry",
    "region": "str"
   },
   {
    "id": "s_c5",
    "name": "Витривалість",
-   "description": "+14 до життя, +4 до броні.",
+   "description": "+14 до життя. +4 до броні.",
    "x": 678,
    "y": -1196,
    "type": "small",
@@ -563,7 +584,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c6",
    "name": "Бойовий запал",
-   "description": "+2 Сили, +2,3% до шкоди.",
+   "description": "+2 Сили. +2,3% до шкоди.",
    "x": 565,
    "y": -1115,
    "type": "small",
@@ -578,7 +599,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c7",
    "name": "Кров воїна",
-   "description": "+6,6% до життя, +3,3% шкоди повертається життям.",
+   "description": "+3,3% вампіризму. +6,6% до життя.",
    "x": 531,
    "y": -992,
    "type": "notable",
@@ -592,15 +613,19 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_c8",
-   "name": "Перунів ланцюг",
-   "description": "Відкриває навичку «Перунів ланцюг»: Блискавка перескакує між ворогами.",
+   "name": "Око Велеса",
+   "description": "+12% ухилення. +15% до шансу здобичі. −8% до життя.",
    "x": 430,
    "y": -903,
-   "type": "skill",
-   "stats": {},
-   "skill": "chain_lightning",
+   "type": "keystone",
+   "stats": {
+    "dodge_pct": 12,
+    "drop_pct": 15,
+    "hp_pct": -8
+   },
+   "skill": "",
    "icon": "sk_chain_lightning",
-   "region": "str"
+   "region": "agi"
   },
   {
    "id": "s_c9",
@@ -619,14 +644,14 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c10",
    "name": "Жага крові",
-   "description": "−10% до життя, +10% до шкоди, +5% шкоди повертається життям. Ціна: менше життя.",
+   "description": "+12% вампіризму. +15% до шкоди. −12% до життя.",
    "x": 306,
    "y": -685,
    "type": "keystone",
    "stats": {
-    "lifesteal_pct": 5,
-    "dmg_pct": 10,
-    "hp_pct": -10
+    "lifesteal_pct": 12,
+    "dmg_pct": 15,
+    "hp_pct": -12
    },
    "skill": "",
    "icon": "pa_lifesteal",
@@ -635,7 +660,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c11",
    "name": "Кузня предків",
-   "description": "+10 Сили, +25 до броні.",
+   "description": "+10 Сили. +25 до броні.",
    "x": 268,
    "y": -564,
    "type": "notable",
@@ -650,7 +675,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_c12",
    "name": "Шрами слави",
-   "description": "+133 до життя, +0,7% життя за секунду.",
+   "description": "+133 до життя. +0,7% життя за секунду.",
    "x": 193,
    "y": -461,
    "type": "notable",
@@ -707,7 +732,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_x3",
    "name": "Дубова міць",
-   "description": "+2 Сили, +4% до життя.",
+   "description": "+4% до життя. +2 Сили.",
    "x": -159,
    "y": -713,
    "type": "small",
@@ -722,7 +747,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_x4",
    "name": "Кривава жага",
-   "description": "+1,3% шкоди повертається життям.",
+   "description": "+1,3% вампіризму.",
    "x": 128,
    "y": -591,
    "type": "small",
@@ -764,7 +789,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_el12F",
    "name": "Гарт",
-   "description": "+2,4% менше отриманої шкоди.",
+   "description": "+2,4% менше шкоди.",
    "x": -391,
    "y": -295,
    "type": "small",
@@ -778,7 +803,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_er11M",
    "name": "Витривалість",
-   "description": "+23 до життя, +7 до броні.",
+   "description": "+23 до життя. +7 до броні.",
    "x": 402,
    "y": -479,
    "type": "small",
@@ -793,7 +818,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_er11F",
    "name": "Бойовий запал",
-   "description": "+2 Сили, +3,5% до шкоди.",
+   "description": "+2 Сили. +3,5% до шкоди.",
    "x": 506,
    "y": -367,
    "type": "small",
@@ -822,7 +847,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pa20",
    "name": "Терновий вінець",
-   "description": "+4,9% отриманої шкоди вертається ворогові.",
+   "description": "+4,9% відбиття.",
    "x": -772,
    "y": -1545,
    "type": "small",
@@ -836,7 +861,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pa21",
    "name": "Кров воїна",
-   "description": "+5,3% до життя, +2,7% шкоди повертається життям.",
+   "description": "+2,7% вампіризму. +5,3% до життя.",
    "x": -836,
    "y": -1491,
    "type": "notable",
@@ -865,7 +890,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pa61",
    "name": "Кузня предків",
-   "description": "+9 Сили, +21 до броні.",
+   "description": "+9 Сили. +21 до броні.",
    "x": -721,
    "y": -975,
    "type": "notable",
@@ -894,7 +919,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pc21",
    "name": "Шрами слави",
-   "description": "+80 до життя, +0,4% життя за секунду.",
+   "description": "+80 до життя. +0,4% життя за секунду.",
    "x": 783,
    "y": -1519,
    "type": "notable",
@@ -909,7 +934,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pc60",
    "name": "Гарт",
-   "description": "+1,7% менше отриманої шкоди.",
+   "description": "+1,7% менше шкоди.",
    "x": 626,
    "y": -1057,
    "type": "small",
@@ -923,7 +948,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "s_pc61",
    "name": "Громовий кулак",
-   "description": "+12% до шкоди, +18% до шкоди крита.",
+   "description": "+12% до шкоди. +18% до шкоди крита.",
    "x": 687,
    "y": -999,
    "type": "notable",
@@ -937,916 +962,817 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "s_k",
-   "name": "Кров пращурів",
-   "description": "+6 Сили, +6 Спритності, +6 Віри, +8% до життя.",
+   "name": "Вітроходець",
+   "description": "+20% до швидкості руху. +15% до швидкості атаки. −25 до броні.",
    "x": 0,
    "y": -190,
    "type": "keystone",
    "stats": {
-    "str": 6,
-    "agi": 6,
-    "faith": 6,
-    "hp_pct": 8
+    "move_pct": 20,
+    "atk_speed_pct": 15,
+    "armor": -25
    },
    "skill": "",
    "icon": "perk_region_str",
-   "region": "core"
+   "region": "agi"
   },
   {
    "id": "s_a1_u00",
-   "name": "Могутній удар · шкода I",
-   "description": "Могутній удар: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -672,
    "y": -1797,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u01",
-   "name": "Могутній удар · шкода II",
-   "description": "Могутній удар: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -752,
    "y": -1815,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u02",
-   "name": "Могутній удар · шкода III",
-   "description": "Могутній удар: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -832,
    "y": -1832,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u10",
-   "name": "Могутній удар · розмах I",
-   "description": "Могутній удар: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі. +4% опору грому.",
    "x": -521,
    "y": -1820,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3,
+    "res_thunder_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u11",
-   "name": "Могутній удар · розмах II",
-   "description": "Могутній удар: +14% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -450,
    "y": -1860,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "radius_pct": 14
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u20",
-   "name": "Могутній удар · темп I",
-   "description": "Могутній удар: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -659,
    "y": -1732,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_a1_u21",
-   "name": "Могутній удар · темп II",
-   "description": "Могутній удар: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": -726,
    "y": -1685,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "power_strike",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u00",
-   "name": "Удар щитом · шкода I",
-   "description": "Удар щитом: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору грому.",
    "x": 84,
    "y": -1917,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_thunder_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u01",
-   "name": "Удар щитом · шкода II",
-   "description": "Удар щитом: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 154,
    "y": -1958,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u02",
-   "name": "Удар щитом · шкода III",
-   "description": "Удар щитом: +25% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору вогню.",
    "x": 225,
    "y": -2000,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "res_fire_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "dmg_pct": 25
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u10",
-   "name": "Удар щитом · хватка I",
-   "description": "Удар щитом: +0,3 с приголомшення.",
+   "name": "Глухий удар",
+   "description": "+2% шансу оглушення.",
    "x": -67,
    "y": -1892,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "stun_chance_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "stun": 0.3
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u11",
-   "name": "Удар щитом · хватка II",
-   "description": "Удар щитом: +15% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -147,
    "y": -1908,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "range_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u20",
-   "name": "Удар щитом · темп I",
-   "description": "Удар щитом: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 91,
    "y": -1851,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_b1_u21",
-   "name": "Удар щитом · темп II",
-   "description": "Удар щитом: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 170,
    "y": -1827,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "shield_bash",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u00",
-   "name": "Потрійний розріз · шкода I",
-   "description": "Потрійний розріз: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору природі.",
    "x": 735,
    "y": -1772,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_nature_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u01",
-   "name": "Потрійний розріз · шкода II",
-   "description": "Потрійний розріз: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 815,
    "y": -1787,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u02",
-   "name": "Потрійний розріз · шкода III",
-   "description": "Потрійний розріз: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 896,
    "y": -1802,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u10",
-   "name": "Потрійний розріз · серія I",
-   "description": "Потрійний розріз: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": 584,
    "y": -1800,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "count": 1
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u11",
-   "name": "Потрійний розріз · серія II",
-   "description": "Потрійний розріз: +12% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 514,
    "y": -1843,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "range_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u20",
-   "name": "Потрійний розріз · темп I",
-   "description": "Потрійний розріз: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 719,
    "y": -1708,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_c1_u21",
-   "name": "Потрійний розріз · темп II",
-   "description": "Потрійний розріз: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 785,
    "y": -1658,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "triple_slash",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u00",
-   "name": "Вихор лез · шкода I",
-   "description": "Вихор лез: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -837,
    "y": -1297,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u01",
-   "name": "Вихор лез · шкода II",
-   "description": "Вихор лез: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -919,
    "y": -1298,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u02",
-   "name": "Вихор лез · шкода III",
-   "description": "Вихор лез: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1001,
    "y": -1299,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u10",
-   "name": "Вихор лез · розмах I",
-   "description": "Вихор лез: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -694,
    "y": -1350,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u11",
-   "name": "Вихор лез · розмах II",
-   "description": "Вихор лез: +14% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -633,
    "y": -1405,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "radius_pct": 14
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u20",
-   "name": "Вихор лез · темп I",
-   "description": "Вихор лез: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок. +4% опору вогню.",
    "x": -811,
    "y": -1236,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2,
+    "res_fire_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_a4_u21",
-   "name": "Вихор лез · темп II",
-   "description": "Вихор лез: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": -867,
    "y": -1176,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "whirlwind",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u00",
-   "name": "Бойовий клич · сила I",
-   "description": "Бойовий клич: +12% сили ефекту.",
+   "name": "Вузол сили",
+   "description": "+3% сили блоку.",
    "x": 792,
    "y": -1325,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "block_power_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u01",
-   "name": "Бойовий клич · сила II",
-   "description": "Бойовий клич: +12% сили ефекту.",
+   "name": "Міцна броня",
+   "description": "+8 до броні.",
    "x": 874,
    "y": -1329,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "armor": 8
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u02",
-   "name": "Бойовий клич · сила III",
-   "description": "Бойовий клич: +20% сили ефекту.",
+   "name": "Глухий удар",
+   "description": "+2% шансу оглушення. +4% опору світлу. +2% пробиття вогню.",
    "x": 956,
    "y": -1333,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "stun_chance_pct": 2,
+    "res_light_pct": 4,
+    "pen_fire_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "power_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u10",
-   "name": "Бойовий клич · тривалість I",
-   "description": "Бойовий клич: +15% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 647,
    "y": -1374,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "duration_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u11",
-   "name": "Бойовий клич · тривалість II",
-   "description": "Бойовий клич: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 583,
    "y": -1426,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u20",
-   "name": "Бойовий клич · темп I",
-   "description": "Бойовий клич: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 768,
    "y": -1263,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_c4_u21",
-   "name": "Бойовий клич · темп II",
-   "description": "Бойовий клич: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 826,
    "y": -1206,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "battle_cry",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u00",
-   "name": "Залізна стіна · сила I",
-   "description": "Залізна стіна: +12% сили ефекту.",
+   "name": "Міцне тіло",
+   "description": "+10 до життя.",
    "x": 61,
    "y": -1293,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "hp": 10
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u01",
-   "name": "Залізна стіна · сила II",
-   "description": "Залізна стіна: +12% сили ефекту.",
+   "name": "Дужі руки",
+   "description": "+5 Сили. +4% опору долі.",
    "x": 131,
    "y": -1335,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "str": 5,
+    "res_fate_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u02",
-   "name": "Залізна стіна · сила III",
-   "description": "Залізна стіна: +20% сили ефекту.",
+   "name": "Дужі руки",
+   "description": "+5 Сили.",
    "x": 201,
    "y": -1378,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "str": 5
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "power_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u10",
-   "name": "Залізна стіна · тривалість I",
-   "description": "Залізна стіна: +15% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -89,
    "y": -1265,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "duration_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u11",
-   "name": "Залізна стіна · тривалість II",
-   "description": "Залізна стіна: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -170,
    "y": -1281,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u20",
-   "name": "Залізна стіна · темп I",
-   "description": "Залізна стіна: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 70,
    "y": -1227,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_b6_u21",
-   "name": "Залізна стіна · темп II",
-   "description": "Залізна стіна: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 149,
    "y": -1204,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "iron_wall",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u00",
-   "name": "Удар об землю · шкода I",
-   "description": "Удар об землю: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору морозу. pen_frost_pct: 2.",
    "x": -543,
    "y": -892,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_frost_pct": 4,
+    "pen_frost_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u01",
-   "name": "Удар об землю · шкода II",
-   "description": "Удар об землю: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору долі.",
    "x": -625,
    "y": -897,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_fate_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u02",
-   "name": "Удар об землю · шкода III",
-   "description": "Удар об землю: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. pen_light_pct: 2.",
    "x": -707,
    "y": -902,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "pen_light_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u10",
-   "name": "Удар об землю · розмах I",
-   "description": "Удар об землю: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі. +4% опору світлу.",
    "x": -398,
    "y": -938,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3,
+    "res_light_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u11",
-   "name": "Удар об землю · розмах II",
-   "description": "Удар об землю: +14% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -334,
    "y": -990,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "radius_pct": 14
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u20",
-   "name": "Удар об землю · темп I",
-   "description": "Удар об землю: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок. +4% опору природі.",
    "x": -520,
    "y": -830,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2,
+    "res_nature_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_a8_u21",
-   "name": "Удар об землю · темп II",
-   "description": "Удар об землю: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": -579,
    "y": -773,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "ground_slam",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u00",
-   "name": "Перунів ланцюг · шкода I",
-   "description": "Перунів ланцюг: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 512,
    "y": -911,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u01",
-   "name": "Перунів ланцюг · шкода II",
-   "description": "Перунів ланцюг: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 594,
    "y": -918,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u02",
-   "name": "Перунів ланцюг · шкода III",
-   "description": "Перунів ланцюг: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 675,
    "y": -926,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u10",
-   "name": "Перунів ланцюг · ланцюг I",
-   "description": "Перунів ланцюг: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": 365,
    "y": -952,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "count": 1
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u11",
-   "name": "Перунів ланцюг · ланцюг II",
-   "description": "Перунів ланцюг: +15% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 299,
    "y": -1001,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "range_pct": 15
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u20",
-   "name": "Перунів ланцюг · темп I",
-   "description": "Перунів ланцюг: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 491,
    "y": -848,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "str"
   },
   {
    "id": "s_c8_u21",
-   "name": "Перунів ланцюг · темп II",
-   "description": "Перунів ланцюг: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 552,
    "y": -793,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "str",
-   "mod_skill": "chain_lightning",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "str"
   },
   {
    "id": "a_t0",
@@ -1864,16 +1790,19 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_a1",
-   "name": "Град стріл",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Град стріл»: Віяло стріл по площі. Менша шкода, але багато цілей.",
+   "name": "Вітроходець",
+   "description": "+12% до швидкості руху. +10% до швидкості атаки. −10 до броні.",
    "x": 1837,
    "y": 377,
-   "type": "skill",
-   "stats": {},
-   "skill": "arrow_volley",
+   "type": "notable",
+   "stats": {
+    "move_pct": 12,
+    "atk_speed_pct": 10,
+    "armor": -10
+   },
+   "skill": "",
    "icon": "sk_arrow_volley",
-   "region": "agi",
-   "starter": true
+   "region": "agi"
   },
   {
    "id": "a_a2",
@@ -1892,7 +1821,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_a3",
    "name": "Лісова наука",
-   "description": "+6 Спритності, +49 до життя.",
+   "description": "+6 Спритності. +49 до життя.",
    "x": 1619,
    "y": 138,
    "type": "notable",
@@ -1906,13 +1835,17 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_a4",
-   "name": "Злива стріл",
-   "description": "Відкриває навичку «Злива стріл»: Стріли падають на ділянку, куди ви цілитесь.",
+   "name": "Око Велеса",
+   "description": "+8% ухилення. +10% до шансу здобичі. −5% до життя.",
    "x": 1500,
    "y": -6,
-   "type": "skill",
-   "stats": {},
-   "skill": "arrow_rain",
+   "type": "notable",
+   "stats": {
+    "dodge_pct": 8,
+    "drop_pct": 10,
+    "hp_pct": -5
+   },
+   "skill": "",
    "icon": "sk_arrow_rain",
    "region": "agi"
   },
@@ -1947,7 +1880,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_a7",
    "name": "Подих лісу",
-   "description": "+6,6% до швидкості атаки, +10% до швидкості руху.",
+   "description": "+10% до швидкості руху. +6,6% до швидкості атаки.",
    "x": 1122,
    "y": 75,
    "type": "notable",
@@ -1961,13 +1894,15 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_a8",
-   "name": "Отруйна хмара",
-   "description": "Відкриває навичку «Отруйна хмара»: Хмара навколо вас: шкодить і сповільнює ворогів.",
+   "name": "Швидкі пальці",
+   "description": "+20% до росту наузів.",
    "x": 999,
    "y": 44,
-   "type": "skill",
-   "stats": {},
-   "skill": "poison_cloud",
+   "type": "notable",
+   "stats": {
+    "nauz_xp_pct": 20
+   },
+   "skill": "",
    "icon": "sk_poison_cloud",
    "region": "agi"
   },
@@ -1987,24 +1922,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_a10",
-   "name": "Мисливець",
-   "description": "−10% до життя, +10% до шансу крита, +40% до шкоди крита. Ціна: менше життя.",
+   "name": "Тканина Мокоші",
+   "description": "+1 гніздо нитки на наузах. −10% до шкоди.",
    "x": 748,
    "y": 51,
    "type": "keystone",
    "stats": {
-    "crit_pct": 10,
-    "crit_dmg_pct": 40,
-    "hp_pct": -10
+    "nauz_thread_slots": 1,
+    "dmg_pct": -10
    },
    "skill": "",
    "icon": "pa_crit",
-   "region": "agi"
+   "region": "faith"
   },
   {
    "id": "a_a11",
    "name": "Тінь у хащі",
-   "description": "+6,3% до шансу крита, +29% до шкоди крита.",
+   "description": "+6,3% до шансу крита. +29% до шкоди крита.",
    "x": 621,
    "y": 72,
    "type": "notable",
@@ -2019,7 +1953,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_a12",
    "name": "Рука без тремтіння",
-   "description": "+7 Спритності, +5,5% до шансу крита.",
+   "description": "+5,5% до шансу крита. +7 Спритності.",
    "x": 498,
    "y": 46,
    "type": "notable",
@@ -2047,27 +1981,29 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_b1",
-   "name": "Влучний постріл",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Влучний постріл»: Одна потужна стріла, що пробиває ворогів наскрізь.",
+   "name": "Тінь Нави",
+   "description": "+8% до швидкості руху. +6% до швидкості атаки. −6% до життя.",
    "x": 1617,
    "y": 949,
-   "type": "skill",
-   "stats": {},
-   "skill": "piercing_shot",
+   "type": "notable",
+   "stats": {
+    "move_pct": 8,
+    "atk_speed_pct": 6,
+    "hp_pct": -6
+   },
+   "skill": "",
    "icon": "sk_piercing_shot",
-   "region": "agi",
-   "starter": true
+   "region": "agi"
   },
   {
    "id": "a_b2",
    "name": "Вдача мисливця",
-   "description": "+4,4% до здобичі гривень, +2,2% до шансу здобичі.",
+   "description": "+3% швидкості снарядів.",
    "x": 1522,
    "y": 864,
    "type": "small",
    "stats": {
-    "gold_pct": 4.4,
-    "drop_pct": 2.2
+    "proj_speed_pct": 3
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2076,7 +2012,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_b3",
    "name": "Тінь у хащі",
-   "description": "+3,7% до шансу крита, +17% до шкоди крита.",
+   "description": "+3,7% до шансу крита. +17% до шкоди крита.",
    "x": 1402,
    "y": 822,
    "type": "notable",
@@ -2105,7 +2041,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_b5",
    "name": "Вітер у спину",
-   "description": "+1 Спритності, +2,2% до швидкості руху.",
+   "description": "+2,2% до швидкості руху. +1 Спритності.",
    "x": 1186,
    "y": 696,
    "type": "small",
@@ -2119,20 +2055,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_b6",
-   "name": "Мисливська пастка",
-   "description": "Відкриває навичку «Мисливська пастка»: Ставите пастку: за мить вона спрацьовує й надовго приголомшує.",
+   "name": "Подвійний крок",
+   "description": "+8% подвійного удару. +10 Спритності.",
    "x": 1087,
    "y": 617,
-   "type": "skill",
-   "stats": {},
-   "skill": "hunters_trap",
+   "type": "notable",
+   "stats": {
+    "double_hit_pct": 8,
+    "agi": 10
+   },
+   "skill": "",
    "icon": "sk_hunters_trap",
    "region": "agi"
   },
   {
    "id": "a_b7",
    "name": "Рука без тремтіння",
-   "description": "+5 Спритності, +4,2% до шансу крита.",
+   "description": "+4,2% до шансу крита. +5 Спритності.",
    "x": 970,
    "y": 569,
    "type": "notable",
@@ -2147,7 +2086,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_b8",
    "name": "Око яструба",
-   "description": "+2 Спритності, +1,1% до шансу крита.",
+   "description": "+2 Спритності. +1,1% до шансу крита.",
    "x": 869,
    "y": 494,
    "type": "small",
@@ -2162,12 +2101,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_b9",
    "name": "Звіриний нюх",
-   "description": "+5,6% до шансу здобичі.",
+   "description": "+3% швидкості снарядів.",
    "x": 755,
    "y": 443,
    "type": "small",
    "stats": {
-    "drop_pct": 5.6
+    "proj_speed_pct": 3
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2189,14 +2128,14 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_b11",
-   "name": "Багатий слід",
-   "description": "+21% до здобичі гривень, +13% до шансу здобичі.",
+   "name": "Щедра здобич",
+   "description": "+20% до гривень. +15% до шансу здобичі.",
    "x": 539,
    "y": 316,
    "type": "notable",
    "stats": {
-    "gold_pct": 21,
-    "drop_pct": 13
+    "gold_pct": 20,
+    "drop_pct": 15
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2205,7 +2144,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_b12",
    "name": "Гнучкість",
-   "description": "+2 Спритності, +22 до життя.",
+   "description": "+22 до життя. +2 Спритності.",
    "x": 435,
    "y": 247,
    "type": "small",
@@ -2233,26 +2172,28 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_c1",
-   "name": "Швидкий приціл",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Швидкий приціл»: Три швидкі стріли поспіль. Дорожча за Чар.",
+   "name": "Гострий зір",
+   "description": "+6% до шансу крита. +15% до шкоди крита.",
    "x": 1195,
    "y": 1445,
-   "type": "skill",
-   "stats": {},
-   "skill": "rapid_shot",
+   "type": "notable",
+   "stats": {
+    "crit_pct": 6,
+    "crit_dmg_pct": 15
+   },
+   "skill": "",
    "icon": "sk_rapid_shot",
-   "region": "agi",
-   "starter": true
+   "region": "agi"
   },
   {
    "id": "a_c2",
    "name": "Звіриний нюх",
-   "description": "+3,3% до шансу здобичі.",
+   "description": "+4 Спритності.",
    "x": 1081,
    "y": 1376,
    "type": "small",
    "stats": {
-    "drop_pct": 3.3
+    "agi": 4
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2260,14 +2201,14 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_c3",
-   "name": "Багатий слід",
-   "description": "+12% до здобичі гривень, +7% до шансу здобичі.",
+   "name": "Щедра здобич",
+   "description": "+20% до гривень. +15% до шансу здобичі.",
    "x": 882,
    "y": 1365,
    "type": "notable",
    "stats": {
-    "gold_pct": 12,
-    "drop_pct": 7
+    "gold_pct": 20,
+    "drop_pct": 15
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2275,13 +2216,16 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_c4",
-   "name": "Дух вовка",
-   "description": "Відкриває навичку «Дух вовка»: Швидкість руху, швидкість атаки та викрадання життя.",
+   "name": "Шлях стріли",
+   "description": "+15% швидкості снарядів. +8% до шкоди.",
    "x": 789,
    "y": 1275,
-   "type": "skill",
-   "stats": {},
-   "skill": "wolf_spirit",
+   "type": "notable",
+   "stats": {
+    "proj_speed_pct": 15,
+    "dmg_pct": 8
+   },
+   "skill": "",
    "icon": "sk_wolf_spirit",
    "region": "agi"
   },
@@ -2302,7 +2246,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_c6",
    "name": "Гнучкість",
-   "description": "+2 Спритності, +16 до життя.",
+   "description": "+16 до життя. +2 Спритності.",
    "x": 683,
    "y": 1047,
    "type": "small",
@@ -2317,7 +2261,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_c7",
    "name": "Час мисливця",
-   "description": "+5% до швидкості атаки, +6,6% до швидкості відновлення навичок.",
+   "description": "+6,6% до швидкості відновлення навичок. +5% до швидкості атаки.",
    "x": 593,
    "y": 956,
    "type": "notable",
@@ -2331,13 +2275,16 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_c8",
-   "name": "Подих Стрибога",
-   "description": "Відкриває навичку «Подих Стрибога»: Ривок уперед із поштовхом ворогів на шляху.",
+   "name": "Вузол учня",
+   "description": "+12% до росту наузів. +5 Спритності.",
    "x": 567,
    "y": 824,
-   "type": "skill",
-   "stats": {},
-   "skill": "stribog_dash",
+   "type": "notable",
+   "stats": {
+    "nauz_xp_pct": 12,
+    "agi": 5
+   },
+   "skill": "",
    "icon": "sk_stribog_dash",
    "region": "agi"
   },
@@ -2357,24 +2304,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_c10",
-   "name": "Вітроходець",
-   "description": "−15 до броні, +12% до швидкості атаки, +15% до швидкості руху. Ціна: менше броні.",
+   "name": "Один шлях",
+   "description": "Лише 1 науз у гніздах; нитки сильніші. +80% сили ниток.",
    "x": 440,
    "y": 608,
    "type": "keystone",
    "stats": {
-    "move_pct": 15,
-    "atk_speed_pct": 12,
-    "armor": -15
+    "one_path": 1,
+    "thread_power_pct": 80
    },
    "skill": "",
    "icon": "pa_speed",
-   "region": "agi"
+   "region": "faith"
   },
   {
    "id": "a_c11",
    "name": "Лісова наука",
-   "description": "+10 Спритності, +84 до життя.",
+   "description": "+10 Спритності. +84 до життя.",
    "x": 355,
    "y": 515,
    "type": "notable",
@@ -2389,7 +2335,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_c12",
    "name": "Подих лісу",
-   "description": "+8,8% до швидкості атаки, +13% до швидкості руху.",
+   "description": "+13% до швидкості руху. +8,8% до швидкості атаки.",
    "x": 303,
    "y": 398,
    "type": "notable",
@@ -2460,13 +2406,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_x4",
    "name": "Вдача мисливця",
-   "description": "+8,4% до здобичі гривень, +4,2% до шансу здобичі.",
+   "description": "+4 Спритності.",
    "x": 448,
    "y": 406,
    "type": "small",
    "stats": {
-    "gold_pct": 8.4,
-    "drop_pct": 4.2
+    "agi": 4
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2475,7 +2420,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_el11M",
    "name": "Вітер у спину",
-   "description": "+2 Спритності, +3,5% до швидкості руху.",
+   "description": "+3,5% до швидкості руху. +2 Спритності.",
    "x": 616,
    "y": -109,
    "type": "small",
@@ -2490,7 +2435,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_el11F",
    "name": "Око яструба",
-   "description": "+2 Спритності, +1,4% до шансу крита.",
+   "description": "+2 Спритності. +1,4% до шансу крита.",
    "x": 571,
    "y": -254,
    "type": "small",
@@ -2505,12 +2450,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_el12F",
    "name": "Звіриний нюх",
-   "description": "+7,3% до шансу здобичі.",
+   "description": "+3% швидкості снарядів.",
    "x": 451,
    "y": -191,
    "type": "small",
    "stats": {
-    "drop_pct": 7.3
+    "proj_speed_pct": 3
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2533,7 +2478,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_er11F",
    "name": "Гнучкість",
-   "description": "+2 Спритності, +23 до життя.",
+   "description": "+23 до життя. +2 Спритності.",
    "x": 65,
    "y": 622,
    "type": "small",
@@ -2576,7 +2521,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pa21",
    "name": "Час мисливця",
-   "description": "+4% до швидкості атаки, +5,3% до швидкості відновлення навичок.",
+   "description": "+5,3% до швидкості відновлення навичок. +4% до швидкості атаки.",
    "x": 1709,
    "y": 22,
    "type": "notable",
@@ -2591,7 +2536,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pa60",
    "name": "Вітер у спину",
-   "description": "+2 Спритності, +2,5% до швидкості руху.",
+   "description": "+2,5% до швидкості руху. +2 Спритності.",
    "x": 1227,
    "y": -56,
    "type": "small",
@@ -2606,7 +2551,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pa61",
    "name": "Лісова наука",
-   "description": "+9 Спритності, +71 до життя.",
+   "description": "+9 Спритності. +71 до життя.",
    "x": 1205,
    "y": -137,
    "type": "notable",
@@ -2621,7 +2566,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pc20",
    "name": "Око яструба",
-   "description": "+1 Спритності, +0,7% до шансу крита.",
+   "description": "+1 Спритності. +0,7% до шансу крита.",
    "x": 1003,
    "y": 1407,
    "type": "small",
@@ -2636,7 +2581,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pc21",
    "name": "Подих лісу",
-   "description": "+5,3% до швидкості атаки, +8% до швидкості руху.",
+   "description": "+8% до швидкості руху. +5,3% до швидкості атаки.",
    "x": 925,
    "y": 1437,
    "type": "notable",
@@ -2651,12 +2596,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pc60",
    "name": "Звіриний нюх",
-   "description": "+5% до шансу здобичі.",
+   "description": "+4 Спритності.",
    "x": 602,
    "y": 1071,
    "type": "small",
    "stats": {
-    "drop_pct": 5.0
+    "agi": 4
    },
    "skill": "",
    "icon": "pa_luck",
@@ -2665,7 +2610,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "a_pc61",
    "name": "Тінь у хащі",
-   "description": "+5,3% до шансу крита, +25% до шкоди крита.",
+   "description": "+5,3% до шансу крита. +25% до шкоди крита.",
    "x": 522,
    "y": 1094,
    "type": "notable",
@@ -2679,915 +2624,810 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "a_k",
-   "name": "Дух роду",
-   "description": "+8% до шкоди, +4% до шансу крита, +6% до швидкості відновлення навичок.",
+   "name": "Кривава міць",
+   "description": "Уміння можна платити життям.",
    "x": 165,
    "y": 95,
    "type": "keystone",
    "stats": {
-    "dmg_pct": 8,
-    "crit_pct": 4.0,
-    "cdr_pct": 6
+    "life_pay_skills": 1
    },
    "skill": "",
    "icon": "perk_region_agi",
-   "region": "core"
+   "region": "str"
   },
   {
    "id": "a_a1_u00",
-   "name": "Град стріл · шкода I",
-   "description": "Град стріл: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору грому.",
    "x": 1892,
    "y": 316,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_thunder_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u01",
-   "name": "Град стріл · шкода II",
-   "description": "Град стріл: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1948,
    "y": 256,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u02",
-   "name": "Град стріл · шкода III",
-   "description": "Град стріл: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 2003,
    "y": 195,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u10",
-   "name": "Град стріл · залп I",
-   "description": "Град стріл: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+2% подвійного удару.",
    "x": 1836,
    "y": 459,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "count": 1
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u11",
-   "name": "Град стріл · залп II",
-   "description": "Град стріл: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+2% подвійного удару.",
    "x": 1836,
    "y": 541,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "count": 1
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u20",
-   "name": "Град стріл · темп I",
-   "description": "Град стріл: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 1829,
    "y": 295,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_a1_u21",
-   "name": "Град стріл · темп II",
-   "description": "Град стріл: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 1822,
    "y": 213,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_volley",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u00",
-   "name": "Влучний постріл · шкода I",
-   "description": "Влучний постріл: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1618,
    "y": 1031,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u01",
-   "name": "Влучний постріл · шкода II",
-   "description": "Влучний постріл: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1619,
    "y": 1113,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u02",
-   "name": "Влучний постріл · шкода III",
-   "description": "Влучний постріл: +30% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1620,
    "y": 1195,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "dmg_pct": 30
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u10",
-   "name": "Влучний постріл · приціл I",
-   "description": "Влучний постріл: +15% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 1672,
    "y": 888,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "range_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u11",
-   "name": "Влучний постріл · приціл II",
-   "description": "Влучний постріл: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 1726,
    "y": 826,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u20",
-   "name": "Влучний постріл · чар I",
-   "description": "Влучний постріл: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 1557,
    "y": 1005,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "agi"
   },
   {
    "id": "a_b1_u21",
-   "name": "Влучний постріл · чар II",
-   "description": "Влучний постріл: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь. pen_thunder_pct: 2.",
    "x": 1497,
    "y": 1060,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1,
+    "pen_thunder_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "piercing_shot",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u00",
-   "name": "Швидкий приціл · шкода I",
-   "description": "Швидкий приціл: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1168,
    "y": 1522,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u01",
-   "name": "Швидкий приціл · шкода II",
-   "description": "Швидкий приціл: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1140,
    "y": 1600,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u02",
-   "name": "Швидкий приціл · шкода III",
-   "description": "Швидкий приціл: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1113,
    "y": 1677,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u10",
-   "name": "Швидкий приціл · залп I",
-   "description": "Швидкий приціл: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+2% подвійного удару.",
    "x": 1267,
    "y": 1406,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "count": 1
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u11",
-   "name": "Швидкий приціл · залп II",
-   "description": "Швидкий приціл: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+2% подвійного удару.",
    "x": 1339,
    "y": 1367,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "count": 1
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u20",
-   "name": "Швидкий приціл · темп I",
-   "description": "Швидкий приціл: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 1119,
    "y": 1477,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_c1_u21",
-   "name": "Швидкий приціл · темп II",
-   "description": "Швидкий приціл: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 1044,
    "y": 1509,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "rapid_shot",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u00",
-   "name": "Злива стріл · шкода I",
-   "description": "Злива стріл: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору вогню.",
    "x": 1542,
    "y": -77,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "res_fire_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u01",
-   "name": "Злива стріл · шкода II",
-   "description": "Злива стріл: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1584,
    "y": -147,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u02",
-   "name": "Злива стріл · шкода III",
-   "description": "Злива стріл: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору природі.",
    "x": 1626,
    "y": -218,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "res_nature_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u10",
-   "name": "Злива стріл · діяння I",
-   "description": "Злива стріл: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 1516,
    "y": 74,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u11",
-   "name": "Злива стріл · діяння II",
-   "description": "Злива стріл: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 1533,
    "y": 154,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u20",
-   "name": "Злива стріл · темп I",
-   "description": "Злива стріл: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 1476,
    "y": -85,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_a4_u21",
-   "name": "Злива стріл · темп II",
-   "description": "Злива стріл: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь. +4% опору грому.",
    "x": 1452,
    "y": -163,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1,
+    "res_thunder_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "arrow_rain",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u00",
-   "name": "Дух вовка · сила I",
-   "description": "Дух вовка: +12% сили ефекту.",
+   "name": "Прудкі ноги",
+   "description": "+5 Спритності. +4% опору природі.",
    "x": 752,
    "y": 1348,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "agi": 5,
+    "res_nature_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u01",
-   "name": "Дух вовка · сила II",
-   "description": "Дух вовка: +12% сили ефекту.",
+   "name": "Гострий удар",
+   "description": "+3% до шкоди.",
    "x": 714,
    "y": 1421,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u02",
-   "name": "Дух вовка · сила III",
-   "description": "Дух вовка: +20% сили ефекту.",
+   "name": "Подвійний крок",
+   "description": "+2% подвійного удару.",
    "x": 677,
    "y": 1494,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "double_hit_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "power_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u10",
-   "name": "Дух вовка · тривалість I",
-   "description": "Дух вовка: +15% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 866,
    "y": 1247,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "duration_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u11",
-   "name": "Дух вовка · тривалість II",
-   "description": "Дух вовка: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 943,
    "y": 1218,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u20",
-   "name": "Дух вовка · темп I",
-   "description": "Дух вовка: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 710,
    "y": 1297,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_c4_u21",
-   "name": "Дух вовка · темп II",
-   "description": "Дух вовка: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 631,
    "y": 1318,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "wolf_spirit",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u00",
-   "name": "Мисливська пастка · шкода I",
-   "description": "Мисливська пастка: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1089,
    "y": 699,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u01",
-   "name": "Мисливська пастка · шкода II",
-   "description": "Мисливська пастка: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1091,
    "y": 781,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u02",
-   "name": "Мисливська пастка · шкода III",
-   "description": "Мисливська пастка: +25% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1093,
    "y": 863,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "dmg_pct": 25
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u10",
-   "name": "Мисливська пастка · діяння I",
-   "description": "Мисливська пастка: +12% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 1141,
    "y": 555,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "radius_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u11",
-   "name": "Мисливська пастка · діяння II",
-   "description": "Мисливська пастка: +0,4 с приголомшення.",
+   "name": "Глухий удар",
+   "description": "+2% шансу оглушення. pen_frost_pct: 2.",
    "x": 1194,
    "y": 493,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "stun_chance_pct": 2,
+    "pen_frost_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "stun": 0.4
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u20",
-   "name": "Мисливська пастка · темп I",
-   "description": "Мисливська пастка: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 1028,
    "y": 674,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_b6_u21",
-   "name": "Мисливська пастка · темп II",
-   "description": "Мисливська пастка: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 968,
    "y": 731,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "hunters_trap",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u00",
-   "name": "Отруйна хмара · шкода I",
-   "description": "Отруйна хмара: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1044,
    "y": -25,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u01",
-   "name": "Отруйна хмара · шкода II",
-   "description": "Отруйна хмара: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": 1090,
    "y": -93,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u02",
-   "name": "Отруйна хмара · шкода III",
-   "description": "Отруйна хмара: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору долі.",
    "x": 1135,
    "y": -161,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "res_fate_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u10",
-   "name": "Отруйна хмара · діяння I",
-   "description": "Отруйна хмара: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 1012,
    "y": 125,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u11",
-   "name": "Отруйна хмара · діяння II",
-   "description": "Отруйна хмара: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": 1024,
    "y": 206,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u20",
-   "name": "Отруйна хмара · темп I",
-   "description": "Отруйна хмара: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок. pen_frost_pct: 2.",
    "x": 979,
    "y": -36,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2,
+    "pen_frost_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_a8_u21",
-   "name": "Отруйна хмара · темп II",
-   "description": "Отруйна хмара: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 959,
    "y": -115,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "poison_cloud",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u00",
-   "name": "Подих Стрибога · розмах I",
-   "description": "Подих Стрибога: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 533,
    "y": 899,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u01",
-   "name": "Подих Стрибога · розмах II",
-   "description": "Подих Стрибога: +12% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 499,
    "y": 973,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "radius_pct": 12
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u02",
-   "name": "Подих Стрибога · розмах III",
-   "description": "Подих Стрибога: +18% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": 465,
    "y": 1048,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "radius_pct": 18
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u10",
-   "name": "Подих Стрибога · темп I",
-   "description": "Подих Стрибога: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 642,
    "y": 792,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u11",
-   "name": "Подих Стрибога · темп II",
-   "description": "Подих Стрибога: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": 717,
    "y": 759,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u20",
-   "name": "Подих Стрибога · чар I",
-   "description": "Подих Стрибога: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 489,
    "y": 849,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "agi"
   },
   {
    "id": "a_c8_u21",
-   "name": "Подих Стрибога · чар II",
-   "description": "Подих Стрибога: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-1% до вартості вмінь.",
    "x": 410,
    "y": 874,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -1
+   },
    "skill": "",
    "icon": "",
-   "region": "agi",
-   "mod_skill": "stribog_dash",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "agi"
   },
   {
    "id": "f_t0",
@@ -3605,16 +3445,18 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_a1",
-   "name": "Хвиля стихії",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Хвиля стихії»: Хвиля навколо вас: шкодить усім довкола. Площа.",
+   "name": "Тканина Мокоші",
+   "description": "+1 гніздо нитки на наузах. −10% до шкоди.",
    "x": -1245,
    "y": 1402,
-   "type": "skill",
-   "stats": {},
-   "skill": "element_wave",
+   "type": "notable",
+   "stats": {
+    "nauz_thread_slots": 1,
+    "dmg_pct": -10
+   },
+   "skill": "",
    "icon": "sk_element_wave",
-   "region": "faith",
-   "starter": true
+   "region": "faith"
   },
   {
    "id": "f_a2",
@@ -3632,14 +3474,13 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_a3",
-   "name": "Мудрість предків",
-   "description": "+6 Віри, +4,9% до звитяги.",
+   "name": "Шлях учня",
+   "description": "+15% до звитяги.",
    "x": -929,
    "y": 1333,
    "type": "notable",
    "stats": {
-    "faith": 6,
-    "xp_pct": 4.9
+    "xp_pct": 15
    },
    "skill": "",
    "icon": "pa_faith",
@@ -3647,20 +3488,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_a4",
-   "name": "Вогняний вал",
-   "description": "Відкриває навичку «Вогняний вал»: Два вогняні вали перед вами.",
+   "name": "Оберіг роду",
+   "description": "+8% опору всім стихіям. +10% до чару.",
    "x": -744,
    "y": 1302,
-   "type": "skill",
-   "stats": {},
-   "skill": "fire_wave",
+   "type": "notable",
+   "stats": {
+    "res_all_pct": 8,
+    "mana_pct": 10
+   },
+   "skill": "",
    "icon": "sk_fire_wave",
    "region": "faith"
   },
   {
    "id": "f_a5",
    "name": "Джерело Мари",
-   "description": "+0,4 до відновлення чару за секунду.",
+   "description": "+0,4 до відновлення чару.",
    "x": -738,
    "y": 1160,
    "type": "small",
@@ -3688,7 +3532,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_a7",
    "name": "Священний вогонь",
-   "description": "+10% до шкоди, +17% до шкоди крита.",
+   "description": "+10% до шкоди. +17% до шкоди крита.",
    "x": -626,
    "y": 935,
    "type": "notable",
@@ -3702,13 +3546,15 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_a8",
-   "name": "Земляні списи",
-   "description": "Відкриває навичку «Земляні списи»: Списи вриваються з землі в обраному місці й оглушують.",
+   "name": "Шлях учня",
+   "description": "+15% до звитяги.",
    "x": -538,
    "y": 843,
-   "type": "skill",
-   "stats": {},
-   "skill": "earth_spikes",
+   "type": "notable",
+   "stats": {
+    "xp_pct": 15
+   },
+   "skill": "",
    "icon": "sk_earth_spikes",
    "region": "faith"
   },
@@ -3728,15 +3574,14 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_a10",
-   "name": "Джерело Мари",
-   "description": "−8% до життя, +30% до чару, +1,5 до відновлення чару за секунду. Ціна: менше життя.",
+   "name": "Гнів без чару",
+   "description": "Уміння без вартості чару. −25% до швидкості відновлення навичок.",
    "x": -418,
    "y": 623,
    "type": "keystone",
    "stats": {
-    "mana_pct": 30,
-    "mana_regen": 1.5,
-    "hp_pct": -8
+    "free_skills": 1,
+    "cdr_pct": -25
    },
    "skill": "",
    "icon": "pa_regen",
@@ -3745,7 +3590,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_a11",
    "name": "Ріка Чару",
-   "description": "+17% до чару, +1,7 до відновлення чару за секунду.",
+   "description": "+17% до чару. +1,7 до відновлення чару.",
    "x": -372,
    "y": 502,
    "type": "notable",
@@ -3760,7 +3605,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_a12",
    "name": "Громова пісня",
-   "description": "+15% до шкоди, +6,6% до швидкості відновлення навичок.",
+   "description": "+15% до шкоди. +6,6% до швидкості відновлення навичок.",
    "x": -289,
    "y": 408,
    "type": "notable",
@@ -3788,21 +3633,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_b1",
-   "name": "Сонячний промінь",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Сонячний промінь»: Далекий потужний промінь по одному ворогу.",
+   "name": "Щедра здобич",
+   "description": "+20% до гривень. +15% до шансу здобичі.",
    "x": -1630,
    "y": 926,
-   "type": "skill",
-   "stats": {},
-   "skill": "sun_beam",
+   "type": "notable",
+   "stats": {
+    "gold_pct": 20,
+    "drop_pct": 15
+   },
+   "skill": "",
    "icon": "sk_sun_beam",
-   "region": "faith",
-   "starter": true
+   "region": "faith"
   },
   {
    "id": "f_b2",
    "name": "Жар Сварога",
-   "description": "+1,7% до шкоди, +3,3% до шкоди крита.",
+   "description": "+1,7% до шкоди. +3,3% до шкоди крита.",
    "x": -1509,
    "y": 886,
    "type": "small",
@@ -3817,7 +3664,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b3",
    "name": "Ріка Чару",
-   "description": "+10% до чару, +1 до відновлення чару за секунду.",
+   "description": "+10% до чару. +1 до відновлення чару.",
    "x": -1413,
    "y": 803,
    "type": "notable",
@@ -3846,7 +3693,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b5",
    "name": "Захист пращурів",
-   "description": "+6 до броні, +1,2% менше отриманої шкоди.",
+   "description": "+6 до броні. +1,2% менше шкоди.",
    "x": -1196,
    "y": 679,
    "type": "small",
@@ -3860,20 +3707,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_b6",
-   "name": "Оберіг пращурів",
-   "description": "Відкриває навичку «Оберіг пращурів»: Щит, що поглинає шкоду (росте з Віри).",
+   "name": "Глибока віра",
+   "description": "+12 Віри. +15% до відновлення чару.",
    "x": -1078,
    "y": 633,
-   "type": "skill",
-   "stats": {},
-   "skill": "ancestral_ward",
+   "type": "notable",
+   "stats": {
+    "faith": 12,
+    "mana_regen_pct": 15
+   },
+   "skill": "",
    "icon": "sk_ancestral_ward",
    "region": "faith"
   },
   {
    "id": "f_b7",
    "name": "Громова пісня",
-   "description": "+12% до шкоди, +5% до швидкості відновлення навичок.",
+   "description": "+12% до шкоди. +5% до швидкості відновлення навичок.",
    "x": -978,
    "y": 556,
    "type": "notable",
@@ -3888,12 +3738,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b8",
    "name": "Мудрість",
-   "description": "+3,5% до звитяги.",
+   "description": "+3% до тривалості ефектів.",
    "x": -863,
    "y": 506,
    "type": "small",
    "stats": {
-    "xp_pct": 3.5
+    "effect_dur_pct": 3
    },
    "skill": "",
    "icon": "pa_luck",
@@ -3902,7 +3752,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b9",
    "name": "Дух Дуба",
-   "description": "+2 Віри, +3,8% до життя.",
+   "description": "+3,8% до життя. +2 Віри.",
    "x": -761,
    "y": 432,
    "type": "small",
@@ -3917,7 +3767,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b10",
    "name": "Світло Дажбога",
-   "description": "+16 до життя, +0,4% життя за секунду.",
+   "description": "+0,4% життя за секунду. +16 до життя.",
    "x": -647,
    "y": 380,
    "type": "small",
@@ -3932,7 +3782,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b11",
    "name": "Світло в темряві",
-   "description": "+8,4% до життя, +1,3% життя за секунду.",
+   "description": "+1,3% життя за секунду. +8,4% до життя.",
    "x": -543,
    "y": 309,
    "type": "notable",
@@ -3947,7 +3797,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_b12",
    "name": "Сяйво",
-   "description": "+2 Віри, +0,4 до відновлення чару за секунду.",
+   "description": "+2 Віри. +0,4 до відновлення чару.",
    "x": -431,
    "y": 253,
    "type": "small",
@@ -3975,21 +3825,23 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_c1",
-   "name": "Крижані уламки",
-   "description": "Стартова навичка (одна з трьох на вибір, безкоштовно). Відкриває навичку «Крижані уламки»: Три швидкі уламки, що сповільнюють ворогів.",
+   "name": "Коло світла",
+   "description": "+12% до площі. +10% до тривалості ефектів.",
    "x": -1849,
    "y": 312,
-   "type": "skill",
-   "stats": {},
-   "skill": "ice_shards",
+   "type": "notable",
+   "stats": {
+    "aoe_pct": 12,
+    "effect_dur_pct": 10
+   },
+   "skill": "",
    "icon": "sk_ice_shards",
-   "region": "faith",
-   "starter": true
+   "region": "faith"
   },
   {
    "id": "f_c2",
    "name": "Дух Дуба",
-   "description": "+1 Віри, +2,2% до життя.",
+   "description": "+2,2% до життя. +1 Віри.",
    "x": -1732,
    "y": 248,
    "type": "small",
@@ -4004,7 +3856,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_c3",
    "name": "Світло в темряві",
-   "description": "+4,9% до життя, +0,7% життя за секунду.",
+   "description": "+0,7% життя за секунду. +4,9% до життя.",
    "x": -1623,
    "y": 81,
    "type": "notable",
@@ -4018,20 +3870,22 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_c4",
-   "name": "Круки Мари",
-   "description": "Відкриває навичку «Круки Мари»: Круки розлітаються на всі боки.",
+   "name": "Швидкі пальці",
+   "description": "+20% до росту наузів.",
    "x": -1499,
    "y": 46,
-   "type": "skill",
-   "stats": {},
-   "skill": "raven_swarm",
+   "type": "notable",
+   "stats": {
+    "nauz_xp_pct": 20
+   },
+   "skill": "",
    "icon": "sk_raven_swarm",
    "region": "faith"
   },
   {
    "id": "f_c5",
    "name": "Світло Дажбога",
-   "description": "+12 до життя, +0,3% життя за секунду.",
+   "description": "+0,3% життя за секунду. +12 до життя.",
    "x": -1375,
    "y": 11,
    "type": "small",
@@ -4046,7 +3900,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_c6",
    "name": "Сяйво",
-   "description": "+2 Віри, +0,3 до відновлення чару за секунду.",
+   "description": "+2 Віри. +0,3 до відновлення чару.",
    "x": -1248,
    "y": 68,
    "type": "small",
@@ -4061,7 +3915,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_c7",
    "name": "Вінець волхва",
-   "description": "+5 Віри, +6,6% до швидкості відновлення навичок.",
+   "description": "+5 Віри. +6,6% до швидкості відновлення навичок.",
    "x": -1124,
    "y": 36,
    "type": "notable",
@@ -4075,15 +3929,19 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_c8",
-   "name": "Поклик пращурів",
-   "description": "Відкриває навичку «Поклик пращурів»: Лікує вас частиною здоров'я.",
+   "name": "Коло Сварога",
+   "description": "+25 до броні. +12% пробиття вогню. −8% до швидкості руху.",
    "x": -997,
    "y": 79,
-   "type": "skill",
-   "stats": {},
-   "skill": "ancestral_heal",
+   "type": "keystone",
+   "stats": {
+    "armor": 25,
+    "pen_fire_pct": 12,
+    "move_pct": -8
+   },
+   "skill": "",
    "icon": "sk_ancestral_heal",
-   "region": "faith"
+   "region": "str"
   },
   {
    "id": "f_c9",
@@ -4101,30 +3959,28 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_c10",
-   "name": "Потік часу",
-   "description": "−10 до броні, +8% до шкоди, +14% до швидкості відновлення навичок. Ціна: менше броні.",
+   "name": "Перунів суд",
+   "description": "Крити оглушують на 0,4 с. −30% до шкоди крита.",
    "x": -746,
    "y": 77,
    "type": "keystone",
    "stats": {
-    "cdr_pct": 14,
-    "dmg_pct": 8,
-    "armor": -10
+    "crit_stun": 0.4,
+    "crit_dmg_pct": -30
    },
    "skill": "",
    "icon": "pa_cooldown",
-   "region": "faith"
+   "region": "str"
   },
   {
    "id": "f_c11",
-   "name": "Мудрість предків",
-   "description": "+10 Віри, +8,4% до звитяги.",
+   "name": "Шлях учня",
+   "description": "+15% до звитяги.",
    "x": -623,
    "y": 50,
    "type": "notable",
    "stats": {
-    "faith": 10,
-    "xp_pct": 8.4
+    "xp_pct": 15
    },
    "skill": "",
    "icon": "pa_faith",
@@ -4133,7 +3989,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_c12",
    "name": "Священний вогонь",
-   "description": "+13% до шкоди, +22% до шкоди крита.",
+   "description": "+13% до шкоди. +22% до шкоди крита.",
    "x": -496,
    "y": 63,
    "type": "notable",
@@ -4162,7 +4018,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_x1",
    "name": "Джерело Мари",
-   "description": "+0,3 до відновлення чару за секунду.",
+   "description": "+0,3 до відновлення чару.",
    "x": -1217,
    "y": 1230,
    "type": "small",
@@ -4204,7 +4060,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_x4",
    "name": "Жар Сварога",
-   "description": "+3,2% до шкоди, +6,3% до шкоди крита.",
+   "description": "+3,2% до шкоди. +6,3% до шкоди крита.",
    "x": -576,
    "y": 185,
    "type": "small",
@@ -4219,7 +4075,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_el11M",
    "name": "Захист пращурів",
-   "description": "+9 до броні, +1,8% менше отриманої шкоди.",
+   "description": "+9 до броні. +1,8% менше шкоди.",
    "x": -214,
    "y": 587,
    "type": "small",
@@ -4234,12 +4090,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_el11F",
    "name": "Мудрість",
-   "description": "+4,6% до звитяги.",
+   "description": "-2% до вартості вмінь.",
    "x": -65,
    "y": 622,
    "type": "small",
    "stats": {
-    "xp_pct": 4.6
+    "skill_cost_pct": -2
    },
    "skill": "",
    "icon": "pa_luck",
@@ -4248,7 +4104,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_el12F",
    "name": "Дух Дуба",
-   "description": "+2 Віри, +4,9% до життя.",
+   "description": "+4,9% до життя. +2 Віри.",
    "x": -60,
    "y": 486,
    "type": "small",
@@ -4263,7 +4119,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_er11M",
    "name": "Світло Дажбога",
-   "description": "+18 до життя, +0,5% життя за секунду.",
+   "description": "+0,5% життя за секунду. +18 до життя.",
    "x": -616,
    "y": -109,
    "type": "small",
@@ -4278,7 +4134,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_er11F",
    "name": "Сяйво",
-   "description": "+2 Віри, +0,5 до відновлення чару за секунду.",
+   "description": "+2 Віри. +0,5 до відновлення чару.",
    "x": -571,
    "y": -254,
    "type": "small",
@@ -4321,7 +4177,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pa21",
    "name": "Вінець волхва",
-   "description": "+4 Віри, +5,3% до швидкості відновлення навичок.",
+   "description": "+4 Віри. +5,3% до швидкості відновлення навичок.",
    "x": -874,
    "y": 1469,
    "type": "notable",
@@ -4336,7 +4192,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pa60",
    "name": "Захист пращурів",
-   "description": "+7 до броні, +1,3% менше отриманої шкоди.",
+   "description": "+7 до броні. +1,3% менше шкоди.",
    "x": -565,
    "y": 1091,
    "type": "small",
@@ -4350,14 +4206,13 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_pa61",
-   "name": "Мудрість предків",
-   "description": "+9 Віри, +7,1% до звитяги.",
+   "name": "Шлях учня",
+   "description": "+15% до звитяги.",
    "x": -483,
    "y": 1112,
    "type": "notable",
    "stats": {
-    "faith": 9,
-    "xp_pct": 7.1
+    "xp_pct": 15
    },
    "skill": "",
    "icon": "pa_faith",
@@ -4366,12 +4221,12 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pc20",
    "name": "Мудрість",
-   "description": "+2,4% до звитяги.",
+   "description": "+2% опору всім стихіям.",
    "x": -1720,
    "y": 165,
    "type": "small",
    "stats": {
-    "xp_pct": 2.4
+    "res_all_pct": 2
    },
    "skill": "",
    "icon": "pa_luck",
@@ -4380,7 +4235,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pc21",
    "name": "Священний вогонь",
-   "description": "+8% до шкоди, +13% до шкоди крита.",
+   "description": "+8% до шкоди. +13% до шкоди крита.",
    "x": -1707,
    "y": 82,
    "type": "notable",
@@ -4395,7 +4250,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pc60",
    "name": "Дух Дуба",
-   "description": "+2 Віри, +3,3% до життя.",
+   "description": "+3,3% до життя. +2 Віри.",
    "x": -1228,
    "y": -14,
    "type": "small",
@@ -4410,7 +4265,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "f_pc61",
    "name": "Ріка Чару",
-   "description": "+14% до чару, +1,4 до відновлення чару за секунду.",
+   "description": "+14% до чару. +1,4 до відновлення чару.",
    "x": -1209,
    "y": -95,
    "type": "notable",
@@ -4424,920 +4279,816 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   },
   {
    "id": "f_k",
-   "name": "Воля роду",
-   "description": "+12% до чару, +4% менше отриманої шкоди, +8% до звитяги.",
+   "name": "Щит предків",
+   "description": "Блок без щита. −8% до шкоди.",
    "x": -165,
    "y": 95,
    "type": "keystone",
    "stats": {
-    "mana_pct": 12,
-    "dr_pct": 4.0,
-    "xp_pct": 8
+    "block_no_shield": 1,
+    "dmg_pct": -8
    },
    "skill": "",
    "icon": "perk_region_faith",
-   "region": "core"
+   "region": "str"
   },
   {
    "id": "f_a1_u00",
-   "name": "Хвиля стихії · шкода I",
-   "description": "Хвиля стихії: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1220,
    "y": 1481,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u01",
-   "name": "Хвиля стихії · шкода II",
-   "description": "Хвиля стихії: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1195,
    "y": 1559,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u02",
-   "name": "Хвиля стихії · шкода III",
-   "description": "Хвиля стихії: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1171,
    "y": 1637,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u10",
-   "name": "Хвиля стихії · розмах I",
-   "description": "Хвиля стихії: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -1315,
    "y": 1361,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u11",
-   "name": "Хвиля стихії · розмах II",
-   "description": "Хвиля стихії: +14% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -1386,
    "y": 1320,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "radius_pct": 14
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u20",
-   "name": "Хвиля стихії · темп I",
-   "description": "Хвиля стихії: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1170,
    "y": 1437,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_a1_u21",
-   "name": "Хвиля стихії · темп II",
-   "description": "Хвиля стихії: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -1096,
    "y": 1471,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "element_wave",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u00",
-   "name": "Сонячний промінь · шкода I",
-   "description": "Сонячний промінь: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1702,
    "y": 886,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u01",
-   "name": "Сонячний промінь · шкода II",
-   "description": "Сонячний промінь: +15% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1773,
    "y": 846,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "dmg_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u02",
-   "name": "Сонячний промінь · шкода III",
-   "description": "Сонячний промінь: +25% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1845,
    "y": 805,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "dmg_pct": 25
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u10",
-   "name": "Сонячний промінь · хватка I",
-   "description": "Сонячний промінь: +0,3 с приголомшення.",
+   "name": "Глухий удар",
+   "description": "+2% шансу оглушення.",
    "x": -1605,
    "y": 1004,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "stun_chance_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "stun": 0.3
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u11",
-   "name": "Сонячний промінь · хватка II",
-   "description": "Сонячний промінь: +15% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі. +4% опору світлу.",
    "x": -1579,
    "y": 1082,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3,
+    "res_light_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "range_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u20",
-   "name": "Сонячний промінь · темп I",
-   "description": "Сонячний промінь: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1649,
    "y": 846,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_b1_u21",
-   "name": "Сонячний промінь · темп II",
-   "description": "Сонячний промінь: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -1667,
    "y": 766,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "sun_beam",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u00",
-   "name": "Крижані уламки · шкода I",
-   "description": "Крижані уламки: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1902,
    "y": 250,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u01",
-   "name": "Крижані уламки · шкода II",
-   "description": "Крижані уламки: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1955,
    "y": 188,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u02",
-   "name": "Крижані уламки · шкода III",
-   "description": "Крижані уламки: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. pen_thunder_pct: 2.",
    "x": -2009,
    "y": 125,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "pen_thunder_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u10",
-   "name": "Крижані уламки · залп I",
-   "description": "Крижані уламки: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": -1851,
    "y": 394,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "count": 1
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u11",
-   "name": "Крижані уламки · залп II",
-   "description": "Крижані уламки: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару. pen_thunder_pct: 2.",
    "x": -1854,
    "y": 476,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1,
+    "pen_thunder_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "count": 1
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u20",
-   "name": "Крижані уламки · темп I",
-   "description": "Крижані уламки: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1839,
    "y": 231,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_c1_u21",
-   "name": "Крижані уламки · темп II",
-   "description": "Крижані уламки: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь. +2% пробиття вогню.",
    "x": -1829,
    "y": 150,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2,
+    "pen_fire_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ice_shards",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u00",
-   "name": "Вогняний вал · шкода I",
-   "description": "Вогняний вал: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -704,
    "y": 1374,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u01",
-   "name": "Вогняний вал · шкода II",
-   "description": "Вогняний вал: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -664,
    "y": 1445,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u02",
-   "name": "Вогняний вал · шкода III",
-   "description": "Вогняний вал: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -624,
    "y": 1517,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u10",
-   "name": "Вогняний вал · серія I",
-   "description": "Вогняний вал: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": -822,
    "y": 1276,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "count": 1
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u11",
-   "name": "Вогняний вал · серія II",
-   "description": "Вогняний вал: +12% дальності.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -900,
    "y": 1250,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "range_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u20",
-   "name": "Вогняний вал · темп I",
-   "description": "Вогняний вал: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -665,
    "y": 1321,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_a4_u21",
-   "name": "Вогняний вал · темп II",
-   "description": "Вогняний вал: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь. pen_nature_pct: 2.",
    "x": -585,
    "y": 1339,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2,
+    "pen_nature_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "fire_wave",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u00",
-   "name": "Круки Мари · шкода I",
-   "description": "Круки Мари: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1544,
    "y": -23,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u01",
-   "name": "Круки Мари · шкода II",
-   "description": "Круки Мари: +10% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. pen_frost_pct: 2.",
    "x": -1588,
    "y": -92,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4,
+    "pen_frost_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "dmg_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u02",
-   "name": "Круки Мари · шкода III",
-   "description": "Круки Мари: +18% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -1632,
    "y": -161,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "dmg_pct": 18
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u10",
-   "name": "Круки Мари · залп I",
-   "description": "Круки Мари: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": -1513,
    "y": 127,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "count": 1
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u11",
-   "name": "Круки Мари · залп II",
-   "description": "Круки Мари: +1 до кількості.",
+   "name": "Подвійний крок",
+   "description": "+1% подвійного удару.",
    "x": -1527,
    "y": 208,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "double_hit_pct": 1
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "count": 1
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u20",
-   "name": "Круки Мари · темп I",
-   "description": "Круки Мари: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1478,
    "y": -33,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_c4_u21",
-   "name": "Круки Мари · темп II",
-   "description": "Круки Мари: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -1457,
    "y": -112,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "raven_swarm",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u00",
-   "name": "Оберіг пращурів · міць I",
-   "description": "Оберіг пращурів: +12% сили ефекту.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -1150,
    "y": 593,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u01",
-   "name": "Оберіг пращурів · міць II",
-   "description": "Оберіг пращурів: +12% сили ефекту.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -1222,
    "y": 554,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "power_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u02",
-   "name": "Оберіг пращурів · міць III",
-   "description": "Оберіг пращурів: +20% сили ефекту.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -1294,
    "y": 515,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "power_pct": 20
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u10",
-   "name": "Оберіг пращурів · тривалість I",
-   "description": "Оберіг пращурів: +15% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -1051,
    "y": 710,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "duration_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u11",
-   "name": "Оберіг пращурів · тривалість II",
-   "description": "Оберіг пращурів: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -1025,
    "y": 788,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u20",
-   "name": "Оберіг пращурів · темп I",
-   "description": "Оберіг пращурів: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1098,
    "y": 553,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_b6_u21",
-   "name": "Оберіг пращурів · темп II",
-   "description": "Оберіг пращурів: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -1117,
    "y": 473,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_ward",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u00",
-   "name": "Земляні списи · шкода I",
-   "description": "Земляні списи: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -501,
    "y": 917,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u01",
-   "name": "Земляні списи · шкода II",
-   "description": "Земляні списи: +12% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди.",
    "x": -464,
    "y": 990,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "dmg_pct": 12
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u02",
-   "name": "Земляні списи · шкода III",
-   "description": "Земляні списи: +20% шкоди.",
+   "name": "Гострий удар",
+   "description": "+4% до шкоди. +4% опору вогню.",
    "x": -428,
    "y": 1063,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 4,
+    "res_fire_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "dmg_pct": 20
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u10",
-   "name": "Земляні списи · діяння I",
-   "description": "Земляні списи: +10% радіуса.",
+   "name": "Ширший розмах",
+   "description": "+3% до площі.",
    "x": -614,
    "y": 814,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "aoe_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "radius_pct": 10
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u11",
-   "name": "Земляні списи · діяння II",
-   "description": "Земляні списи: +20% тривалості.",
+   "name": "Довгий подих",
+   "description": "+3% до тривалості ефектів.",
    "x": -690,
    "y": 784,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "effect_dur_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "duration_pct": 20
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u20",
-   "name": "Земляні списи · темп I",
-   "description": "Земляні списи: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -459,
    "y": 866,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_a8_u21",
-   "name": "Земляні списи · темп II",
-   "description": "Земляні списи: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -380,
    "y": 888,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "earth_spikes",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u00",
-   "name": "Поклик пращурів · зцілення I",
-   "description": "Поклик пращурів: +15% лікування.",
+   "name": "Гострий удар",
+   "description": "+3% до шкоди. +4% опору вогню.",
    "x": -1044,
    "y": 12,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "dmg_pct": 3,
+    "res_fire_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "heal_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u01",
-   "name": "Поклик пращурів · зцілення II",
-   "description": "Поклик пращурів: +15% лікування.",
+   "name": "Вузол віри",
+   "description": "+2 чару за вбивство.",
    "x": -1092,
    "y": -55,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "mana_on_kill": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "heal_pct": 15
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u02",
-   "name": "Поклик пращурів · зцілення III",
-   "description": "Поклик пращурів: +25% лікування.",
+   "name": "Гострий удар",
+   "description": "+3% до шкоди.",
    "x": -1140,
    "y": -122,
-   "type": "notable",
-   "stats": {},
+   "type": "small",
+   "stats": {
+    "dmg_pct": 3
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "heal_pct": 25
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u10",
-   "name": "Поклик пращурів · темп I",
-   "description": "Поклик пращурів: −8% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок.",
    "x": -1007,
    "y": 160,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "cd_pct": -8
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u11",
-   "name": "Поклик пращурів · темп II",
-   "description": "Поклик пращурів: −10% часу відновлення.",
+   "name": "Швидкі руки",
+   "description": "+2% до швидкості відновлення навичок. +4% опору грому.",
    "x": -1016,
    "y": 242,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "cdr_pct": 2,
+    "res_thunder_pct": 4
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "cd_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u20",
-   "name": "Поклик пращурів · чар I",
-   "description": "Поклик пращурів: −10% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -980,
    "y": -1,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "mana_pct": -10
-   }
+   "region": "faith"
   },
   {
    "id": "f_c8_u21",
-   "name": "Поклик пращурів · чар II",
-   "description": "Поклик пращурів: −12% вартості Чару.",
+   "name": "Ощадливість",
+   "description": "-2% до вартості вмінь.",
    "x": -962,
    "y": -82,
    "type": "small",
-   "stats": {},
+   "stats": {
+    "skill_cost_pct": -2
+   },
    "skill": "",
    "icon": "",
-   "region": "faith",
-   "mod_skill": "ancestral_heal",
-   "mods": {
-    "mana_pct": -12
-   }
+   "region": "faith"
   },
   {
    "id": "j_0",
    "name": "Перехрестя роду",
-   "description": "+1 Сили, +1 Спритності, +1 Віри.",
+   "description": "+1 Сили. +1 Спритності. +1 Віри.",
    "x": 186,
    "y": -107,
    "type": "small",
@@ -5353,7 +5104,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "j_1",
    "name": "Перехрестя роду",
-   "description": "+1 Сили, +1 Спритності, +1 Віри.",
+   "description": "+1 Сили. +1 Спритності. +1 Віри.",
    "x": 0,
    "y": 215,
    "type": "small",
@@ -5369,7 +5120,7 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "j_2",
    "name": "Перехрестя роду",
-   "description": "+1 Сили, +1 Спритності, +1 Віри.",
+   "description": "+1 Сили. +1 Спритності. +1 Віри.",
    "x": -186,
    "y": -108,
    "type": "small",
@@ -5385,20 +5136,18 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
   {
    "id": "core",
    "name": "Серце роду",
-   "description": "Тут сходяться Сила, Спритність і Віра. +12 Сили, +12 Спритності, +12 Віри, +10% до життя, +15% до шкоди, +5% до шансу крита, +8% до швидкості відновлення навичок. Відкриває кульмінаційну навичку «Гнів пращурів»: велетенський вибух навколо героя.",
+   "description": "Серце роду: +5 Сили, +5 Спритності, +5 Віри, +8% шкоди, +8% життя. Науз «Гнів пращурів» падає з босів.",
    "x": 0,
    "y": 0,
    "type": "core",
    "stats": {
-    "str": 12,
-    "agi": 12,
-    "faith": 12,
-    "dmg_pct": 15,
-    "crit_pct": 5,
-    "cdr_pct": 8,
-    "hp_pct": 10
+    "str": 5,
+    "agi": 5,
+    "faith": 5,
+    "dmg_pct": 8,
+    "hp_pct": 8
    },
-   "skill": "ancestors_wrath",
+   "skill": "",
    "icon": "sk_ancestors_wrath",
    "region": "core"
   }
@@ -6911,13 +6660,13 @@ canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none;
 /*CORE-START*/
 // ---- Ядро без DOM: формат, перевірка, серіалізація. Дзеркало scripts/data/perk_tree.gd ----
 var FORMAT = "spohady-perk-tree";
-var VERSION = 2;
-var SUPPORTED_VERSIONS = [1, 2];
+var VERSION = 3;
+var SUPPORTED_VERSIONS = [1, 2, 3];
 var NODE_TYPES = ["small", "notable", "keystone", "skill", "start", "core"];
 var TYPE_NAMES = { small: "Малий", notable: "Значущий", keystone: "Ключовий", skill: "Навичка", start: "Старт класу", core: "Серце Древа" };
 var CLASS_IDS = ["druzhynnyk", "strilets", "volkhv"];
 var CLASS_NAMES = { druzhynnyk: "Дружинник", strilets: "Стрілець", volkhv: "Волхв" };
-var STAT_KEYS = ["str", "agi", "faith", "hp", "hp_pct", "mana_pct", "mana_regen", "armor", "dmg_pct", "atk_speed_pct", "crit_pct", "move_pct", "xp_pct", "lifesteal_pct", "thorns_pct", "cdr_pct", "crit_dmg_pct", "hp_regen_pct", "gold_pct", "drop_pct", "dr_pct"];
+var STAT_KEYS = ["str","agi","faith","hp","hp_pct","mana_pct","mana_regen","mana_regen_pct","armor","dmg_pct","atk_speed_pct","crit_pct","crit_dmg_pct","cdr_pct","lifesteal_pct","thorns_pct","hp_regen_pct","dr_pct","move_pct","dodge_pct","block_pct","block_power_pct","aoe_pct","effect_dur_pct","skill_cost_pct","double_hit_pct","proj_speed_pct","armor_pen_pct","stun_chance_pct","life_on_kill","mana_on_kill","nauz_xp_pct","nauz_thread_slots","nauz_level","res_all_pct","res_fire_pct","res_frost_pct","res_thunder_pct","res_nature_pct","res_light_pct","res_fate_pct","pen_all_pct","pen_fire_pct","pen_frost_pct","pen_thunder_pct","pen_nature_pct","pen_light_pct","pen_fate_pct","gold_pct","drop_pct","xp_pct","one_path","thread_power_pct","life_pay_skills","free_skills","crit_stun","block_no_shield","kill_haste"];
 var STAT_NAMES = {"str": "Сила", "agi": "Спритність", "faith": "Віра", "hp": "Життя", "hp_pct": "Життя, %", "mana_pct": "Чар, %", "mana_regen": "Відновлення чару / с", "armor": "Броня", "dmg_pct": "Шкода, %", "atk_speed_pct": "Швидкість атаки, %", "crit_pct": "Шанс крита, %", "move_pct": "Швидкість руху, %", "xp_pct": "Звитяга, %", "lifesteal_pct": "Викрадання життя, %", "thorns_pct": "Шипи, %", "cdr_pct": "Скорочення відновлення, %", "crit_dmg_pct": "Шкода крита, %", "hp_regen_pct": "Життя за секунду, %", "gold_pct": "Гривні, %", "drop_pct": "Шанс здобичі, %", "dr_pct": "Менше шкоди, %"};
 var SKILL_IDS = ["power_strike", "shield_bash", "triple_slash", "whirlwind", "battle_cry", "ground_slam", "chain_lightning", "iron_wall", "arrow_volley", "piercing_shot", "rapid_shot", "arrow_rain", "poison_cloud", "wolf_spirit", "stribog_dash", "hunters_trap", "element_wave", "sun_beam", "ice_shards", "ancestral_heal", "fire_wave", "raven_swarm", "earth_spikes", "ancestral_ward", "ancestors_wrath"];
 var SKILL_NAMES = {"power_strike": "Могутній удар", "shield_bash": "Удар щитом", "triple_slash": "Потрійний розріз", "whirlwind": "Вихор лез", "battle_cry": "Бойовий клич", "ground_slam": "Удар об землю", "chain_lightning": "Перунів ланцюг", "iron_wall": "Залізна стіна", "arrow_volley": "Град стріл", "piercing_shot": "Влучний постріл", "rapid_shot": "Швидкий приціл", "arrow_rain": "Злива стріл", "poison_cloud": "Отруйна хмара", "wolf_spirit": "Дух вовка", "stribog_dash": "Подих Стрибога", "hunters_trap": "Мисливська пастка", "element_wave": "Хвиля стихії", "sun_beam": "Сонячний промінь", "ice_shards": "Крижані уламки", "ancestral_heal": "Поклик пращурів", "fire_wave": "Вогняний вал", "raven_swarm": "Круки Мари", "earth_spikes": "Земляні списи", "ancestral_ward": "Оберіг пращурів", "ancestors_wrath": "Гнів пращурів"};
@@ -6934,7 +6683,7 @@ function validateTree(d) {
   var errors = [], warnings = [];
   if (d === null || typeof d !== "object" || Array.isArray(d)) return { errors: ["Файл має бути JSON-об'єктом."], warnings: [] };
   if (d.format !== FORMAT) errors.push("Поле format має бути «" + FORMAT + "».");
-  if (!isNum(d.version) || SUPPORTED_VERSIONS.indexOf(Math.trunc(d.version)) < 0) errors.push("Поле version має бути 1 або 2 (поточна — " + VERSION + ").");
+  if (!isNum(d.version) || SUPPORTED_VERSIONS.indexOf(Math.trunc(d.version)) < 0) errors.push("Поле version має бути 1, 2 або 3 (поточна — " + VERSION + ").");
   var nodes = d.nodes;
   if (!Array.isArray(nodes) || nodes.length === 0) {
     errors.push("Список nodes порожній або відсутній.");

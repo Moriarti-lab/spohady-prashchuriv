@@ -160,7 +160,7 @@ func _show_starter_modal() -> void:
 		var cc := CenterContainer.new()
 		cc.add_child(chip)
 		cv.add_child(cc)
-		cv.add_child(FolkTheme.label(str(d["name"]), 26, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+		cv.add_child(FolkTheme.label(str(d.get("name", sid)), 26, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 		cv.add_child(FolkTheme.label(Skills.role_name(sid), 20, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_CENTER, true))
 		var tx := FolkTheme.label(Skills.describe(sid), 19, Palette.TURQUOISE.lightened(0.4), HORIZONTAL_ALIGNMENT_LEFT, true)
 		tx.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -178,13 +178,68 @@ func _show_starter_modal() -> void:
 func _on_starter_picked(node_id: String) -> void:
 	if GameState.choose_starter(node_id):
 		_modal.visible = false
-		_selected = node_id
-		_view.selected = node_id
+		var st := PerkTree.class_start(GameState.hero_class)
+		_selected = st
+		_view.selected = st
+		_focus_start()
 		_refresh()
-		_status.text = "Навичку обрано. Далі відкривай вузли Древа."
+		_status.text = "Стартовий науз обрано. Далі відкривай пасивні вузли Древа."
+
+
+
+func _ensure_respec_ui() -> void:
+	if has_meta("respec_ui"):
+		return
+	set_meta("respec_ui", true)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var b1 := Button.new()
+	b1.text = "Скинути вузол (−50×рівень)"
+	FolkTheme.apply_button(b1, Palette.PANEL_LIGHT, 16)
+	b1.custom_minimum_size = Vector2(240, 44)
+	b1.pressed.connect(func() -> void:
+		var id := str(get_meta("sel_node", ""))
+		if id == "":
+			_status.text = "Обери вузол для часткового скиду."
+			return
+		if GameState.respec_node(id):
+			_status.text = "Вузол і залежні повернуто. Перки оновлено."
+			_refresh()
+		else:
+			_status.text = "Не вдалося (ціна %d гривень або вузол потрібний для шляху)." % (50 * GameState.level)
+	)
+	row.add_child(b1)
+	var b2 := Button.new()
+	b2.text = "Повне скидання (−200×рівень)"
+	FolkTheme.apply_button(b2, Palette.EMBROIDERY, 16)
+	b2.custom_minimum_size = Vector2(260, 44)
+	b2.pressed.connect(func() -> void:
+		if GameState.respec_full(false):
+			_status.text = "Древо скинуто. Перки повернуто."
+			_refresh()
+		else:
+			_status.text = "Потрібно %d гривень або Вода забуття." % (200 * GameState.level)
+	)
+	row.add_child(b2)
+	var b3 := Button.new()
+	b3.text = "Вода забуття"
+	FolkTheme.apply_button(b3, Palette.TURQUOISE.darkened(0.2), 16)
+	b3.custom_minimum_size = Vector2(160, 44)
+	b3.pressed.connect(func() -> void:
+		if GameState.respec_full(true):
+			_status.text = "Вода забуття: Древо скинуто."
+			_refresh()
+		else:
+			_status.text = "Немає Води забуття (oblivion_water=%d)." % GameState.oblivion_water
+	)
+	row.add_child(b3)
+	# try attach under root
+	if _status.get_parent() != null:
+		_status.get_parent().add_child(row)
 
 
 func open() -> void:
+	_ensure_respec_ui()
 	visible = true
 	_modal.visible = false
 	if GameState.starter_pending():
@@ -202,6 +257,7 @@ func _focus_start() -> void:
 
 func _on_node_selected(id: String) -> void:
 	_selected = id
+	set_meta("sel_node", id)
 	_refresh()
 
 
@@ -211,7 +267,7 @@ func _on_unlock() -> void:
 	if GameState.unlock(_selected):
 		var d: Dictionary = PerkTree.get_def(_selected)
 		if str(d.get("skill", "")) != "":
-			_status.text = "Нова навичка «%s» чекає на кнопці біля атаки. Обрати навички: меню «Навички»." % Skills.get_def(d["skill"])["name"]
+			_status.text = "Вузол відкрито. Активні вміння — це наузи: дивись вкладку «Наузи»."
 			_refresh(true)
 			return
 	_refresh()
@@ -229,7 +285,7 @@ func _refresh(keep_status: bool = false) -> void:
 		_icon.texture = null
 		return
 	var d: Dictionary = PerkTree.get_def(_selected)
-	_title.text = str(d["name"])
+	_title.text = str(d.get("name", _selected))
 	_icon.texture = _view._icon_for(_selected)
 	var fx := PerkTree.effect_text(_selected)
 	if str(d.get("skill", "")) != "" and Skills.has(str(d["skill"])):

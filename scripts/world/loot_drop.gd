@@ -60,6 +60,10 @@ static func drop_from_boss(parent: Node, pos: Vector3, level: int, rng: RandomNu
 	for i in range(2):
 		var it := Items.generate(level + 1, rng, "", 2 if i == 0 else rng.randi_range(2, 3))
 		out.append(make_drop(parent, pos, KIND_ITEM, 1, it, rng))
+	var nauz := Nauzi.random_nauz(rng, 2, clampi(level, 1, Nauzi.MAX_LEVEL))
+	out.append(make_drop(parent, pos, KIND_ITEM, 1, nauz, rng))
+	for _j in range(2):
+		out.append(make_drop(parent, pos, KIND_ITEM, 1, Nauzi.random_thread(rng, rng.randi_range(2, 3)), rng))
 	return out
 
 

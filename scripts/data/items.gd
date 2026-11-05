@@ -20,6 +20,7 @@ const TYPE_SLOTS := {
 const TYPE_NAMES := {
 	"hand1": "Одноручна зброя", "hand2": "Дворучна зброя", "shield": "Щит", "head": "Шолом", "hands": "Рукавиці",
 	"body": "Броня", "feet": "Чоботи", "ring": "Перстень", "amulet": "Оберіг",
+	"nauz": "Науз", "thread": "Нитка",
 }
 ## Вага випадіння типів із ворогів.
 const TYPE_WEIGHTS := {
@@ -133,6 +134,10 @@ static func base_of(item: Dictionary) -> Dictionary:
 
 ## Тип предмета (hand1, hand2, shield, head, ...). Порожньо — невідомий.
 static func type_of(item: Dictionary) -> String:
+	if Nauzi.is_nauz(item):
+		return "nauz"
+	if Nauzi.is_thread(item):
+		return "thread"
 	return str(base_of(item).get("type", ""))
 
 
@@ -307,6 +312,10 @@ static func kind_name(kind: String) -> String:
 
 static func sell_value(item: Dictionary) -> int:
 	var r := int(item.get("rarity", 0))
+	if Nauzi.is_nauz(item):
+		return int((8.0 + 4.0 * float(item.get("level", 1))) * (1.0 + 1.6 * float(r)))
+	if Nauzi.is_thread(item):
+		return int((6.0 + 3.0 * float(r + 1)) * (1.0 + 1.2 * float(r)))
 	return int((4.0 + 2.5 * float(item.get("ilvl", 1))) * (1.0 + 1.5 * float(r)))
 
 
@@ -318,6 +327,24 @@ static func buy_value(item: Dictionary) -> int:
 ## Рядки опису властивостей (без назви).
 static func stat_lines(item: Dictionary) -> Array:
 	var out: Array = []
+	if Nauzi.is_nauz(item):
+		var sk := str(item.get("skill", ""))
+		var lv := int(item.get("level", 1))
+		var req := Nauzi.requirements(sk, lv)
+		out.append("Науз · рів. %d (сила %d) · звитяга %d/%d" % [lv, Nauzi.power_level(item), int(item.get("xp", 0)), Nauzi.xp_to_next(lv)])
+		out.append("Вимоги: герой %d, %s %d" % [int(req["hero_level"]), Strings.stat_name(str(req["stat"])), int(req["stat_min"])])
+		out.append("Нитки: %d/%d" % [item.get("threads", []).size() if typeof(item.get("threads", [])) == TYPE_ARRAY else 0, Nauzi.thread_slots(lv)])
+		var reason := Nauzi.can_use(item)
+		if reason != "":
+			out.append("⚠ %s" % reason)
+		out.append(Skills.describe(sk, true))
+		return out
+	if Nauzi.is_thread(item):
+		var tid := str(item.get("thread", ""))
+		var td: Dictionary = Nauzi.THREADS.get(tid, {})
+		out.append("Нитка · %s" % Nauzi.COLOR_NAMES.get(str(item.get("color", "white")), ""))
+		out.append(str(td.get("desc", td.get("name", tid))))
+		return out
 	var st: Dictionary = item.get("stats", {})
 	var b: Dictionary = base_of(item)
 	if is_weapon_type(str(b.get("type", ""))):
@@ -336,3 +363,26 @@ static func summary(item: Dictionary) -> String:
 	var r := rarity(int(item.get("rarity", 0)))
 	var head := "%s · %s · рів. %d" % [r["name"], TYPE_NAMES.get(type_of(item), ""), int(item.get("ilvl", 1))]
 	return head + "\n" + "\n".join(stat_lines(item))
+
+
+static func is_nauz(item: Variant) -> bool:
+	return Nauzi.is_nauz(item)
+
+
+static func is_thread(item: Variant) -> bool:
+	return Nauzi.is_thread(item)
+
+
+static func bag_kind(item: Variant) -> String:
+	if typeof(item) != TYPE_DICTIONARY or item.is_empty():
+		return "other"
+	if Nauzi.is_nauz(item):
+		return "nauz"
+	if Nauzi.is_thread(item):
+		return "thread"
+	var tp := type_of(item)
+	if tp in ["hand1", "hand2"]:
+		return "weapon"
+	if tp in ["shield", "head", "hands", "body", "feet"]:
+		return "armor"
+	return "other"

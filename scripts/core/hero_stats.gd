@@ -125,14 +125,28 @@ static func attack_kind() -> String:
 
 # ---------- Основні характеристики ----------
 
-## Стат = 5 + бонус крові × (рівень − 1) + вузли Древа + предмети
+## Старт класу + авто-приріст + вільні очки + кров + Древо + предмети
+const CLASS_BASE := {
+	"druzhynnyk": {"str": 12.0, "agi": 6.0, "faith": 5.0},
+	"strilets": {"str": 6.0, "agi": 12.0, "faith": 5.0},
+	"volkhv": {"str": 5.0, "agi": 6.0, "faith": 12.0},
+}
+const CLASS_PER_LEVEL := {
+	"druzhynnyk": {"str": 2.0, "agi": 1.0, "faith": 0.0},
+	"strilets": {"str": 1.0, "agi": 2.0, "faith": 0.0},
+	"volkhv": {"str": 0.0, "agi": 1.0, "faith": 2.0},
+}
+
 static func stat(id: String) -> float:
+	var base: Dictionary = CLASS_BASE.get(GameState.hero_class, {"str": 5.0, "agi": 5.0, "faith": 5.0})
+	var per: Dictionary = CLASS_PER_LEVEL.get(GameState.hero_class, {"str": 1.0, "agi": 1.0, "faith": 1.0})
+	var v := float(base.get(id, 5.0)) + float(per.get(id, 0.0)) * float(GameState.level - 1)
+	v += float(GameState.attr_spent.get(id, 0))
 	var b: Dictionary = Blessings.get_def(GameState.blessing)
-	var v := 5.0
-	if b["main"] == id:
-		v += float(b["main_bonus"]) * (GameState.level - 1)
-	if b["sub"] == id:
-		v += float(b["sub_bonus"]) * (GameState.level - 1)
+	if b.get("main", "") == id:
+		v += float(b.get("main_bonus", 0.0)) * (GameState.level - 1) * 0.25
+	if b.get("sub", "") == id:
+		v += float(b.get("sub_bonus", 0.0)) * (GameState.level - 1) * 0.15
 	v += bonus(id)
 	return v
 
@@ -154,7 +168,8 @@ static func max_mana() -> float:
 
 ## Відновлення чару = 1 + Віра / 20 за секунду + бонуси
 static func mana_regen() -> float:
-	return maxf(0.2, 1.0 + stat("faith") / 20.0 + bonus("mana_regen"))
+	var base := maxf(0.2, 1.0 + stat("faith") / 20.0 + bonus("mana_regen"))
+	return base * (1.0 + bonus("mana_regen_pct") / 100.0)
 
 
 ## Відновлення життя за секунду: % від максимуму.
@@ -232,9 +247,20 @@ static func weapon_damage() -> float:
 	return d * dmg_mult()
 
 
-## Підсумкові числа навички: база, радіус, відновлення… з урахуванням Древа й скорочення відновлення.
+## Підсумкові числа навички: база з рівня науза/ниток + скорочення відновлення + skill_cost_pct.
 static func skill_params(skill_id: String) -> Dictionary:
-	return Skills.params(skill_id, Skills.mods_for(skill_id), cdr_pct())
+	var mods := Skills.mods_for(skill_id)
+	var p := Skills.params(skill_id, mods, cdr_pct())
+	var cost_pct := bonus("skill_cost_pct")
+	if int(bonus("free_skills")) > 0:
+		p["mana"] = 0.0
+	else:
+		p["mana"] = maxf(1.0, float(p.get("mana", 1.0)) * maxf(0.2, 1.0 + cost_pct / 100.0))
+	if p.has("radius"):
+		p["radius"] = float(p["radius"]) * (1.0 + bonus("aoe_pct") / 100.0)
+	if p.has("dur"):
+		p["dur"] = float(p["dur"]) * (1.0 + bonus("effect_dur_pct") / 100.0)
+	return p
 
 
 ## Шкода навички: база (з поліпшеннями) × (1 + 0,02 × стат навички) × бонуси
@@ -249,3 +275,22 @@ static func heal_mult() -> float:
 
 static func xp_mult() -> float:
 	return 1.0 + tree_sum("xp_pct") / 100.0
+
+
+static func dodge_chance() -> float:
+	return clampf(bonus("dodge_pct"), 0.0, 50.0) / 100.0
+
+
+static func block_chance() -> float:
+	var b := bonus("block_pct")
+	if has_shield():
+		b += 10.0
+	elif int(bonus("block_no_shield")) > 0:
+		b += 5.0
+	else:
+		b *= 0.25
+	return clampf(b, 0.0, 50.0) / 100.0
+
+
+static func block_power() -> float:
+	return clampf(bonus("block_power_pct") + (15.0 if has_shield() else 0.0), 0.0, 60.0) / 100.0

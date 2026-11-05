@@ -24,11 +24,13 @@ const DATA := {
 			{"id": "merchant", "name": "Радим", "role": "Торговець", "pos": [-7.5, 2.5], "color": "#B8742E"},
 			{"id": "herbalist", "name": "Зоряна", "role": "Травниця", "pos": [8.0, 3.0], "color": "#5FA05A"},
 			{"id": "elder", "name": "Богдан", "role": "Старійшина", "pos": [-5.0, -14.5], "color": "#CFC6B0"},
+			{"id": "mokryna", "name": "Мокрина", "role": "Ворожка-в'язальниця", "pos": [6.0, -8.0], "color": "#8B5CAD"},
 		],
 		"roads": [
 			[[0.0, 0.0], [-7.0, 4.5]],
 			[[0.0, 0.0], [8.0, 5.0]],
 			[[0.0, 0.0], [-3.0, -9.0], [-5.0, -14.0]],
+			[[0.0, 0.0], [5.0, -6.0], [6.0, -8.0]],
 		],
 	},
 	"forest": {
@@ -45,6 +47,7 @@ const DATA := {
 		"chests": [{"id": "forest_house_chest", "pos": [-25.3, 19.5], "house": "forest_house", "quest_item": "rushnyk", "loot_level": 2}],
 		"herbs": 9,
 		"boss": {"id": "alpha", "kind": "werewolf", "name": "Вовкулака-ватажок", "pos": [-32.0, -21.3], "level": 5, "scale": 1.75},
+		"bosses": [{"id": "lisovyk", "kind": "wraith", "name": "Лісовик", "pos": [28.0, 18.0], "level": 3, "scale": 1.6, "hp_mult": 1.4}],
 		"roads": [
 			[[34.7, 34.7], [13.3, 13.3], [0.0, 0.0], [-10.7, 5.3], [-25.3, 14.7]],
 			[[0.0, 0.0], [10.7, -18.7], [21.3, -45.3]],
@@ -96,6 +99,7 @@ const DATA := {
 		"chests": [{"id": "steppe_house_chest", "pos": [22.0, 20.6], "house": "steppe_house", "loot_level": 14}],
 		"herbs": 8,
 		"boss": {"id": "solovei", "kind": "brute", "name": "Соловей-Розбійник", "pos": [-20.0, -26.0], "level": 17, "scale": 1.8, "hp_mult": 1.6},
+		"bosses": [{"id": "marena", "kind": "wraith", "name": "Марена-Крижана", "pos": [30.0, -10.0], "level": 15, "scale": 1.7, "hp_mult": 1.5}],
 		"roads": [
 			[[-44.0, 26.0], [-20.0, 10.0], [0.0, 0.0], [12.0, -20.0], [26.0, -46.0]],
 			[[0.0, 0.0], [12.0, 10.0], [22.0, 17.0]],
@@ -110,6 +114,7 @@ const DATA := {
 		"exits": [{"id": "to_steppe", "angle_deg": 120.0, "to": "steppe", "label": "До Дикого поля"}],
 		"houses": [],
 		"boss": {"id": "chornoknyzhnyk", "kind": "skel_mage", "name": "Чорнокнижник", "pos": [16.0, -24.0], "level": 21, "scale": 1.9, "hp_mult": 1.7},
+		"bosses": [{"id": "vyriy_guard", "kind": "skel_warrior", "name": "Сторож Вирію", "pos": [-22.0, 20.0], "level": 19, "scale": 1.85, "hp_mult": 1.6}],
 		"roads": [[[-28.0, 48.0], [-12.0, 20.0], [0.0, 0.0], [10.0, -14.0], [16.0, -22.0]]],
 	},
 	"cave": {
