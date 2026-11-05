@@ -173,15 +173,22 @@ func _build_slots() -> void:
 	_slots = o[0]
 	_slots.name = "Slots"
 	var v: VBoxContainer = o[1]
-	v.add_child(FolkTheme.label("Збереження", 36, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	var shead := HBoxContainer.new()
+	shead.add_theme_constant_override("separation", 8)
+	v.add_child(shead)
+	shead.add_child(FolkTheme.label("Збереження", 36, Palette.GOLD))
+	var ssp := Control.new()
+	ssp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shead.add_child(ssp)
+	var back := Button.new()
+	back.text = "Закрити"
+	FolkTheme.apply_button(back, Palette.EMBROIDERY, 22)
+	back.custom_minimum_size = Vector2(130, 56)
+	back.pressed.connect(func() -> void: _slots.visible = false)
+	shead.add_child(back)
 	_slots_box = VBoxContainer.new()
 	_slots_box.add_theme_constant_override("separation", 10)
 	v.add_child(_slots_box)
-	var back := Button.new()
-	back.text = "Назад"
-	FolkTheme.apply_button(back, Palette.PANEL_LIGHT)
-	back.pressed.connect(func() -> void: _slots.visible = false)
-	v.add_child(back)
 	var o2 := _overlay()
 	_del_confirm = o2[0]
 	var v2: VBoxContainer = o2[1]

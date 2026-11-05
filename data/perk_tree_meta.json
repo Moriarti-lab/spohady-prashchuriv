@@ -1,0 +1,125 @@
+{
+  "fruits": [
+    {
+      "id": "s_fruit0",
+      "theme": "броня",
+      "name": "Щит роду",
+      "region": "str"
+    },
+    {
+      "id": "s_fruit1",
+      "theme": "кров",
+      "name": "Кривавий удар",
+      "region": "str"
+    },
+    {
+      "id": "s_fruit2",
+      "theme": "пробиття",
+      "name": "Пробивач",
+      "region": "str"
+    },
+    {
+      "id": "s_fruit3",
+      "theme": "опір",
+      "name": "Залізна шкіра",
+      "region": "str"
+    },
+    {
+      "id": "s_fruit4",
+      "theme": "здобич",
+      "name": "Щедра здобич",
+      "region": "str"
+    },
+    {
+      "id": "a_fruit0",
+      "theme": "рух",
+      "name": "Тінь вовка",
+      "region": "agi"
+    },
+    {
+      "id": "a_fruit1",
+      "theme": "крит",
+      "name": "Влучне око",
+      "region": "agi"
+    },
+    {
+      "id": "a_fruit2",
+      "theme": "снаряди",
+      "name": "Град стріл",
+      "region": "agi"
+    },
+    {
+      "id": "a_fruit3",
+      "theme": "звитяга",
+      "name": "Шлях учня",
+      "region": "agi"
+    },
+    {
+      "id": "a_fruit4",
+      "theme": "здобич",
+      "name": "Щедра здобич",
+      "region": "agi"
+    },
+    {
+      "id": "f_fruit0",
+      "theme": "площа",
+      "name": "Коло пращурів",
+      "region": "faith"
+    },
+    {
+      "id": "f_fruit1",
+      "theme": "нитки",
+      "name": "Нитка долі",
+      "region": "faith"
+    },
+    {
+      "id": "f_fruit2",
+      "theme": "наузи",
+      "name": "Сила науза",
+      "region": "faith"
+    },
+    {
+      "id": "f_fruit3",
+      "theme": "опір",
+      "name": "Опір стихіям",
+      "region": "faith"
+    },
+    {
+      "id": "f_fruit4",
+      "theme": "звитяга",
+      "name": "Шлях учня",
+      "region": "faith"
+    }
+  ],
+  "layout": {
+    "y_root": 2400,
+    "y_crown": -2600,
+    "y_crown_base": -900,
+    "bands": [
+      {
+        "id": "roots",
+        "name": "Коріння",
+        "y0": 2350,
+        "y1": 2600
+      },
+      {
+        "id": "trunk",
+        "name": "Стовбур",
+        "y0": 200,
+        "y1": 2350
+      },
+      {
+        "id": "boughs",
+        "name": "Гілля",
+        "y0": -900,
+        "y1": 200
+      },
+      {
+        "id": "crown",
+        "name": "Крона",
+        "y0": -2700,
+        "y1": -900
+      }
+    ]
+  }
+}

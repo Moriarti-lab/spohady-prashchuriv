@@ -34,9 +34,26 @@ func _ready() -> void:
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 10)
 	add_child(margin)
+	var root_v := VBoxContainer.new()
+	root_v.add_theme_constant_override("separation", 8)
+	margin.add_child(root_v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 10)
+	root_v.add_child(head)
+	head.add_child(FolkTheme.label("Древо звитяги", 32, Palette.GOLD))
+	var head_sp := Control.new()
+	head_sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(head_sp)
+	var close := Button.new()
+	close.text = "Закрити"
+	FolkTheme.apply_button(close, Palette.EMBROIDERY, 22)
+	close.custom_minimum_size = Vector2(130, 56)
+	close.pressed.connect(func() -> void: closed.emit())
+	head.add_child(close)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
-	margin.add_child(h)
+	h.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_v.add_child(h)
 
 	var left := Control.new()
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -80,7 +97,7 @@ func _ready() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
-	v.add_child(FolkTheme.label("Древо звитяги", 32, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(FolkTheme.label("Вузол", 26, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
 	v.add_child(OrnamentBand.new(26))
 	_points = FolkTheme.label("", 24, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER)
 	v.add_child(_points)
@@ -111,14 +128,10 @@ func _ready() -> void:
 	v.add_child(_status)
 	_unlock_btn = Button.new()
 	_unlock_btn.text = "Відкрити перк"
-	FolkTheme.apply_button(_unlock_btn, Palette.EMBROIDERY)
+	FolkTheme.apply_button(_unlock_btn, Palette.EMBROIDERY, 22)
+	_unlock_btn.custom_minimum_size = Vector2(0, 52)
 	_unlock_btn.pressed.connect(_on_unlock)
 	v.add_child(_unlock_btn)
-	var close := Button.new()
-	close.text = "Закрити"
-	FolkTheme.apply_button(close, Palette.PANEL_LIGHT)
-	close.pressed.connect(func() -> void: closed.emit())
-	v.add_child(close)
 	_build_starter_modal()
 
 

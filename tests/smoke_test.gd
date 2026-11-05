@@ -120,7 +120,7 @@ func _run() -> void:
 		var foreign := 0
 		while not qq.is_empty():
 			var cc: String = qq.pop_front()
-			if int(dist[cc]) >= 5:
+			if int(dist[cc]) >= 1:
 				continue
 			for nb2 in PerkTree.neighbors(cc):
 				if not dist.has(nb2):
@@ -128,7 +128,8 @@ func _run() -> void:
 					if str(PerkTree.get_def(nb2).get("region", "")) != reg:
 						foreign += 1
 					qq.append(nb2)
-		ok(foreign <= 6, "біля старту %s мало чужих стиків (≤6, є %d) — суміш на межах як у PoE" % [c, foreign])
+		# v4: корені класів з'єднані — у стрільця 2 сусіди-корені, в інших по 1
+		ok(foreign <= 2, "біля старту %s прямі стики класів (≤2, є %d)" % [c, foreign])
 	# кожен вузол має опис або ефект із числами
 	var no_text := 0
 	for id in PerkTree.nodes():
