@@ -442,10 +442,29 @@ func _on_to_stash() -> void:
 
 
 func _on_attach_thread() -> void:
-	# нитка в _sel_bag → вплести в перший науз у сумці або в гнізді
+	# Нитка з _sel_bag → в ОБРАНИЙ науз (вкладка «Наузи»), інакше — перший у сумці.
+	# t61: раніше завжди брався перший науз у сумці, що неінтуїтивно.
 	if _sel_bag < 0 or _sel_bag >= GameState.bag.size():
 		return
 	if not Nauzi.is_thread(GameState.bag[_sel_bag]):
+		return
+	var ti := _sel_bag
+	if _sel_nauz_uid > 0:
+		var found: Dictionary = GameState.find_nauz_by_uid(_sel_nauz_uid)
+		if found.is_empty():
+			_status_nauz("Обраний науз не знайдено — обери його на вкладці «Наузи».")
+			return
+		var idx := int(found.get("index", -1))
+		var ok := false
+		if str(found.get("where", "")) == "socket":
+			ok = GameState.attach_thread_to_socket(idx, ti)
+		else:
+			ok = GameState.attach_thread(idx, ti)
+		if ok:
+			_sel_bag = -1
+			_refresh()
+		else:
+			_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
 		return
 	var nauz_i := -1
 	for i in range(GameState.bag.size()):
@@ -453,12 +472,11 @@ func _on_attach_thread() -> void:
 			nauz_i = i
 			break
 	if nauz_i < 0:
+		_status_nauz("У сумці немає науза — обери науз на вкладці «Наузи».")
 		return
-	var ti := _sel_bag
-	if ti > nauz_i:
-		# indices stable if we attach with nauz first
-		pass
-	GameState.attach_thread(nauz_i, ti)
+	if not GameState.attach_thread(nauz_i, ti):
+		_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
+		return
 	_sel_bag = -1
 	_refresh()
 
