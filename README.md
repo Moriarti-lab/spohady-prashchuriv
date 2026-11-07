@@ -31,8 +31,13 @@
 - Створення героя: ім'я, голос Мокоші, благословення одного з шести богів, клас (Дружинник, Стрілець, Волхв).
 - **Редактор Древа** — один HTML-файл [`tools/tree-editor/index.html`](tools/tree-editor/index.html), без інтернету. Формат: [`docs/perk_tree_format.md`](docs/perk_tree_format.md). Іконки: [`docs/icons.md`](docs/icons.md).
 
+## Звук
+Звук і музика є з **0.4.0**: [`scripts/autoload/sound.gd`](scripts/autoload/sound.gd), 34 файли `.ogg` у `audio/`.
+Дві петлі музики (спокій / бій) з кросфейдом, атмосфера на кожну локацію (`amb_*`), SFX з пулом на 10 голосів.
+Гучність музики й ефектів зберігається в `user://settings.cfg`, повзунки — у паузі.
+
 ## Що поки заглушка
-Немає звуку й музики. Іконки без малюнка (текстова заглушка): `w_wand`, `b_robe`, `sk_iron_wall`, `sk_rapid_shot`, `sk_hunters_trap`, `sk_ancestral_ward`.
+Іконки без малюнка (текстова заглушка): `w_wand` («Жезл»), `b_robe`, `sk_iron_wall`, `sk_rapid_shot`, `sk_hunters_trap`, `sk_ancestral_ward` — **6 з 134** у [`data/icons.json`](data/icons.json) мають порожній `path`.
 
 ## Як зібрати
 Потрібні Godot 4.7.2 з шаблонами експорту, JDK 17 і Android SDK.
