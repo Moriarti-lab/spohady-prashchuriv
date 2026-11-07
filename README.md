@@ -30,6 +30,7 @@
 - Керування як у MOBA: джойстик, «Удар», **чотири** кнопки навичок (екран «Навички» призначає слоти). Автозбереження, версія збереження 4, старі збереження мігруються (потрібно обрати стартову навичку).
 - Створення героя: ім'я, голос Мокоші, благословення одного з шести богів, клас (Дружинник, Стрілець, Волхв).
 - **Редактор Древа** — один HTML-файл [`tools/tree-editor/index.html`](tools/tree-editor/index.html), без інтернету. Формат: [`docs/perk_tree_format.md`](docs/perk_tree_format.md). Іконки: [`docs/icons.md`](docs/icons.md).
+- **Редактор v5** — [`tools/tree-editor-v5/index.html`](tools/tree-editor-v5/index.html): імпорт/експорт, мультивибір, фільтри, мінікарта, редактор бонусів із назвами, перевірка недосяжності. Див. [README](tools/tree-editor-v5/README.md).
 
 ## Звук
 Звук і музика є з **0.4.0**: [`scripts/autoload/sound.gd`](scripts/autoload/sound.gd), 34 файли `.ogg` у `audio/`.
