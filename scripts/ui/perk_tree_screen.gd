@@ -16,6 +16,7 @@ var _selected := ""
 var _modal: Control
 var _modal_row: HBoxContainer
 var _confirm: AcceptDialog
+var _confirm_cancel_btn: Button
 var _detail: PanelContainer
 var _detail_open := false
 var _respec_row: HBoxContainer
@@ -25,6 +26,7 @@ func _ready() -> void:
 	_confirm = AcceptDialog.new()
 	_confirm.title = "Скидання Древа"
 	_confirm.ok_button_text = "Підтвердити"
+	_confirm_cancel_btn = _confirm.add_cancel_button("Скасувати")
 	add_child(_confirm)
 	FolkTheme.fullscreen(self)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -219,27 +221,39 @@ func _build_respec_buttons(row: HBoxContainer) -> void:
 					_status_toast("Не вдалося (ціна %d гривень)." % (50 * GameState.level))
 			1:
 				_confirm.dialog_text = "Повне скидання Древа (−%d гривень)?" % (200 * GameState.level)
-				_confirm.confirmed.connect(func() -> void:
-					if GameState.respec_full(false):
-						_status_toast("Древо скинуто.")
-						_refresh()
-					else:
-						_status_toast("Недостатньо гривень.")
-				, CONNECT_ONE_SHOT)
+				_clear_confirm_handlers()
+				_confirm.confirmed.connect(_on_confirm_respec_gold, CONNECT_ONE_SHOT)
 				_confirm.popup_centered()
 			2:
 				_confirm.dialog_text = "Використати Воду забуття (залишок: %d)?" % GameState.oblivion_water
-				_confirm.confirmed.connect(func() -> void:
-					if GameState.respec_full(true):
-						_status_toast("Вода забуття: Древо скинуто.")
-						_refresh()
-					else:
-						_status_toast("Немає Води забуття.")
-				, CONNECT_ONE_SHOT)
+				_clear_confirm_handlers()
+				_confirm.confirmed.connect(_on_confirm_respec_water, CONNECT_ONE_SHOT)
 				_confirm.popup_centered()
 	)
 	row.add_child(menu)
 
+
+
+
+func _clear_confirm_handlers() -> void:
+	for c in _confirm.confirmed.get_connections():
+		_confirm.confirmed.disconnect(c["callable"])
+
+
+func _on_confirm_respec_gold() -> void:
+	if GameState.respec_full(false):
+		_status_toast("Древо скинуто.")
+		_refresh()
+	else:
+		_status_toast("Недостатньо гривень.")
+
+
+func _on_confirm_respec_water() -> void:
+	if GameState.respec_full(true):
+		_status_toast("Вода забуття: Древо скинуто.")
+		_refresh()
+	else:
+		_status_toast("Немає Води забуття.")
 
 
 func _status_toast(msg: String) -> void:

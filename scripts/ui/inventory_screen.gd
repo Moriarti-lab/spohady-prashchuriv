@@ -54,6 +54,7 @@ var _thread_slot_sel := -1
 var _thread_slot_row: HBoxContainer
 var _thread_pick_box: VBoxContainer
 var _confirm: AcceptDialog
+var _sell_cancel_btn: Button
 # Nauzi redesign 0.5.4.1
 var _sel_nauz_uid := -1
 var _sel_thread_uid := -1
@@ -130,6 +131,8 @@ func _ready() -> void:
 	_confirm = AcceptDialog.new()
 	_confirm.title = "Підтвердження"
 	_confirm.ok_button_text = "Так"
+	_sell_cancel_btn = _confirm.add_cancel_button("Скасувати")
+	_confirm.canceled.connect(_on_sell_canceled)
 	add_child(_confirm)
 	_show_tab(TAB_BAG)
 
@@ -522,10 +525,18 @@ func _on_sell() -> void:
 	if int(it.get("rarity", 0)) >= 2:
 		_confirm.dialog_text = "Продати «%s» (%s) за %d гривень?" % [
 			str(it.get("name", "?")), DescFormat.rarity_name(int(it.get("rarity", 0))), Items.sell_value(it)]
+		# Уникнути подвійного продажу, якщо попереднє вікно закрили без «Так».
+		if _confirm.confirmed.is_connected(_do_sell_confirmed):
+			_confirm.confirmed.disconnect(_do_sell_confirmed)
 		_confirm.confirmed.connect(_do_sell_confirmed, CONNECT_ONE_SHOT)
 		_confirm.popup_centered()
 		return
 	_do_sell_confirmed()
+
+
+func _on_sell_canceled() -> void:
+	if _confirm.confirmed.is_connected(_do_sell_confirmed):
+		_confirm.confirmed.disconnect(_do_sell_confirmed)
 
 
 func _do_sell_confirmed() -> void:
