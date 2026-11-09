@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Редактор Древа звитяги v5 — «Спогади пращурів»</title>
+<style>
+:root{
+  --bg:#14100d; --panel:#1e1813; --panel2:#271f18; --panel3:#32281f;
+  --line:#4a3a28; --gold:#d9b25b; --text:#f1e6cf; --dim:#a89a82;
+  --bad:#e0624f; --good:#7cbf5a; --warn:#e0b04f; --blue:#6ba8d8;
+  --str:#D8574B; --agi:#7CBF5A; --faith:#E0A526;
+  --r-sm:10px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,select,input,textarea{font:inherit;color:var(--text)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;min-height:38px;cursor:pointer;touch-action:manipulation}
+button:hover{background:var(--panel3)}
+button:active{transform:translateY(1px)}
+button.on{background:var(--gold);color:#20170c;border-color:var(--gold);font-weight:600}
+button.danger{border-color:var(--bad);color:#ffb4a8}
+button:disabled{opacity:.35;cursor:default}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);
+  border-radius:7px;padding:7px 9px;width:100%;min-height:36px}
+textarea{resize:vertical;min-height:74px;font-family:ui-monospace,monospace;font-size:12.5px}
+label{display:block;font-size:12px;color:var(--dim);margin:8px 0 3px}
+h3{margin:0 0 8px;font-size:15px;color:var(--gold)}
+
+/* layout */
+#app{display:grid;height:100%;grid-template-rows:auto 1fr auto}
+#bar{display:flex;flex-wrap:wrap;gap:5px;padding:6px;background:var(--panel);
+  border-bottom:2px solid var(--line);align-items:center;z-index:5}
+#bar .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+#bar .sep{width:1px;height:28px;background:var(--line);margin:0 3px}
+#mid{display:grid;grid-template-columns:1fr 330px;min-height:0}
+#stage{position:relative;overflow:hidden;background:
+  radial-gradient(1200px 800px at 50% 10%, #1d1712 0%, #120f0c 70%)}
+#svg{width:100%;height:100%;display:block;touch-action:none;cursor:default}
+#side{background:var(--panel);border-left:2px solid var(--line);overflow-y:auto;
+  display:flex;flex-direction:column}
+#foot{display:flex;gap:12px;align-items:center;padding:5px 9px;background:var(--panel);
+  border-top:2px solid var(--line);font-size:12px;color:var(--dim);flex-wrap:wrap}
+#foot b{color:var(--text);font-weight:600}
+
+/* tabs */
+#tabs{display:flex;gap:3px;padding:6px 6px 0;flex-wrap:wrap}
+#tabs button{min-height:34px;padding:6px 9px;font-size:12.5px}
+#tabBody{padding:9px;flex:1}
+
+/* canvas bits */
+.node{cursor:pointer}
+.node circle{stroke-width:2}
+.node text{font-size:11px;fill:var(--text);paint-order:stroke;stroke:#120f0c;
+  stroke-width:3px;stroke-linejoin:round;pointer-events:none;user-select:none}
+.node.sel circle{stroke:#fff;stroke-width:3}
+.node.hidden{display:none}
+.link{stroke:#5b4630;stroke-width:2;fill:none}
+.link.sel{stroke:#fff;stroke-width:3}
+.link.hidden{display:none}
+#guides line{stroke:#d9b25b;stroke-width:1;stroke-dasharray:4 4;opacity:.7}
+#marquee{fill:rgba(217,178,91,.12);stroke:var(--gold);stroke-width:1;stroke-dasharray:5 3}
+#mini{position:absolute;right:10px;bottom:10px;width:190px;height:130px;
+  background:#0e0b09cc;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#mini svg{display:block}
+#mini .vp{fill:none;stroke:var(--gold);stroke-width:1.5}
+#hintbar{position:absolute;left:10px;bottom:10px;max-width:60%;font-size:12px;
+  color:var(--dim);background:#0e0b09cc;border:1px solid var(--line);border-radius:8px;
+  padding:6px 9px;pointer-events:none;opacity:0;transition:opacity .25s}
+#hintbar.show{opacity:1}
+
+/* side panel pieces */
+.row{display:flex;gap:6px;align-items:center}
+.row>*{flex:1}
+.row .fixed{flex:0 0 auto}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);
+  border-radius:999px;padding:3px 8px;font-size:11.5px;color:var(--dim);margin:2px 2px 0 0}
+.chip.on{border-color:var(--gold);color:var(--text)}
+.statgrid{display:grid;grid-template-columns:1fr 74px;gap:4px;align-items:center}
+.statgrid .k{font-size:12.5px;color:var(--text)}
+.statgrid .k small{color:var(--dim)}
+.list{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.list .it{padding:6px 8px;border-bottom:1px solid #2c231a;cursor:pointer;font-size:13px}
+.list .it:hover{background:var(--panel3)}
+.list .it.sel{background:var(--gold);color:#20170c}
+.issue{padding:6px 8px;border-left:3px solid var(--bad);background:#2a1c19;
+  margin-bottom:4px;border-radius:0 6px 6px 0;font-size:12.5px;cursor:pointer}
+.issue.warn{border-color:var(--warn);background:#2a2417}
+.issue.ok{border-color:var(--good);background:#1c2a19}
+.muted{color:var(--dim);font-size:12px}
+.empty{padding:18px;text-align:center;color:var(--dim);font-size:13px}
+
+/* modal */
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;
+  justify-content:center;z-index:50;padding:14px}
+#modal.show{display:flex}
+#modal .box{background:var(--panel);border:2px solid var(--line);border-radius:14px;
+  padding:14px;max-width:680px;width:100%;max-height:86vh;overflow:auto}
+#modal .box.wide{max-width:900px}
+#modal textarea{min-height:260px}
+#modal .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:64px;transform:translateX(-50%) translateY(20px);
+  background:var(--panel3);border:1px solid var(--gold);color:var(--text);
+  padding:9px 14px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* responsive */
+@media (max-width:860px){
+  #mid{grid-template-columns:1fr}
+  #side{position:absolute;right:0;top:0;bottom:0;width:min(92vw,340px);
+    transform:translateX(102%);transition:transform .22s;z-index:20;
+    box-shadow:-8px 0 24px #000a}
+  #side.open{transform:none}
+  #mini{display:none}
+  #bar button{min-height:42px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <div class="grp">
+      <button id="mSel" class="on" title="Вибір (V)">✋ Вибір</button>
+      <button id="mPan" title="Рух карти (H)">🖐 Рух</button>
+      <button id="mAdd" title="Додати вузол (A)">➕ Вузол</button>
+      <button id="mLink" title="Зв'язати вузли (L)">🔗 Зв'язок</button>
+      <button id="mDel" title="Видалити обране (Del)">🗑 Видалити</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="bUndo" title="Скасувати (Ctrl+Z)">↶</button>
+      <button id="bRedo" title="Повторити (Ctrl+Y)">↷</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="tGrid" class="on" title="Сітка">▦ Сітка</button>
+      <button id="tSnap" class="on" title="Прив'язка до сітки">🧲 Прив'язка</button>
+      <button id="bFit" title="Показати все (F)">⤢ Огляд</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="bCheck" title="Перевірка дерева">✔ Перевірити</button>
+      <button id="bIO" title="Імпорт / експорт JSON">⇅ JSON</button>
+      <button id="bHelp" title="Довідка (?)">?</button>
+      <button id="bPanel" title="Панель">☰</button>
+    </div>
+  </div>
+
+  <div id="mid">
+    <div id="stage">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"
+                  markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#d9b25b"></path>
+          </marker>
+        </defs>
+        <g id="world">
+          <g id="gGrid"></g>
+          <g id="gLinks"></g>
+          <g id="gNodes"></g>
+          <g id="guides"></g>
+        </g>
+        <rect id="marquee" x="0" y="0" width="0" height="0" style="display:none"></rect>
+      </svg>
+      <div id="mini"><svg width="190" height="130" viewBox="0 0 190 130">
+        <g id="miniG"></g><rect class="vp" x="0" y="0" width="190" height="130"></rect>
+      </svg></div>
+      <div id="hintbar"></div>
+    </div>
+
+    <div id="side">
+      <div id="tabs">
+        <button data-tab="node" class="on">Вузол</button>
+        <button data-tab="tree">Древо</button>
+        <button data-tab="issues">Перевірка</button>
+        <button data-tab="view">Вигляд</button>
+      </div>
+      <div id="tabBody"></div>
+    </div>
+  </div>
+
+  <div id="foot">
+    <span>Вузлів: <b id="fNodes">0</b></span>
+    <span>Зв'язків: <b id="fLinks">0</b></span>
+    <span>Обрано: <b id="fSel">0</b></span>
+    <span>Масштаб: <b id="fZoom">100%</b></span>
+    <span id="fIssues"></span>
+    <span style="margin-left:auto" id="fMode">Режим: вибір</span>
+  </div>
+</div>
+
+<div id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= Редактор Древа звитяги v5 =================
+   Формат: spohady-perk-tree v4. Один файл, без залежностей.
+   Дані: {format, version, title, comment, regions[], class_starts{}, nodes[], links[][]}
+   ============================================================ */
+/* ===================== 1. Стан і дрібні утиліти ===================== */
+const $ = (id) => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
+
+const DEFAULT_STATS = ["str","agi","faith","hp","hp_pct","dmg","dmg_pct","armor","armor_pct",
+  "mana","mana_pct","atk_speed_pct","cdr_pct","crit_pct","crit_dmg_pct","move_pct",
+  "radius_pct","range_pct","duration_pct","stun"];
+
+const STAT_NAMES = {
+  str:"Сила", agi:"Спритність", faith:"Віра", hp:"Життя", hp_pct:"Життя %",
+  dmg:"Шкода", dmg_pct:"Шкода %", armor:"Броня", armor_pct:"Броня %",
+  mana:"Чар", mana_pct:"Чар %", atk_speed_pct:"Швидкість атаки %",
+  cdr_pct:"Зменшення перезарядки %", crit_pct:"Крит %", crit_dmg_pct:"Крит-шкода %",
+  move_pct:"Швидкість руху %", radius_pct:"Радіус %", range_pct:"Дальність %",
+  duration_pct:"Тривалість %", stun:"Оглушення, с"
+};
+
+const TYPE_INFO = {
+  start:    {name:"Старт класу", r:15},
+  small:    {name:"Малий",       r:8},
+  notable:  {name:"Помітний",    r:13},
+  keystone: {name:"Ключовий",    r:19},
+  core:     {name:"Серце роду",  r:25}
+};
+
+const S = {
+  data: null,
+  sel: new Set(),
+  selLink: -1,
+  mode: "select",
+  view: {x:0, y:0, k:0.08},
+  grid: true, snap: true,
+  gridStep: 1000, snapStep: 100,
+  showLabels: true,
+  history: [], hi: -1,
+  dirty: false,
+  tab: "node",
+  filter: {region:"", type:""},
+  q: "",
+  nodeById: new Map(),
+  linkByKey: new Map(),
+  counts: {duplDesc:0}
+};
+
+let els = {node:new Map(), link:new Map()};
+let rafId = 0, saveTimer = 0, mmTimer = 0;
+
+const clone = (o) => (typeof structuredClone === "function") ? structuredClone(o) : JSON.parse(JSON.stringify(o));
+
+function toast(msg, ms = 1900) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function num(v, def = 0) { const n = parseFloat(v); return Number.isFinite(n) ? n : def; }
+
+/* ===================== 2. Історія (undo/redo) ===================== */
+/* Знімок робиться ПЕРЕД зміною. Undo кладе поточний стан у redo і бере зі стека. */
+const undoStack = [], redoStack = [];
+
+function snapshot() {
+  undoStack.push(clone(S.data));
+  if (undoStack.length > 80) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoButtons();
+}
+
+function restoreSnap(snap) {
+  S.data = clone(snap);
+  S.sel.clear(); S.selLink = -1;
+  rebuildIndex();
+  renderAll(); renderSide(); updateFooter(); queueSave();
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(clone(S.data));
+  restoreSnap(undoStack.pop());
+  updateUndoButtons();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(clone(S.data));
+  restoreSnap(redoStack.pop());
+  updateUndoButtons();
+}
+
+function updateUndoButtons() {
+  $("bUndo").disabled = undoStack.length === 0;
+  $("bRedo").disabled = redoStack.length === 0;
+}
+
+/* ===================== 3. Дані ===================== */
+function blankData() {
+  return {
+    format: "spohady-perk-tree",
+    version: 4,
+    title: "Древо звитяги",
+    comment: "",
+    regions: [
+      {id:"str",  name:"Сила",       color:"#D8574B"},
+      {id:"agi",  name:"Спритність", color:"#7CBF5A"},
+      {id:"faith",name:"Віра",       color:"#E0A526"}
+    ],
+    class_starts: {},
+    nodes: [],
+    links: []
+  };
+}
+
+function normalizeData(d) {
+  const out = Object.assign(blankData(), d || {});
+  out.nodes = Array.isArray(out.nodes) ? out.nodes : [];
+  out.links = Array.isArray(out.links) ? out.links : [];
+  out.regions = Array.isArray(out.regions) && out.regions.length ? out.regions : blankData().regions;
+  out.class_starts = (out.class_starts && typeof out.class_starts === "object") ? out.class_starts : {};
+  out.nodes.forEach((n) => {
+    n.id = String(n.id || "");
+    n.name = String(n.name || "");
+    n.x = num(n.x); n.y = num(n.y);
+    n.type = TYPE_INFO[n.type] ? n.type : "small";
+    n.region = String(n.region || (out.regions[0] || {}).id || "");
+    n.stats = (n.stats && typeof n.stats === "object" && !Array.isArray(n.stats)) ? n.stats : {};
+    n.description = String(n.description || "");
+    if (n.icon == null) n.icon = "";
+    if (n.skill == null) n.skill = "";
+  });
+  out.links = out.links
+    .filter((l) => Array.isArray(l) && l.length >= 2)
+    .map((l) => [String(l[0]), String(l[1])])
+    .filter((l) => l[0] !== l[1]);
+  if (!out.version) out.version = 4;
+  if (!out.format) out.format = "spohady-perk-tree";
+  return out;
+}
+
+function rebuildIndex() {
+  S.nodeById.clear();
+  S.data.nodes.forEach((n) => S.nodeById.set(n.id, n));
+  S.linkByKey.clear();
+  S.data.links.forEach((l, i) => S.linkByKey.set(linkKey(l[0], l[1]), i));
+}
+
+const linkKey = (a, b) => a < b ? a + "\u0000" + b : b + "\u0000" + a;
+
+function regionColor(id) {
+  const r = S.data.regions.find((x) => x.id === id);
+  return r ? r.color : "#8a7b66";
+}
+
+function bounds() {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const n of S.data.nodes) {
+    if (n.x < x1) x1 = n.x; if (n.y < y1) y1 = n.y;
+    if (n.x > x2) x2 = n.x; if (n.y > y2) y2 = n.y;
+  }
+  if (!Number.isFinite(x1)) return {x1:-1000, y1:-1000, x2:1000, y2:1000};
+  return {x1, y1, x2, y2};
+}
+
+function nextId(prefix = "n") {
+  let i = 1;
+  while (S.nodeById.has(prefix + i)) i++;
+  return prefix + i;
+}
+
+/* ===================== 4. Вигляд: pan/zoom ===================== */
+function applyView() {
+  $("world").setAttribute("transform",
+    `translate(${S.view.x},${S.view.y}) scale(${S.view.k})`);
+  $("fZoom").textContent = Math.round(S.view.k * 100) + "%";
+  scheduleMinimap();
+}
+
+function screenToWorld(px, py) {
+  return {x: (px - S.view.x) / S.view.k, y: (py - S.view.y) / S.view.k};
+}
+
+function fitAll(padding = 60) {
+  const b = bounds();
+  const r = $("stage").getBoundingClientRect();
+  const w = Math.max(50, b.x2 - b.x1), h = Math.max(50, b.y2 - b.y1);
+  const k = Math.min((r.width - padding*2) / w, (r.height - padding*2) / h);
+  S.view.k = Math.max(0.005, Math.min(k, 2));
+  S.view.x = r.width/2 - (b.x1 + w/2) * S.view.k;
+  S.view.y = r.height/2 - (b.y1 + h/2) * S.view.k;
+  applyView(); refreshStyles(); scheduleDraw();
+}
+
+function zoomAt(px, py, factor) {
+  const before = screenToWorld(px, py);
+  S.view.k = Math.max(0.004, Math.min(4, S.view.k * factor));
+  const after = screenToWorld(px, py);
+  S.view.x += (after.x - before.x) * S.view.k;
+  S.view.y += (after.y - before.y) * S.view.k;
+  applyView(); refreshStyles(); scheduleDraw();
+}
+
+function centerOn(node) {
+  const r = $("stage").getBoundingClientRect();
+  S.view.k = Math.max(S.view.k, 0.22);
+  S.view.x = r.width/2 - node.x * S.view.k;
+  S.view.y = r.height/2 - node.y * S.view.k;
+  applyView(); refreshStyles(); scheduleDraw();
+}
+
+/* ===================== 5. Рендер ===================== */
+function renderAll() {
+  const gL = $("gLinks"), gN = $("gNodes");
+  gL.textContent = ""; gN.textContent = "";
+  els.link.clear(); els.node.clear();
+
+  const fragL = document.createDocumentFragment();
+  S.data.links.forEach((l, i) => {
+    const a = S.nodeById.get(l[0]), b = S.nodeById.get(l[1]);
+    if (!a || !b) return;
+    const p = document.createElementNS(SVGNS, "line");
+    p.setAttribute("class", "link");
+    p.dataset.i = i;
+    fragL.appendChild(p);
+    els.link.set(i, p);
+  });
+  gL.appendChild(fragL);
+
+  const fragN = document.createDocumentFragment();
+  S.data.nodes.forEach((n) => {
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "node");
+    g.dataset.id = n.id;
+    const c = document.createElementNS(SVGNS, "circle");
+    c.setAttribute("fill", regionColor(n.region));
+    g.appendChild(c);
+    const t = document.createElementNS(SVGNS, "text");
+    t.setAttribute("text-anchor", "middle");
+    t.textContent = n.name;
+    g.appendChild(t);
+    fragN.appendChild(g);
+    els.node.set(n.id, g);
+  });
+  gN.appendChild(fragN);
+
+  rebuildIndex();
+  updateNodePositions();
+  refreshStyles();
+  applyFilters();
+  updateFooter();
+  scheduleMinimap();
+}
+
+function updateNodePositions() {
+  S.data.nodes.forEach((n) => {
+    const g = els.node.get(n.id);
+    if (!g) return;
+    g.setAttribute("transform", `translate(${n.x},${n.y})`);
+  });
+  S.data.links.forEach((l, i) => {
+    const p = els.link.get(i);
+    const a = S.nodeById.get(l[0]), b = S.nodeById.get(l[1]);
+    if (!p || !a || !b) return;
+    p.setAttribute("x1", a.x); p.setAttribute("y1", a.y);
+    p.setAttribute("x2", b.x); p.setAttribute("y2", b.y);
+  });
+}
+
+function updateNodePosition(n) {
+  const g = els.node.get(n.id);
+  if (g) g.setAttribute("transform", `translate(${n.x},${n.y})`);
+  S.data.links.forEach((l, i) => {
+    if (l[0] !== n.id && l[1] !== n.id) return;
+    const p = els.link.get(i);
+    const a = S.nodeById.get(l[0]), b = S.nodeById.get(l[1]);
+    if (!p || !a || !b) return;
+    p.setAttribute("x1", a.x); p.setAttribute("y1", a.y);
+    p.setAttribute("x2", b.x); p.setAttribute("y2", b.y);
+  });
+}
+
+let _lastK = 0;
+function refreshStyles(force) {
+  const k = S.view.k;
+  const bigChange = force || !_lastK || Math.abs(k - _lastK) / _lastK > 0.04;
+  const showLabels = k >= 0.22 && S.showLabels;
+  S.data.nodes.forEach((n) => {
+    const g = els.node.get(n.id);
+    if (!g) return;
+    const c = g.firstChild, t = g.lastChild;
+    g.classList.toggle("sel", S.sel.has(n.id));
+    if (bigChange) {
+      const rad = (TYPE_INFO[n.type] ? TYPE_INFO[n.type].r : 8) / k;
+      c.setAttribute("r", rad);
+      c.setAttribute("stroke", classOfStart(n.id) ? "#fff" : "#120f0c");
+      c.setAttribute("stroke-width", 1.6 / k);
+      if (showLabels) {
+        t.setAttribute("font-size", 11 / k);
+        t.setAttribute("stroke-width", 3 / k);
+        t.setAttribute("y", -(rad + 4 / k));
+        t.style.display = "";
+      } else {
+        t.style.display = "none";
+      }
+    }
+  });
+  _lastK = k;
+  S.data.links.forEach((l, i) => {
+    const p = els.link.get(i);
+    if (!p) return;
+    p.setAttribute("stroke-width", (S.selLink === i ? 3 : 1.6) / k);
+    p.classList.toggle("sel", S.selLink === i);
+  });
+}
+
+function classOfStart(nodeId) {
+  for (const c in S.data.class_starts) if (S.data.class_starts[c] === nodeId) return c;
+  return "";
+}
+
+function applyFilters() {
+  const {region, type} = S.filter;
+  const q = S.q.trim().toLowerCase();
+  const ok = (n) => (!region || n.region === region) &&
+    (!type || n.type === type) &&
+    (!q || (n.name || "").toLowerCase().includes(q) || n.id.toLowerCase().includes(q));
+  S.data.nodes.forEach((n) => {
+    const g = els.node.get(n.id);
+    if (g) g.classList.toggle("hidden", !ok(n));
+  });
+  S.data.links.forEach((l, i) => {
+    const p = els.link.get(i);
+    const a = S.nodeById.get(l[0]), b = S.nodeById.get(l[1]);
+    if (p) p.classList.toggle("hidden", !a || !b || !ok(a) || !ok(b));
+  });
+}
+
+/* ---- сітка ---- */
+let gridRaf = 0;
+function scheduleDraw() { if (!gridRaf) gridRaf = requestAnimationFrame(() => { gridRaf = 0; drawGrid(); }); }
+
+function drawGrid() {
+  const g = $("gGrid");
+  g.textContent = "";
+  if (!S.grid || S.view.k < 0.015) return;
+  const r = $("stage").getBoundingClientRect();
+  const a = screenToWorld(0, 0), b = screenToWorld(r.width, r.height);
+  const step = S.gridStep;
+  const x1 = Math.floor(a.x / step) * step, x2 = Math.ceil(b.x / step) * step;
+  const y1 = Math.floor(a.y / step) * step, y2 = Math.ceil(b.y / step) * step;
+  const maxLines = 140;
+  const nx = (x2 - x1) / step, ny = (y2 - y1) / step;
+  if (nx > maxLines || ny > maxLines) return;
+  const sw = 1 / S.view.k;
+  for (let x = x1; x <= x2; x += step) {
+    const l = document.createElementNS(SVGNS, "line");
+    l.setAttribute("x1", x); l.setAttribute("y1", y1);
+    l.setAttribute("x2", x); l.setAttribute("y2", y2);
+    l.setAttribute("stroke", "#2a221a"); l.setAttribute("stroke-width", sw);
+    g.appendChild(l);
+  }
+  for (let y = y1; y <= y2; y += step) {
+    const l = document.createElementNS(SVGNS, "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y);
+    l.setAttribute("x2", x2); l.setAttribute("y2", y);
+    l.setAttribute("stroke", "#2a221a"); l.setAttribute("stroke-width", sw);
+    g.appendChild(l);
+  }
+}
+
+/* ---- мінікарта ---- */
+function scheduleMinimap() { if (!mmTimer) mmTimer = setTimeout(() => { mmTimer = 0; drawMinimap(); }, 160); }
+
+function drawMinimap() {
+  const g = $("miniG");
+  if (!g) return;
+  g.textContent = "";
+  const b = bounds();
+  const W = 190, H = 130, pad = 6;
+  const w = Math.max(1, b.x2 - b.x1), h = Math.max(1, b.y2 - b.y1);
+  const s = Math.min((W - pad*2) / w, (H - pad*2) / h);
+  const ox = pad + (W - pad*2 - w*s)/2 - b.x1*s;
+  const oy = pad + (H - pad*2 - h*s)/2 - b.y1*s;
+  const frag = document.createDocumentFragment();
+  for (const n of S.data.nodes) {
+    const c = document.createElementNS(SVGNS, "circle");
+    c.setAttribute("cx", n.x*s + ox); c.setAttribute("cy", n.y*s + oy);
+    c.setAttribute("r", 0.7);
+    c.setAttribute("fill", S.sel.has(n.id) ? "#fff" : regionColor(n.region));
+    frag.appendChild(c);
+  }
+  g.appendChild(frag);
+  const r = $("stage").getBoundingClientRect();
+  const a = screenToWorld(0, 0), z = screenToWorld(r.width, r.height);
+  const vp = document.createElementNS(SVGNS, "rect");
+  vp.setAttribute("class", "vp");
+  vp.setAttribute("x", a.x*s + ox); vp.setAttribute("y", a.y*s + oy);
+  vp.setAttribute("width", Math.max(1, (z.x - a.x)*s));
+  vp.setAttribute("height", Math.max(1, (z.y - a.y)*s));
+  g.appendChild(vp);
+}
+
+/* ===================== 6. Виділення ===================== */
+function selectOnly(id) {
+  S.sel.clear(); S.selLink = -1;
+  if (id) S.sel.add(id);
+  refreshStyles(); renderSide(); updateFooter(); scheduleMinimap();
+}
+function toggleSel(id) {
+  if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id);
+  S.selLink = -1;
+  refreshStyles(); renderSide(); updateFooter(); scheduleMinimap();
+}
+function clearSel() {
+  S.sel.clear(); S.selLink = -1;
+  refreshStyles(); renderSide(); updateFooter(); scheduleMinimap();
+}
+
+/* ===================== 7. Мутації ===================== */
+function setNodeField(id, key, val) {
+  const n = S.nodeById.get(id);
+  if (!n) return;
+  n[key] = val;
+}
+
+function addNodeAt(x, y) {
+  const id = nextId("n");
+  const n = {
+    id, name: "Новий вузол", x: Math.round(x), y: Math.round(y),
+    type: "small", stats: {}, skill: "", icon: "",
+    region: S.data.regions[0] ? S.data.regions[0].id : "", description: ""
+  };
+  snapshot();
+  S.data.nodes.push(n);
+  S.nodeById.set(id, n);
+  renderAll();
+  selectOnly(id);
+  setTab("node");
+  toast("Додано " + id);
+}
+
+function deleteSelected() {
+  if (!S.sel.size && S.selLink < 0) return;
+  snapshot();
+  if (S.selLink >= 0) {
+    S.data.links.splice(S.selLink, 1);
+    S.selLink = -1;
+  }
+  if (S.sel.size) {
+    const ids = new Set(S.sel);
+    S.data.nodes = S.data.nodes.filter((n) => !ids.has(n.id));
+    S.data.links = S.data.links.filter((l) => !ids.has(l[0]) && !ids.has(l[1]));
+    for (const c in S.data.class_starts) if (ids.has(S.data.class_starts[c])) delete S.data.class_starts[c];
+    S.sel.clear();
+  }
+  renderAll(); renderSide(); updateFooter(); queueSave();
+  toast("Видалено");
+}
+
+function addLink(a, b) {
+  if (!a || !b || a === b) return false;
+  const key = linkKey(a, b);
+  if (S.linkByKey.has(key)) { toast("Такий зв'язок уже є"); return false; }
+  snapshot();
+  S.data.links.push([a, b]);
+  const i = S.data.links.length - 1;
+  S.linkByKey.set(key, i);
+  const p = document.createElementNS(SVGNS, "line");
+  p.setAttribute("class", "link"); p.dataset.i = i;
+  $("gLinks").appendChild(p);
+  els.link.set(i, p);
+  updateNodePositions(); refreshStyles(); applyFilters(); updateFooter(); queueSave();
+  return true;
+}
+
+/* ===================== 8. Взаємодія з полотном ===================== */
+let drag = null;
+let pointers = new Map();
+let pinchStart = null;
+
+function stagePoint(ev) {
+  const r = $("stage").getBoundingClientRect();
+  return {px: ev.clientX - r.left, py: ev.clientY - r.top};
+}
+
+$("svg").addEventListener("pointerdown", (ev) => {
+  if (ev.button === 1 || (ev.button === 0 && ev.altKey)) { /* pan */ }
+  pointers.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  $("svg").setPointerCapture(ev.pointerId);
+
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    pinchStart = {
+      d: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
+      k: S.view.k
+    };
+    drag = null;
+    return;
+  }
+
+  const {px, py} = stagePoint(ev);
+  const nodeEl = ev.target.closest ? ev.target.closest(".node") : null;
+  const linkEl = ev.target.closest ? ev.target.closest(".link") : null;
+
+  if (S.mode === "pan" || ev.button === 1 || ev.altKey) {
+    drag = {kind:"pan", px, py, vx:S.view.x, vy:S.view.y};
+    $("svg").style.cursor = "grabbing";
+    return;
+  }
+
+  if (S.mode === "add") {
+    const w = screenToWorld(px, py);
+    addNodeAt(snapVal(w.x), snapVal(w.y));
+    return;
+  }
+
+  if (S.mode === "link") {
+    if (nodeEl) {
+      if (!drag) {
+        drag = {kind:"link", from: nodeEl.dataset.id};
+        selectOnly(nodeEl.dataset.id);
+        toast("Обери другий вузол");
+      } else if (drag.kind === "link") {
+        addLink(drag.from, nodeEl.dataset.id);
+        drag = null;
+        clearSel();
+      }
+    } else {
+      drag = null; clearSel();
+    }
+    return;
+  }
+
+  if (S.mode === "del") {
+    if (nodeEl) { selectOnly(nodeEl.dataset.id); deleteSelected(); }
+    else if (linkEl) { S.selLink = +linkEl.dataset.i; deleteSelected(); }
+    return;
+  }
+
+  /* select mode */
+  if (nodeEl) {
+    const id = nodeEl.dataset.id;
+    if (ev.shiftKey || ev.ctrlKey) toggleSel(id);
+    else if (!S.sel.has(id)) selectOnly(id);
+    if (S.sel.has(id)) {
+      const w = screenToWorld(px, py);
+      drag = {
+        kind:"move", px, py, moved:false,
+        orig: [...S.sel].map((sid) => {
+          const n = S.nodeById.get(sid);
+          return n ? {id: sid, x: n.x, y: n.y} : null;
+        }).filter(Boolean)
+      };
+    }
+    return;
+  }
+
+  if (linkEl) {
+    S.sel.clear(); S.selLink = +linkEl.dataset.i;
+    refreshStyles(); renderSide(); setTab("node"); updateFooter();
+    drag = null;
+    return;
+  }
+
+  // порожнє місце — рамка виділення
+  clearSel();
+  drag = {kind:"marquee", px0: px, py0: py, px, py, add: ev.shiftKey};
+  const m = $("marquee");
+  m.style.display = "";
+  m.setAttribute("x", px); m.setAttribute("y", py);
+  m.setAttribute("width", 0); m.setAttribute("height", 0);
+}, {passive: true});
+
+$("svg").addEventListener("pointermove", (ev) => {
+  if (pointers.has(ev.pointerId)) pointers.set(ev.pointerId, {x: ev.clientX, y: ev.clientY});
+  if (pinchStart && pointers.size === 2) {
+    const pts = [...pointers.values()];
+    const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    const r = $("stage").getBoundingClientRect();
+    const cx = (pts[0].x + pts[1].x)/2 - r.left, cy = (pts[0].y + pts[1].y)/2 - r.top;
+    const target = pinchStart.k * (d / Math.max(1, pinchStart.d));
+    zoomAt(cx, cy, target / S.view.k);
+    return;
+  }
+  if (!drag) return;
+  const {px, py} = stagePoint(ev);
+
+  if (drag.kind === "pan") {
+    S.view.x = drag.vx + (px - drag.px);
+    S.view.y = drag.vy + (py - drag.py);
+    applyView(); scheduleDraw();
+    return;
+  }
+
+  if (drag.kind === "move") {
+    const w0 = screenToWorld(drag.px, drag.py), w1 = screenToWorld(px, py);
+    let dx = w1.x - w0.x, dy = w1.y - w0.y;
+    if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 0.5) { drag.moved = true; snapshot(); }
+    let guides = {v:null, h:null};
+    drag.orig.forEach((o) => {
+      const n = S.nodeById.get(o.id);
+      if (!n) return;
+      let nx = o.x + dx, ny = o.y + dy;
+      if (S.snap) { nx = snapVal(nx); ny = snapVal(ny); }
+      const g = hintGuides(n, nx, ny);
+      if (g.v != null) guides.v = g.v;
+      if (g.h != null) guides.h = g.h;
+      n.x = nx; n.y = ny;
+      updateNodePosition(n);
+    });
+    drawGuides(guides);
+    return;
+  }
+
+  if (drag.kind === "marquee") {
+    const m = $("marquee");
+    const x = Math.min(drag.px0, px), y = Math.min(drag.py0, py);
+    const w = Math.abs(px - drag.px0), h = Math.abs(py - drag.py0);
+    m.setAttribute("x", x); m.setAttribute("y", y);
+    m.setAttribute("width", w); m.setAttribute("height", h);
+    const a = screenToWorld(x, y), b = screenToWorld(x + w, y + h);
+    S.sel.clear();
+    S.data.nodes.forEach((n) => {
+      if (n.x >= a.x && n.x <= b.x && n.y >= a.y && n.y <= b.y) S.sel.add(n.id);
+    });
+    refreshStyles(); updateFooter();
+  }
+}, {passive: true});
+
+function endPointer(ev) {
+  pointers.delete(ev.pointerId);
+  if (pointers.size < 2) pinchStart = null;
+  if (!drag) return;
+
+  if (drag.kind === "move") {
+    if (drag.moved) { queueSave(); renderSide(); }
+    drawGuides({v:null, h:null});
+  }
+  if (drag.kind === "marquee") {
+    $("marquee").style.display = "none";
+    renderSide(); scheduleMinimap();
+  }
+  if (drag.kind === "link") { /* лишаємось у режимі очікування */ return; }
+  if (drag.kind === "pan") $("svg").style.cursor = "";
+  drag = null;
+}
+
+$("svg").addEventListener("pointerup", endPointer, {passive: true});
+$("svg").addEventListener("pointercancel", endPointer, {passive: true});
+
+$("svg").addEventListener("wheel", (ev) => {
+  ev.preventDefault();
+  const {px, py} = stagePoint(ev);
+  zoomAt(px, py, ev.deltaY < 0 ? 1.12 : 1/1.12);
+}, {passive: false});
+
+function snapVal(v) {
+  if (!S.snap) return v;
+  return Math.round(v / S.snapStep) * S.snapStep;
+}
+
+/* напрямні при суміщенні з іншими вузлами */
+function hintGuides(node, nx, ny) {
+  const tol = 6 / S.view.k;
+  let v = null, h = null;
+  for (const o of S.data.nodes) {
+    if (o.id === node.id) continue;
+    if (v == null && Math.abs(o.x - nx) < tol) v = o.x;
+    if (h == null && Math.abs(o.y - ny) < tol) h = o.y;
+    if (v != null && h != null) break;
+  }
+  return {v, h};
+}
+
+function drawGuides(g) {
+  const gl = $("guides");
+  gl.textContent = "";
+  if (g.v == null && g.h == null) return;
+  const r = $("stage").getBoundingClientRect();
+  const a = screenToWorld(0, 0), b = screenToWorld(r.width, r.height);
+  if (g.v != null) {
+    const l = document.createElementNS(SVGNS, "line");
+    l.setAttribute("x1", g.v); l.setAttribute("y1", a.y);
+    l.setAttribute("x2", g.v); l.setAttribute("y2", b.y);
+    l.setAttribute("stroke-width", 1 / S.view.k);
+    gl.appendChild(l);
+  }
+  if (g.h != null) {
+    const l = document.createElementNS(SVGNS, "line");
+    l.setAttribute("x1", a.x); l.setAttribute("y1", g.h);
+    l.setAttribute("x2", b.x); l.setAttribute("y2", g.h);
+    l.setAttribute("stroke-width", 1 / S.view.k);
+    gl.appendChild(l);
+  }
+}
+
+/* ===================== 9. Клавіатура ===================== */
+document.addEventListener("keydown", (ev) => {
+  const tag = (ev.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") {
+    if (ev.key === "Escape") ev.target.blur();
+    return;
+  }
+  const ctrl = ev.ctrlKey || ev.metaKey;
+  if (ctrl && ev.key.toLowerCase() === "z") { ev.preventDefault(); ev.shiftKey ? redo() : undo(); return; }
+  if (ctrl && ev.key.toLowerCase() === "y") { ev.preventDefault(); redo(); return; }
+  if (ctrl && ev.key.toLowerCase() === "s") { ev.preventDefault(); openIO(); return; }
+  if (ctrl && ev.key.toLowerCase() === "a") {
+    ev.preventDefault();
+    S.sel = new Set(S.data.nodes.map((n) => n.id));
+    refreshStyles(); renderSide(); updateFooter();
+    return;
+  }
+  switch (ev.key) {
+    case "v": case "V": setMode("select"); break;
+    case "h": case "H": setMode("pan"); break;
+    case "a": case "A": setMode("add"); break;
+    case "l": case "L": setMode("link"); break;
+    case "f": case "F": fitAll(); break;
+    case "Escape": clearSel(); setMode("select"); break;
+    case "Delete": case "Backspace": ev.preventDefault(); deleteSelected(); break;
+    case "?": openHelp(); break;
+    case "ArrowLeft": nudge(-(ev.shiftKey?10:1), 0); break;
+    case "ArrowRight": nudge(ev.shiftKey?10:1, 0); break;
+    case "ArrowUp": nudge(0, -(ev.shiftKey?10:1)); break;
+    case "ArrowDown": nudge(0, ev.shiftKey?10:1); break;
+  }
+});
+
+function nudge(dx, dy) {
+  if (!S.sel.size) return;
+  snapshot();
+  S.sel.forEach((id) => {
+    const n = S.nodeById.get(id);
+    if (!n) return;
+    n.x += dx * S.snapStep; n.y += dy * S.snapStep;
+    updateNodePosition(n);
+  });
+  queueSave();
+}
+
+/* ===================== 10. Режими ===================== */
+function setMode(m) {
+  S.mode = m;
+  [["mSel","select"],["mPan","pan"],["mAdd","add"],["mLink","link"],["mDel","del"]]
+    .forEach(([id, val]) => $(id).classList.toggle("on", val === m));
+  $("svg").style.cursor = m === "pan" ? "grab" : (m === "add" ? "crosshair" : "default");
+  $("fMode").textContent = "Режим: " + ({
+    select:"вибір", pan:"рух", add:"додати вузол", link:"зв'язати", del:"видалити"
+  }[m] || m);
+  hint({
+    select:"Клік — обрати, Shift+клік — додати до виділення, тягни — рухати, рамка — групове виділення",
+    pan:"Тягни полотно. Колесо — масштаб. Alt+тягни працює в будь-якому режимі.",
+    add:"Клік по полотну — новий вузол у цій точці",
+    link:"Клік по першому вузлу, потім по другому — зв'язок",
+    del:"Клік по вузлу або зв'язку — видалити"
+  }[m] || "");
+}
+
+let hintTimer = 0;
+function hint(text) {
+  const h = $("hintbar");
+  if (!text) { h.classList.remove("show"); return; }
+  h.textContent = text;
+  h.classList.add("show");
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => h.classList.remove("show"), 4200);
+}
+
+/* ===================== 11. Панель ===================== */
+function setTab(name) {
+  S.tab = name;
+  document.querySelectorAll("#tabs button").forEach((b) =>
+    b.classList.toggle("on", b.dataset.tab === name));
+  renderSide();
+}
+
+function renderSide() {
+  const body = $("tabBody");
+  if (S.tab === "node") body.innerHTML = nodeTabHTML();
+  else if (S.tab === "tree") body.innerHTML = treeTabHTML();
+  else if (S.tab === "issues") body.innerHTML = issuesTabHTML();
+  else body.innerHTML = viewTabHTML();
+  wireSide();
+}
+
+function updateFooter() {
+  $("fNodes").textContent = S.data.nodes.length;
+  $("fLinks").textContent = S.data.links.length;
+  $("fSel").textContent = S.sel.size || (S.selLink >= 0 ? 1 : 0);
+  const n = computeIssues();
+  const bad = n.filter((i) => i.level === "bad").length;
+  const warn = n.filter((i) => i.level === "warn").length;
+  $("fIssues").innerHTML = bad || warn
+    ? `<span style="color:${bad ? "var(--bad)" : "var(--warn)"}">Проблем: ${bad + warn}</span>`
+    : `<span style="color:var(--good)">Проблем немає</span>`;
+}
+
+/* ---------- Вузол ---------- */
+function nodeTabHTML() {
+  if (S.selLink >= 0 && !S.sel.size) {
+    const l = S.data.links[S.selLink];
+    if (!l) return `<div class="empty">Зв'язок не знайдено</div>`;
+    const a = S.nodeById.get(l[0]), b = S.nodeById.get(l[1]);
+    return `<h3>Зв'язок</h3>
+      <div class="muted">${esc(a ? a.name : l[0])} ↔ ${esc(b ? b.name : l[1])}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="fixed danger" data-act="delLink">Видалити зв'язок</button>
+      </div>`;
+  }
+
+  if (S.sel.size > 1) return bulkHTML();
+  if (S.sel.size === 0) return emptyNodeHTML();
+
+  const id = [...S.sel][0];
+  const n = S.nodeById.get(id);
+  if (!n) return `<div class="empty">Вузол зник</div>`;
+
+  const statRows = Object.keys(n.stats).map((k) => `
+    <div class="statgrid" style="margin-bottom:4px">
+      <div class="k">${esc(STAT_NAMES[k] || k)}</div>
+      <div class="row" style="gap:4px">
+        <input type="number" step="0.5" data-stat="${esc(k)}" value="${esc(n.stats[k])}">
+        <button class="fixed" data-delstat="${esc(k)}" title="Прибрати">✕</button>
+      </div>
+    </div>`).join("");
+
+  const missing = DEFAULT_STATS.filter((k) => !(k in n.stats));
+
+  return `<h3>Вузол <span class="muted" style="font-weight:400">${esc(n.id)}</span></h3>
+    <label>Назва</label>
+    <input data-f="name" value="${esc(n.name)}">
+    <label>Тип</label>
+    <select data-f="type">
+      ${Object.keys(TYPE_INFO).map((t) =>
+        `<option value="${t}" ${n.type === t ? "selected" : ""}>${TYPE_INFO[t].name}</option>`).join("")}
+    </select>
+    <label>Регіон</label>
+    <select data-f="region">
+      ${S.data.regions.map((r) =>
+        `<option value="${esc(r.id)}" ${n.region === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}
+    </select>
+    <div class="row" style="margin-top:8px">
+      <div><label>X</label><input type="number" step="100" data-f="x" value="${n.x}"></div>
+      <div><label>Y</label><input type="number" step="100" data-f="y" value="${n.y}"></div>
+    </div>
+    <label>Опис (BBCode)</label>
+    <textarea data-f="description" rows="3">${esc(n.description)}</textarea>
+    <label>Іконка (шлях)</label>
+    <input data-f="icon" value="${esc(n.icon || "")}" placeholder="res://art/icons/...">
+    <label>Бонуси</label>
+    ${statRows || `<div class="muted" style="margin-bottom:6px">Порожньо — вузол нічого не дає</div>`}
+    <div class="row" style="margin-top:6px">
+      <select id="addStatSel">
+        <option value="">— додати бонус —</option>
+        ${missing.map((k) => `<option value="${k}">${esc(STAT_NAMES[k] || k)}</option>`).join("")}
+      </select>
+      <button class="fixed" data-act="addStat">＋</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="fixed" data-act="jumpClass">Зробити стартом класу</button>
+      <button class="fixed danger" data-act="delNode">Видалити</button>
+    </div>`;
+}
+
+function emptyNodeHTML() {
+  const list = S.data.nodes.slice(0, 400).map((n) =>
+    `<div class="it" data-goto="${esc(n.id)}">${esc(n.name || "(без назви)")}
+      <span class="muted">· ${esc(n.id)}</span></div>`).join("");
+  return `<h3>Нічого не обрано</h3>
+    <div class="muted">Клік по вузлу на полотні — редагувати його.
+    Подвійний клік по полотну в режимі «Вузол» — створити новий.</div>
+    <label>Швидкий перехід</label>
+    <div class="list">${list || `<div class="empty">Порожньо</div>`}</div>`;
+}
+
+function bulkHTML() {
+  return `<h3>Обрано: ${S.sel.size}</h3>
+    <label>Регіон для всіх</label>
+    <select data-bulk="region">
+      <option value="">— не змінювати —</option>
+      ${S.data.regions.map((r) => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join("")}
+    </select>
+    <label>Тип для всіх</label>
+    <select data-bulk="type">
+      <option value="">— не змінювати —</option>
+      ${Object.keys(TYPE_INFO).map((t) => `<option value="${t}">${TYPE_INFO[t].name}</option>`).join("")}
+    </select>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <button data-align="left">←</button><button data-align="cx">⇔</button><button data-align="right">→</button>
+      <button data-align="top">↑</button><button data-align="cy">⇕</button><button data-align="bottom">↓</button>
+    </div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <button data-dist="x">Розставити по X</button>
+      <button data-dist="y">Розставити по Y</button>
+      <button data-dist="grid">По сітці</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="fixed" data-act="dupSel">Дублювати</button>
+      <button class="fixed danger" data-act="delNode">Видалити</button>
+    </div>`;
+}
+
+/* ---------- Древо ---------- */
+function treeTabHTML() {
+  return `<h3>Древо</h3>
+    <label>Назва</label>
+    <input data-meta="title" value="${esc(S.data.title || "")}">
+    <label>Коментар</label>
+    <textarea data-meta="comment" rows="2">${esc(S.data.comment || "")}</textarea>
+
+    <h3 style="margin-top:14px">Старти класів</h3>
+    ${Object.keys(S.data.class_starts).concat(["druzhynnyk","strilets","volkhv"]
+      .filter((c) => !(c in S.data.class_starts)))
+      .map((cls) => `
+        <label>${esc(cls)}</label>
+        <select data-start="${esc(cls)}">
+          <option value="">— не задано —</option>
+          ${S.data.nodes.filter((n) => n.type === "start" || true).slice(0, 500)
+            .map((n) => `<option value="${esc(n.id)}" ${S.data.class_starts[cls] === n.id ? "selected" : ""}>
+              ${esc(n.name || n.id)} · ${esc(n.id)}</option>`).join("")}
+        </select>`).join("")}
+    ${Object.keys(S.data.class_starts).map((c) =>
+      `<div class="row" style="margin-top:2px"><span class="muted">${esc(c)} → ${esc(S.data.class_starts[c])}</span>
+       <button class="fixed" data-unstart="${esc(c)}">✕</button></div>`).join("")}
+
+    <h3 style="margin-top:14px">Регіони</h3>
+    ${S.data.regions.map((r, i) => `
+      <div class="row" style="margin-bottom:4px">
+        <input data-reg-name="${i}" value="${esc(r.name)}">
+        <input type="color" data-reg-color="${i}" value="${esc(r.color)}" style="max-width:52px;padding:2px">
+      </div>`).join("")}
+
+    <div class="row" style="margin-top:12px">
+      <button data-act="io">Імпорт / експорт</button>
+      <button data-act="check">Перевірити</button>
+    </div>`;
+}
+
+/* ---------- Перевірка ---------- */
+function issuesTabHTML() {
+  const items = computeIssues();
+  if (!items.length) return `<h3>Перевірка</h3><div class="issue ok">Все гаразд ✅</div>`;
+  return `<h3>Перевірка <span class="muted">${items.length}</span></h3>` +
+    items.map((i) => `<div class="issue ${i.level === "warn" ? "warn" : ""}"
+      ${i.node ? `data-goto="${esc(i.node)}"` : ""}>${esc(i.msg)}</div>`).join("");
+}
+
+/* ---------- Вигляд ---------- */
+function viewTabHTML() {
+  return `<h3>Вигляд</h3>
+    <label>Пошук за назвою або id</label>
+    <input data-q value="${esc(S.q)}" placeholder="напр. «Гнів» або s_root">
+    <label>Регіон</label>
+    <select data-filter="region">
+      <option value="">усі</option>
+      ${S.data.regions.map((r) => `<option value="${esc(r.id)}" ${S.filter.region === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}
+    </select>
+    <label>Тип</label>
+    <select data-filter="type">
+      <option value="">усі</option>
+      ${Object.keys(TYPE_INFO).map((t) => `<option value="${t}" ${S.filter.type === t ? "selected" : ""}>${TYPE_INFO[t].name}</option>`).join("")}
+    </select>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <button data-act="fit">Показати все</button>
+      <button data-act="labels">${S.showLabels ? "Підписи: увімк." : "Підписи: вимк."}</button>
+    </div>
+    <label style="margin-top:12px">Крок сітки (од.)</label>
+    <input type="number" data-num="gridStep" value="${S.gridStep}" min="50" step="50">
+    <label>Крок прив'язки (од.)</label>
+    <input type="number" data-num="snapStep" value="${S.snapStep}" min="1" step="1">`;
+}
+
+/* ===================== 12. Перевірка дерева ===================== */
+function computeIssues() {
+  const out = [];
+  const seen = new Map();
+  const deg = new Map();
+  S.data.nodes.forEach((n) => {
+    if (seen.has(n.id)) out.push({level:"bad", node:n.id, msg:`Дубль id: ${n.id}`});
+    seen.set(n.id, n);
+    deg.set(n.id, 0);
+  });
+  S.data.links.forEach((l) => {
+    if (!seen.has(l[0])) out.push({level:"bad", msg:`Зв'язок на неіснуючий вузол: ${l[0]}`});
+    else deg.set(l[0], (deg.get(l[0]) || 0) + 1);
+    if (!seen.has(l[1])) out.push({level:"bad", msg:`Зв'язок на неіснуючий вузол: ${l[1]}`});
+    else deg.set(l[1], (deg.get(l[1]) || 0) + 1);
+  });
+
+  const orphans = S.data.nodes.filter((n) => (deg.get(n.id) || 0) === 0);
+  if (orphans.length) out.push({level:"warn", node: orphans[0].id,
+    msg:`Вузлів без жодного зв'язку: ${orphans.length}`});
+
+  // досяжність від стартів
+  const starts = Object.values(S.data.class_starts).filter((id) => seen.has(id));
+  if (!starts.length) {
+    out.push({level:"warn", msg:"Не задано жодного старту класу"});
+  } else {
+    const adj = new Map();
+    S.data.links.forEach(([a, b]) => {
+      if (!adj.has(a)) adj.set(a, []); if (!adj.has(b)) adj.set(b, []);
+      adj.get(a).push(b); adj.get(b).push(a);
+    });
+    const vis = new Set(starts);
+    const q = [...starts];
+    while (q.length) {
+      const cur = q.pop();
+      for (const nb of (adj.get(cur) || [])) if (!vis.has(nb)) { vis.add(nb); q.push(nb); }
+    }
+    const unreach = S.data.nodes.filter((n) => !vis.has(n.id));
+    if (unreach.length) out.push({level:"warn", node: unreach[0].id,
+      msg:`Недосяжні від стартів: ${unreach.length}`});
+  }
+
+  // повтори описів
+  const byDesc = new Map();
+  S.data.nodes.forEach((n) => {
+    const d = (n.description || "").trim();
+    if (!d) return;
+    if (!byDesc.has(d)) byDesc.set(d, []);
+    byDesc.get(d).push(n.id);
+  });
+  let dupGroups = 0, dupNodes = 0;
+  byDesc.forEach((ids) => { if (ids.length > 1) { dupGroups++; dupNodes += ids.length; } });
+  if (dupGroups) out.push({level:"warn",
+    msg:`Однакові описи: ${dupGroups} груп, ${dupNodes} вузлів`});
+
+  // вузли без бонусів
+  const noStats = S.data.nodes.filter((n) => !n.stats || Object.keys(n.stats).length === 0);
+  if (noStats.length) out.push({level:"warn", node: noStats[0].id,
+    msg:`Вузлів без бонусів: ${noStats.length}`});
+
+  // занадто близько
+  const step = 160;
+  let close = 0;
+  const arr = S.data.nodes;
+  for (let i = 0; i < arr.length && close < 1; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      if (Math.abs(arr[i].x - arr[j].x) > step) continue;
+      if (Math.hypot(arr[i].x - arr[j].x, arr[i].y - arr[j].y) < step) { close++; break; }
+    }
+  }
+  if (close) out.push({level:"warn", msg:`Є вузли ближче ніж ${step} од.`});
+
+  return out;
+}
+
+/* ===================== 13. Підключення подій панелі ===================== */
+function wireSide() {
+  const body = $("tabBody");
+
+  body.querySelectorAll("[data-goto]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const n = S.nodeById.get(el.dataset.goto);
+      if (n) { selectOnly(n.id); centerOn(n); setTab("node"); }
+    });
+  });
+
+  body.querySelectorAll("[data-f]").forEach((el) => {
+    const commit = () => {
+      const id = [...S.sel][0];
+      if (!id) return;
+      const n = S.nodeById.get(id);
+      if (!n) return;
+      const f = el.dataset.f;
+      let v = el.value;
+      if (f === "x" || f === "y") v = num(v);
+      if (n[f] === v) return;
+      snapshot();
+      n[f] = v;
+      if (f === "x" || f === "y") updateNodePosition(n);
+      else renderAll();
+      renderSide(); updateFooter(); queueSave();
+    };
+    el.addEventListener("change", commit);
+    if (el.type === "number") el.addEventListener("blur", commit);
+  });
+
+  body.querySelectorAll("[data-stat]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const id = [...S.sel][0]; const n = S.nodeById.get(id);
+      if (!n) return;
+      snapshot();
+      n.stats[el.dataset.stat] = num(el.value);
+      queueSave(); updateFooter();
+    });
+  });
+
+  body.querySelectorAll("[data-delstat]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const id = [...S.sel][0]; const n = S.nodeById.get(id);
+      if (!n) return;
+      snapshot();
+      delete n.stats[el.dataset.delstat];
+      renderSide(); queueSave(); updateFooter();
+    });
+  });
+
+  body.querySelectorAll("[data-act]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const act = el.dataset.act;
+      if (act === "addStat") {
+        const sel = $("addStatSel");
+        const k = sel && sel.value;
+        const id = [...S.sel][0]; const n = S.nodeById.get(id);
+        if (!k || !n) return;
+        snapshot();
+        n.stats[k] = 1;
+        renderSide(); queueSave(); updateFooter();
+      } else if (act === "delNode") { deleteSelected(); }
+      else if (act === "delLink") {
+        snapshot();
+        S.data.links.splice(S.selLink, 1);
+        S.selLink = -1;
+        renderAll(); renderSide(); updateFooter(); queueSave();
+      }
+      else if (act === "io") openIO();
+      else if (act === "check") { setTab("issues"); }
+      else if (act === "fit") fitAll();
+      else if (act === "labels") { S.showLabels = !S.showLabels; refreshStyles(); renderSide(); }
+      else if (act === "jumpClass") {
+        const id = [...S.sel][0];
+        if (!id) return;
+        const cls = prompt("Клас (druzhynnyk / strilets / volkhv):", "druzhynnyk");
+        if (!cls) return;
+        snapshot();
+        S.data.class_starts[cls] = id;
+        S.nodeById.get(id).type = "start";
+        renderAll(); renderSide(); queueSave();
+      }
+      else if (act === "dupSel") {
+        snapshot();
+        const newIds = [];
+        [...S.sel].forEach((id) => {
+          const n = S.nodeById.get(id);
+          if (!n) return;
+          const copy = clone(n);
+          copy.id = nextId("n");
+          copy.x += 200; copy.y += 200;
+          copy.name = n.name + " (копія)";
+          S.data.nodes.push(copy);
+          S.nodeById.set(copy.id, copy);
+          newIds.push(copy.id);
+        });
+        renderAll();
+        S.sel = new Set(newIds);
+        refreshStyles(); renderSide(); updateFooter(); queueSave();
+      }
+    });
+  });
+
+  body.querySelectorAll("[data-meta]").forEach((el) => {
+    el.addEventListener("change", () => {
+      snapshot();
+      S.data[el.dataset.meta] = el.value;
+      queueSave();
+    });
+  });
+
+  body.querySelectorAll("[data-start]").forEach((el) => {
+    el.addEventListener("change", () => {
+      snapshot();
+      const cls = el.dataset.start;
+      if (el.value) S.data.class_starts[cls] = el.value;
+      else delete S.data.class_starts[cls];
+      renderSide(); queueSave();
+    });
+  });
+
+  body.querySelectorAll("[data-unstart]").forEach((el) => {
+    el.addEventListener("click", () => {
+      snapshot();
+      delete S.data.class_starts[el.dataset.unstart];
+      renderSide(); queueSave();
+    });
+  });
+
+  body.querySelectorAll("[data-reg-name]").forEach((el) => {
+    el.addEventListener("change", () => {
+      snapshot();
+      S.data.regions[+el.dataset.regName].name = el.value;
+      renderAll(); renderSide(); queueSave();
+    });
+  });
+  body.querySelectorAll("[data-reg-color]").forEach((el) => {
+    el.addEventListener("input", () => {
+      S.data.regions[+el.dataset.regColor].color = el.value;
+      refreshStyles(); queueSave();
+    });
+  });
+
+  body.querySelectorAll("[data-bulk]").forEach((el) => {
+    el.addEventListener("change", () => {
+      snapshot();
+      const key = el.dataset.bulk, val = el.value;
+      if (!val) return;
+      S.sel.forEach((id) => { const n = S.nodeById.get(id); if (n) n[key] = val; });
+      renderAll(); renderSide(); queueSave(); updateFooter();
+    });
+  });
+
+  body.querySelectorAll("[data-align]").forEach((el) => {
+    el.addEventListener("click", () => alignSel(el.dataset.align));
+  });
+  body.querySelectorAll("[data-dist]").forEach((el) => {
+    el.addEventListener("click", () => distributeSel(el.dataset.dist));
+  });
+
+  body.querySelectorAll("[data-q]").forEach((el) => {
+    el.addEventListener("input", () => { S.q = el.value; applyFilters(); });
+  });
+  body.querySelectorAll("[data-filter]").forEach((el) => {
+    el.addEventListener("change", () => { S.filter[el.dataset.filter] = el.value; applyFilters(); });
+  });
+  body.querySelectorAll("[data-num]").forEach((el) => {
+    el.addEventListener("change", () => {
+      S[el.dataset.num] = Math.max(1, num(el.value, 100));
+      scheduleDraw();
+    });
+  });
+}
+
+/* ---------- вирівнювання ---------- */
+function alignSel(kind) {
+  const ns = [...S.sel].map((id) => S.nodeById.get(id)).filter(Boolean);
+  if (ns.length < 2) return;
+  snapshot();
+  const xs = ns.map((n) => n.x), ys = ns.map((n) => n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  ns.forEach((n) => {
+    if (kind === "left") n.x = minX;
+    if (kind === "right") n.x = maxX;
+    if (kind === "cx") n.x = cx;
+    if (kind === "top") n.y = minY;
+    if (kind === "bottom") n.y = maxY;
+    if (kind === "cy") n.y = cy;
+    n.x = Math.round(n.x); n.y = Math.round(n.y);
+    updateNodePosition(n);
+  });
+  queueSave();
+}
+
+function distributeSel(axis) {
+  const ns = [...S.sel].map((id) => S.nodeById.get(id)).filter(Boolean);
+  if (ns.length < 2) return;
+  snapshot();
+  if (axis === "grid") {
+    ns.forEach((n) => {
+      n.x = Math.round(n.x / S.snapStep) * S.snapStep;
+      n.y = Math.round(n.y / S.snapStep) * S.snapStep;
+      updateNodePosition(n);
+    });
+  } else {
+    const key = axis === "x" ? "x" : "y";
+    ns.sort((a, b) => a[key] - b[key]);
+    const first = ns[0][key], last = ns[ns.length - 1][key];
+    const step = (last - first) / (ns.length - 1);
+    ns.forEach((n, i) => { n[key] = Math.round(first + step * i); updateNodePosition(n); });
+  }
+  queueSave();
+}
+
+/* ===================== 14. Модалки: JSON, довідка ===================== */
+function openModal(html, wide) {
+  const box = $("modalBox");
+  box.className = "box" + (wide ? " wide" : "");
+  box.innerHTML = html;
+  $("modal").classList.add("show");
+}
+function closeModal() { $("modal").classList.remove("show"); }
+$("modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+
+function openIO() {
+  openModal(`<h3>Імпорт / експорт JSON</h3>
+    <div class="muted">Формат: spohady-perk-tree v4. Вставте JSON і натисніть «Імпортувати».</div>
+    <textarea id="ioText" spellcheck="false"></textarea>
+    <div class="foot">
+      <button id="ioLoad">Експорт у поле</button>
+      <button id="ioFile">Обрати файл</button>
+      <button id="ioApply" class="on">Імпортувати</button>
+      <button id="ioDownload">Завантажити .json</button>
+      <button id="ioClose">Закрити</button>
+    </div>
+    <input type="file" id="ioFileInput" accept=".json,application/json" style="display:none">`, true);
+
+  $("ioLoad").onclick = () => { $("ioText").value = JSON.stringify(S.data, null, 2); };
+  $("ioClose").onclick = closeModal;
+  $("ioDownload").onclick = () => downloadJSON();
+  $("ioFile").onclick = () => $("ioFileInput").click();
+  $("ioFileInput").onchange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { $("ioText").value = rd.result; toast("Файл прочитано"); };
+    rd.readAsText(f);
+  };
+  $("ioApply").onclick = () => {
+    try {
+      const d = JSON.parse($("ioText").value);
+      if (!d || !Array.isArray(d.nodes)) throw new Error("немає масиву nodes");
+      snapshot();
+      S.data = normalizeData(d);
+      S.sel.clear(); S.selLink = -1;
+      rebuildIndex(); renderAll(); renderSide(); updateFooter();
+      fitAll(); queueSave(); closeModal();
+      toast(`Імпортовано: ${S.data.nodes.length} вузлів`);
+    } catch (err) {
+      toast("Помилка JSON: " + err.message, 3200);
+    }
+  };
+}
+
+function downloadJSON() {
+  const blob = new Blob([JSON.stringify(S.data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "perk_tree.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast("Завантажено perk_tree.json");
+}
+
+function openHelp() {
+  openModal(`<h3>Довідка</h3>
+    <div class="muted">Гарячі клавіші</div>
+    <table style="width:100%;font-size:13px;margin-top:6px">
+      <tr><td>V</td><td>режим вибору</td></tr>
+      <tr><td>H / Alt+тягни</td><td>рух полотном</td></tr>
+      <tr><td>A</td><td>додати вузол</td></tr>
+      <tr><td>L</td><td>зв'язати два вузли</td></tr>
+      <tr><td>Del</td><td>видалити обране</td></tr>
+      <tr><td>Ctrl+Z / Ctrl+Y</td><td>скасувати / повторити</td></tr>
+      <tr><td>Ctrl+A</td><td>обрати все</td></tr>
+      <tr><td>Ctrl+S</td><td>імпорт / експорт</td></tr>
+      <tr><td>F</td><td>показати все</td></tr>
+      <tr><td>Стрілки / Shift+стрілки</td><td>зсунути на крок / 10 кроків</td></tr>
+      <tr><td>Shift+клік</td><td>додати до виділення</td></tr>
+      <tr><td>Колесо / щипок</td><td>масштаб</td></tr>
+    </table>
+    <div class="muted" style="margin-top:10px">
+      Автозбереження у браузері: кожна зміна. «Завантажити .json» — для гри.
+      Після заміни <code>data/perk_tree.json</code> запусти
+      <code>python3 tools/sync_editor_tree.py</code>.
+    </div>
+    <div class="foot"><button onclick="document.getElementById('modal').classList.remove('show')">Закрити</button></div>`, true);
+}
+
+/* ===================== 15. Збереження ===================== */
+const LS_KEY = "spohady-perk-editor-v5";
+
+function queueSave() {
+  S.dirty = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveLocal, 800);
+}
+function saveLocal() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(S.data));
+    S.dirty = false;
+  } catch (e) { /* переповнення — не критично */ }
+}
+function loadLocal() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (!s) return null;
+    return JSON.parse(s);
+  } catch (e) { return null; }
+}
+
+/* ===================== 16. Старт ===================== */
+function init() {
+  [["mSel","select"],["mPan","pan"],["mAdd","add"],["mLink","link"],["mDel","del"]]
+    .forEach(([id, m]) => $(id).addEventListener("click", () => setMode(m)));
+
+  $("bUndo").onclick = undo;
+  $("bRedo").onclick = redo;
+  $("bFit").onclick = () => fitAll();
+  $("bCheck").onclick = () => { setTab("issues"); refreshStyles(); };
+  $("bIO").onclick = openIO;
+  $("bHelp").onclick = openHelp;
+  $("bPanel").onclick = () => $("side").classList.toggle("open");
+
+  $("tGrid").onclick = () => {
+    S.grid = !S.grid;
+    $("tGrid").classList.toggle("on", S.grid);
+    drawGrid();
+  };
+  $("tSnap").onclick = () => {
+    S.snap = !S.snap;
+    $("tSnap").classList.toggle("on", S.snap);
+  };
+
+  document.querySelectorAll("#tabs button").forEach((b) =>
+    b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+  const saved = loadLocal();
+  S.data = normalizeData(saved || blankData());
+  rebuildIndex();
+
+  renderAll();
+  snapshot();
+  setMode("select");
+  setTab("node");
+  fitAll();
+  updateFooter();
+
+  if (!S.data.nodes.length) {
+    setTimeout(() => hint("Порожнє дерево. Натисни «⇅ JSON» → «Обрати файл», щоб завантажити perk_tree.json"), 400);
+  }
+  window.addEventListener("resize", () => { applyView(); scheduleDraw(); scheduleMinimap(); });
+  window.addEventListener("beforeunload", (e) => {
+    if (S.dirty) { e.preventDefault(); e.returnValue = ""; }
+  });
+}
+
+init();
+
+</script>
+</body>
+</html>
