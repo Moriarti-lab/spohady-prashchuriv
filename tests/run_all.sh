@@ -69,5 +69,11 @@ fi
 grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR" /tmp/sell_cancel.log | tail -40
 if grep -q "FAIL\|SCRIPT ERROR" /tmp/sell_cancel.log; then fail=1; fi
 
+
+echo "== Гра: міграція дерева (tree_version) =="
+"$GODOT" --headless --path . res://tests/tree_migration_test.tscn > /tmp/tree_migration.log 2>&1 || fail=1
+grep -E "^OK |^FAIL |TREE_MIGRATION_|SCRIPT ERROR" /tmp/tree_migration.log | tail -40
+if grep -q "FAIL\|SCRIPT ERROR\|TREE_MIGRATION_FAIL" /tmp/tree_migration.log; then fail=1; fi
+
 [ $fail -eq 0 ] && echo "ВСЕ ГАРАЗД" || echo "Є ПОМИЛКИ"
 exit $fail

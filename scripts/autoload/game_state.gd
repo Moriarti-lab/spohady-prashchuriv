@@ -80,6 +80,8 @@ var merchant_refresh_at := 0
 var last_error := ""
 ## Повідомлення для гравця після оновлення старого збереження (показує світ).
 var notice := ""
+## Ідентифікатор дерева, проти якого розподілені unlocked (див. docs/tree_migration.md).
+var tree_version := ""
 
 
 var load_guard: LoadGuard
@@ -121,6 +123,7 @@ func new_hero(p_name: String, p_blessing: String, p_class: String) -> void:
 	xp = 0
 	perk_points = START_PERKS
 	unlocked = [PerkTree.class_start(p_class)]
+	tree_version = PerkTree.tree_id()
 	starter_node = ""
 	location = Locations.START
 	arrive_from = ""
@@ -1135,6 +1138,7 @@ func to_dict() -> Dictionary:
 		"quests": quests, "quest_items": quest_items, "opened_chests": opened_chests,
 		"boss_killed_at": boss_killed_at, "bonus_perks": bonus_perks,
 		"merchant_stock": merchant_stock, "merchant_refresh_at": merchant_refresh_at,
+		"tree_version": tree_version,
 	}
 
 
@@ -1259,6 +1263,22 @@ func from_dict(d: Dictionary) -> bool:
 				bonus_perks += refund
 				if notice == "":
 					notice = "Навички тепер наузи. Відкриті вміння з Древа перенесено в сумку; перки за зняті вузли повернуто."
+	# --- міграція дерева (tree_version / hash / чужі ID) ---
+	var cur_tree := PerkTree.tree_id()
+	var saved_tree := str(d.get("tree_version", ""))
+	var tree_mismatch := saved_tree == "" or saved_tree != cur_tree
+	if not tree_mismatch:
+		# сирий список до sanitize — чужий ID теж тригерить повне повернення
+		for uid_raw in d.get("unlocked", []):
+			if not PerkTree.has_node(str(uid_raw)):
+				tree_mismatch = true
+				break
+	if tree_mismatch:
+		unlocked = [start]
+		if notice == "":
+			notice = "Древо звитяги оновлено. Відкриті вузли скинуто, усі очки перків повернено — розподіли їх наново. Золото й Воду забуття не витрачено."
+	tree_version = cur_tree
+	# TREE_MIGRATE
 	skills_learned = []
 	for id3 in unlocked:
 		var sk := str(PerkTree.get_def(id3).get("skill", ""))

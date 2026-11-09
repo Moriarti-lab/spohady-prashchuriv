@@ -62,6 +62,7 @@ static var _regions: Array = []
 static var _links: Array = []
 static var load_errors: Array = []
 static var is_fallback := false
+static var _tree_id := ""
 
 
 # ---------- Завантаження ----------
@@ -168,11 +169,12 @@ static func default_tree() -> Dictionary:
 		starts[{"str": "druzhynnyk", "agi": "strilets", "faith": "volkhv"}[rid]] = sid
 	nodes.append({"id": "core", "name": "Серце роду", "description": "Тут сходяться всі три шляхи.", "x": 0.0, "y": 0.0, "type": "core",
 		"stats": {"str": 3, "agi": 3, "faith": 3, "dmg_pct": 8}, "skill": "ancestors_wrath", "icon": "", "region": "core"})
-	return {"format": FORMAT, "version": VERSION, "title": "Запасне Древо", "regions": regions, "class_starts": starts, "nodes": nodes, "links": links}
+	return {"format": FORMAT, "version": VERSION, "title": "Запасне Древо", "meta": {"tree_version": "fallback"}, "regions": regions, "class_starts": starts, "nodes": nodes, "links": links}
 
 
 static func _apply(data: Dictionary) -> void:
 	_data = data
+	_tree_id = compute_tree_id(data)
 	_nodes = {}
 	_adj = {}
 	_links = []
@@ -426,6 +428,48 @@ static func pos(id: String) -> Vector2:
 static func stat_of(id: String, key: String) -> float:
 	ensure_loaded()
 	return float(_nodes[id]["stats"].get(key, 0.0)) if _nodes.has(id) else 0.0
+
+
+## Стабільний ідентифікатор актуального дерева: meta.tree_version|version_tag + короткий хеш структури.
+## Зміна ID (нове дерево / override / ручне редагування вузлів) → одноразове повернення очок (див. docs/tree_migration.md).
+static func tree_id() -> String:
+	ensure_loaded()
+	return _tree_id
+
+
+static func compute_tree_id(data: Dictionary) -> String:
+	var meta: Variant = data.get("meta", {})
+	var ver := ""
+	if typeof(meta) == TYPE_DICTIONARY:
+		ver = str(meta.get("tree_version", meta.get("version_tag", "")))
+	var h := _structure_hash(data)
+	if ver != "":
+		return "%s#%s" % [ver, h]
+	return "hash:%s" % h
+
+
+static func _structure_hash(data: Dictionary) -> String:
+	var ids: PackedStringArray = []
+	for n in data.get("nodes", []):
+		if typeof(n) == TYPE_DICTIONARY:
+			ids.append(str(n.get("id", "")))
+	ids.sort()
+	var link_keys: PackedStringArray = []
+	for L in data.get("links", []):
+		if typeof(L) == TYPE_ARRAY and L.size() >= 2:
+			var a := str(L[0])
+			var b := str(L[1])
+			if a > b:
+				var tmp := a
+				a = b
+				b = tmp
+			link_keys.append("%s>%s" % [a, b])
+	link_keys.sort()
+	var payload := ",".join(ids) + "|" + ",".join(link_keys)
+	var h := hash(payload)
+	if h < 0:
+		h = -h
+	return "%08x" % (h % 0x100000000)
 
 
 ## Лишає тільки вузли, зʼєднані зі стартом через відкриті сусідні вузли.
