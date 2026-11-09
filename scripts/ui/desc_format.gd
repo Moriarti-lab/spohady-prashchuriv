@@ -75,6 +75,16 @@ const UNMET := "D8574B"
 const DIM := "B9AE9A"
 const LINEN := "F2EBDD"
 
+static func _hero_level() -> int:
+	var n := Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	if n == null:
+		return 1
+	return int(n.level)
+
+
+static func _hero_stat(stat_key: String) -> int:
+	return int(HeroStats.stat(stat_key))
+
 
 static func _bb(stat_key: String, text: String) -> String:
 	var hex := str(Palette.STAT_BB.get(stat_key, LINEN))
@@ -314,11 +324,11 @@ static func _tooltip_nauz(item: Dictionary, ctx: Dictionary) -> String:
 	var req: Dictionary = Nauzi.requirements(sk, lv)
 	_sep_if(out, true)
 	var need_lvl := int(req.get("hero_level", 1))
-	var lvl_ok := GameState.level >= need_lvl
+	var lvl_ok := _hero_level() >= need_lvl
 	out.append(_req_line("рівень героя %d" % need_lvl, lvl_ok))
 	var st := str(req.get("stat", "str"))
 	var need_stat := int(req.get("stat_min", 1))
-	var have := int(HeroStats.stat(st))
+	var have := _hero_stat(st)
 	var stat_ok := have >= need_stat
 	out.append(_req_line("%s %d" % [Strings.stat_name(st), need_stat], stat_ok, st if stat_ok else ""))
 	var reason := Nauzi.can_use(item)
