@@ -70,6 +70,10 @@ grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR" /tmp/sell_cancel.log | tail
 if grep -q "FAIL\|SCRIPT ERROR" /tmp/sell_cancel.log; then fail=1; fi
 
 
+
+echo "== Описи вузлів Древа (gen_descriptions --check) =="
+python3 tools/gen_descriptions.py --check --path data/perk_tree.json || fail=1
+
 echo "== Гра: міграція дерева (tree_version) =="
 "$GODOT" --headless --path . res://tests/tree_migration_test.tscn > /tmp/tree_migration.log 2>&1 || fail=1
 grep -E "^OK |^FAIL |TREE_MIGRATION_|SCRIPT ERROR" /tmp/tree_migration.log | tail -40
