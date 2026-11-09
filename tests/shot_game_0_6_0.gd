@@ -106,7 +106,7 @@ func _run() -> void:
 	await _shot(out_abs + "/phone_tree_v73.png")
 	tree.visible = false
 
-	# 6) Refund notice (same copy as GameState.notice after tree migration)
+		# 6) Refund notice (GameState.notice copy after tree migration)
 	var hud := Hud.new()
 	hud.editor_preview = true
 	root.add_child(hud)
@@ -114,18 +114,19 @@ func _run() -> void:
 	if hud.has_method("_layout"):
 		hud._layout()
 	var notice := "Древо звитяги оновлено. Відкриті вузли скинуто, усі очки перків повернено — розподіли їх наново. Золото й Воду забуття не витрачено."
-	var toast := FolkTheme.label(notice, 26, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
-	toast.add_theme_constant_override("outline_size", 8)
-	toast.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	toast.custom_minimum_size = Vector2(1400, 0)
-	toast.size = Vector2(1400, 120)
-	toast.position = Vector2((W - 1400) / 2.0, H * 0.52)
-	hud._root.add_child(toast)
-	await get_tree().create_timer(0.45).timeout
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.95), Palette.GOLD, 3, 12))
+	var lab := FolkTheme.label(notice, 28, Palette.LINEN, HORIZONTAL_ALIGNMENT_CENTER, true)
+	lab.custom_minimum_size = Vector2(1200, 0)
+	card.add_child(lab)
+	hud._root.add_child(card)
+	await get_tree().process_frame
+	card.position = Vector2((W - card.size.x) * 0.5, H * 0.42)
+	await get_tree().create_timer(0.4).timeout
 	await _shot(out_abs + "/phone_refund_notice.png")
-	toast.queue_free()
+	card.queue_free()
 
-	# 7) HUD submenu
+# 7) HUD submenu
 	if hud.has_method("editor_set_menu_open"):
 		hud.editor_set_menu_open(true)
 	elif hud.get("_submenu"):
