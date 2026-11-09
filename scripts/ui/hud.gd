@@ -53,6 +53,9 @@ var _quest_screen: QuestScreen
 var _touches := {}      # індекс пальця -> роль ("stick", "attack", "skill0".."skill3", "potion_hp", "potion_mana")
 var _overlay_open := false
 var _toast_tween: Tween
+var editor_preview := false  ## true у редакторі GUI — без оверлеїв/прив'язки світу
+var _loot_popup: Control
+var _loot_target: LootDrop
 
 
 func _init() -> void:
@@ -61,6 +64,8 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	if editor_preview:
+		layer = 1  # inside SubViewport only; never float over other editor tabs
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	FolkTheme.fullscreen(_root)
@@ -71,12 +76,33 @@ func _ready() -> void:
 	_build_interact()
 	_build_target_frame()
 	_build_touch_controls()
-	_build_overlays()
+	if not editor_preview:
+		_build_overlays()
 	_root.resized.connect(_layout)
-	get_viewport().size_changed.connect(_layout)
+	if not editor_preview:
+		get_viewport().size_changed.connect(_layout)
 	_layout()
-	GameState.changed.connect(_on_state_changed)
-	_on_state_changed()
+	if not editor_preview:
+		GameState.changed.connect(_on_state_changed)
+		_on_state_changed()
+	else:
+		_name_label.text = "Герой · рівень 1"
+		_gold_label.text = "Гривні: 0"
+		_hp_bar.set_values(100, 100)
+		_mana_bar.set_values(50, 50)
+		_xp_bar.set_values(0, 100)
+		_attack.text = "Удар"
+		_potion_hp.sub_text = "×3"
+		_potion_mana.sub_text = "×3"
+		_loc_label.text = "Ліс"
+		# Placeholder skill icons/labels so empty circles are readable in editor
+		var skill_labels := ["Н1", "Н2", "Н3", "Н4"]
+		for i in range(mini(_skills.size(), skill_labels.size())):
+			var sb: TouchButton = _skills[i]
+			sb.text = skill_labels[i]
+			sb.queue_redraw()
+		if _submenu:
+			_submenu.visible = false
 
 
 func _exit_tree() -> void:
@@ -151,7 +177,7 @@ func _menu_button(text: String, color: Color, handler: Callable) -> Button:
 ## Портрет героя відкриває меню: Сумка, Навички, Характеристики, Древо, Завдання, Меню.
 func _build_submenu() -> void:
 	_submenu = PanelContainer.new()
-	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 1.0), Palette.GOLD, 3, 12))
+	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.92), Palette.GOLD, 3, 10))
 	_submenu.visible = false
 	_submenu.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_submenu)
@@ -184,6 +210,16 @@ func toggle_submenu() -> void:
 func close_submenu() -> void:
 	if _submenu != null:
 		_submenu.visible = false
+
+
+func editor_set_menu_open(open: bool) -> void:
+	## Редактор GUI: меню лише коли явно редагуємо елемент «Меню».
+	if _submenu == null:
+		return
+	_submenu.visible = open
+	if open:
+		_update_menu_badges()
+		_layout()
 
 
 func _update_menu_badges() -> void:
@@ -361,18 +397,26 @@ func _layout() -> void:
 	var vs := _root.size
 	if vs.x < 10.0:
 		vs = get_viewport().get_visible_rect().size
-	_mini.position = Vector2(vs.x - MINI_SIZE - 16.0, 12.0)
-	_mini_frame.position = _mini.position
+	var mini_margin := 24.0 if editor_preview else 16.0
+	var mini_top := 16.0 if editor_preview else 12.0
+	_mini.position = Vector2(maxf(mini_margin, vs.x - MINI_SIZE - mini_margin), mini_top)
+	if _mini_frame:
+		_mini_frame.position = _mini.position
+		_mini_frame.size = Vector2(MINI_SIZE, MINI_SIZE)
 	_loc_label.size = Vector2(300, 26)
 	_loc_label.position = Vector2(_mini.position.x - 300.0 - 8.0, 14.0)
 	_quest_panel.position = Vector2(vs.x - 250.0 - 40.0, MINI_SIZE + 22.0)
 	_quest_panel.size = Vector2(250.0 + 24.0, 10)
-	if _top_panel != null:
-		_submenu.position = Vector2(16.0, _top_panel.position.y + _top_panel.size.y + 6.0)
+	if _top_panel != null and _submenu != null:
+		# Праворуч від портрета — не накриває лівий джойстик.
+		var sub_x := _top_panel.position.x + _top_panel.size.x + 10.0
+		var sub_y := maxf(4.0, _top_panel.position.y)
+		_submenu.position = Vector2(sub_x, sub_y)
 		_submenu.size = Vector2(10, 10)
 	_btn_interact.position = Vector2(vs.x * 0.5 - 170.0, vs.y - 120.0)
 	_btn_interact.size = Vector2(340, 70)
-	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 6.0)
+	# Плашка противника — щільно до верху екрана
+	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 2.0)
 	_attack.place(Vector2(vs.x - MARGIN - 80.0 - 20.0, vs.y - MARGIN - 80.0 - 10.0))
 	for i in range(SKILL_COUNT):
 		var a := deg_to_rad(float(SKILL_ANGLES[i]))
@@ -383,10 +427,64 @@ func _layout() -> void:
 	if not _stick.active:
 		_stick.base_center = _stick.home
 		_stick.queue_redraw()
-	_banner.size = Vector2(vs.x, 80)
-	_banner.position = Vector2(0, vs.y * 0.2)
-	_toast.size = Vector2(vs.x, 40)
-	_toast.position = Vector2(0, vs.y * 0.58)
+	if _banner != null:
+		_banner.size = Vector2(vs.x, 80)
+		_banner.position = Vector2(0, vs.y * 0.2)
+	if _toast != null:
+		_toast.size = Vector2(vs.x, 40)
+		_toast.position = Vector2(0, vs.y * 0.58)
+	if not editor_preview:
+		_apply_layout_override()
+
+
+func _apply_layout_override() -> void:
+	## Якщо є user://overrides/ui_layout.json — застосовуємо якорі до відомих контролів.
+	var path := "user://overrides/ui_layout.json"
+	if not FileAccess.file_exists(path):
+		return
+	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	var store := LayoutStore.new()
+	if store.from_dict(data) != "":
+		return
+	# Мапінг id → Control (реєстр для HUD).
+	var map := {
+		"portrait_panel": _top_panel,
+		"minimap": _mini,
+		"stick": _stick,
+		"attack": _attack,
+		"potion_hp": _potion_hp,
+		"potion_mana": _potion_mana,
+		"menu": _submenu,
+	}
+	var phone := Vector2(store.canvas_w, store.canvas_h)
+	var vs := _root.size
+	if vs.x < 10.0:
+		vs = get_viewport().get_visible_rect().size
+	var sx := vs.x / phone.x
+	var sy := vs.y / phone.y
+	for el in store.get_elements("hud"):
+		var id := str(el.get("id", ""))
+		var node = map.get(id, null)
+		if node == null:
+			continue
+		var r: Rect2 = store.element_rect(el, phone.x, phone.y)
+		var pos := Vector2(r.position.x * sx, r.position.y * sy)
+		var sz := Vector2(r.size.x * sx, r.size.y * sy)
+		if node is TouchStick:
+			(node as TouchStick).home = pos + sz * 0.5
+			if not (node as TouchStick).active:
+				(node as TouchStick).base_center = (node as TouchStick).home
+				node.queue_redraw()
+		elif node.has_method("place"):
+			node.place(pos + sz * 0.5)
+		elif node is Control:
+			(node as Control).position = pos
+			(node as Control).size = sz
+		if node is CanvasItem:
+			(node as CanvasItem).visible = bool(el.get("visible", true))
+			(node as CanvasItem).z_index = int(el.get("z", 0))
 
 
 # ---------- Оновлення ----------
@@ -590,8 +688,8 @@ func _touch_down(index: int, pos: Vector2) -> void:
 		player.move_input = Vector2.ZERO
 		return
 	if pos.y > TOP_STRIP and world != null:
-		# дотик по землі справа: підібрати здобич, що лежить там
-		world.tap_world(pos)
+		# дотик по землі: предмет — картка підказки; інакше підібрати
+		_on_world_tap(pos)
 
 
 func _touch_up(index: int) -> void:
@@ -656,6 +754,79 @@ func show_level_up(lvl: int) -> void:
 	tw.tween_callback(func() -> void: _banner.visible = false)
 
 
+
+func _on_world_tap(pos: Vector2) -> void:
+	if world == null:
+		return
+	var ld: LootDrop = world.loot_at_screen(pos) if world.has_method("loot_at_screen") else null
+	if ld == null:
+		world.tap_world(pos)
+		return
+	if ld.kind == LootDrop.KIND_ITEM and not ld.item.is_empty():
+		show_loot_popup(ld)
+	else:
+		ld.attract = true
+
+
+func show_loot_popup(ld: LootDrop) -> void:
+	hide_loot_popup()
+	if ld == null or not is_instance_valid(ld):
+		return
+	_loot_target = ld
+	var host := Control.new()
+	host.name = "LootPopup"
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	host.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.add_child(host)
+	_loot_popup = host
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.35)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventScreenTouch and ev.pressed:
+			hide_loot_popup()
+		elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			hide_loot_popup())
+	host.add_child(dim)
+	var wrap := VBoxContainer.new()
+	wrap.add_theme_constant_override("separation", 10)
+	wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	wrap.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	wrap.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	wrap.grow_vertical = Control.GROW_DIRECTION_BOTH
+	wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+	host.add_child(wrap)
+	var card := DescFormat.make_tooltip_card(ld.item, {"where": "loot"}, 420.0)
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	wrap.add_child(card)
+	var pick := Button.new()
+	pick.text = "Підібрати"
+	FolkTheme.apply_button(pick, Palette.EMBROIDERY, 22)
+	pick.custom_minimum_size = Vector2(220, 56)
+	pick.pressed.connect(_loot_pickup_pressed)
+	wrap.add_child(pick)
+	# Center wrap after layout
+	await get_tree().process_frame
+	if not is_instance_valid(wrap):
+		return
+	var vs := get_viewport().get_visible_rect().size
+	wrap.position = Vector2((vs.x - wrap.size.x) * 0.5, (vs.y - wrap.size.y) * 0.42)
+
+
+func _loot_pickup_pressed() -> void:
+	if _loot_target != null and is_instance_valid(_loot_target):
+		_loot_target.attract = true
+	hide_loot_popup()
+
+
+func hide_loot_popup() -> void:
+	if _loot_popup != null and is_instance_valid(_loot_popup):
+		_loot_popup.queue_free()
+	_loot_popup = null
+	_loot_target = null
+
+
 func toast(text: String) -> void:
 	_toast.text = text
 	_toast.visible = true
@@ -671,6 +842,7 @@ func toast(text: String) -> void:
 # ---------- Екрани ----------
 
 func _enter_overlay() -> void:
+	hide_loot_popup()
 	close_submenu()
 	_release_all()
 	_hide_screens()

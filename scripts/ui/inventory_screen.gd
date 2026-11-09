@@ -648,7 +648,7 @@ func _refresh_bag() -> void:
 		_btn_equip.text = "Зняти" if GameState.bag_free() > 0 else "Сумка повна"
 		_btn_equip.disabled = GameState.bag_free() <= 0
 	if _detail_rich:
-		_detail_rich.text = DescFormat.item_bb(it, cmp_item)
+		_detail_rich.text = DescFormat.item_tooltip(it, {"where": "bag", "compare": cmp_item})
 
 
 # ---------- Навички ----------
@@ -794,6 +794,8 @@ func _build_skill_page() -> Control:
 	_skill_info = FolkTheme.label("", 17, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
 	dv.add_child(_skill_info)
 	_nauz_detail_rich = DescFormat.make_rich()
+	_nauz_detail_rich.fit_content = true
+	_nauz_detail_rich.scroll_active = false
 	_nauz_detail_rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dv.add_child(_nauz_detail_rich)
 	_thread_pick_box = VBoxContainer.new()
@@ -1005,7 +1007,7 @@ func _refresh_skills() -> void:
 			_skill_info.text = req_fail
 		elif _skill_info.text == "" or _skill_info.text.begins_with("Обери"):
 			_skill_info.text = "%s · %s" % [str(nauz.get("name", "")), "в гнізді" if in_sock else "в сумці"]
-		_nauz_detail_rich.text = DescFormat.item_bb(nauz)
+		_nauz_detail_rich.text = DescFormat.item_tooltip(nauz, {"where": "nauz"})
 
 
 func _rebuild_socket_pick() -> void:
@@ -1166,7 +1168,25 @@ func _pct(v: float) -> String:
 
 
 func _stat_row(grid: GridContainer, name: String, value: String, tip: String = "") -> void:
-	grid.add_child(FolkTheme.label(name, 20, Palette.TEXT_DIM))
+	var col: Color = Palette.TEXT_DIM
+	match name:
+		"Сила":
+			col = Palette.STAT_COLORS.get("str", Palette.TEXT_DIM)
+		"Спритність":
+			col = Palette.STAT_COLORS.get("agi", Palette.TEXT_DIM)
+		"Віра":
+			col = Palette.STAT_COLORS.get("faith", Palette.TEXT_DIM)
+		"Життя":
+			col = Palette.STAT_COLORS.get("hp", Palette.HP_COLOR)
+		"Чар", "Відновлення чару":
+			col = Palette.STAT_COLORS.get("mana", Palette.MANA_COLOR)
+		"Броня":
+			col = Palette.STAT_COLORS.get("armor", Palette.TEXT_DIM)
+		"Шкода атаки":
+			col = Palette.STAT_COLORS.get("dmg", Palette.TEXT_DIM)
+		_:
+			col = Palette.TEXT_DIM
+	grid.add_child(FolkTheme.label(name, 20, col))
 	var l := FolkTheme.label(value, 20, Palette.LINEN)
 	grid.add_child(l)
 

@@ -17,6 +17,12 @@ if [ -n "${JSDOM_PATH:-}" ]; then
   NODE_PATH="$JSDOM_PATH" node tools/test_editor_ui.js || fail=1
 fi
 
+
+echo "== Редактор APK: core / gen / UI =="
+if [ -x tests/editor/run_all.sh ] || [ -f tests/editor/run_all.sh ]; then
+  bash tests/editor/run_all.sh || fail=1
+fi
+
 echo "== Гра: smoke-тест (1–2 хвилини) =="
 "$GODOT" --headless --path . res://tests/smoke_test.tscn > /tmp/smoke.log 2>&1
 grep -v "^  ok" /tmp/smoke.log | grep -v "^ERROR: \(Pages in use\|.*were never freed\|Buffer with\|.*leaked\|Texture with\|Parameter\)" | tail -25
@@ -62,6 +68,24 @@ else
 fi
 grep -E "^  (ok|FAIL)|Підсумок|SCRIPT ERROR" /tmp/sell_cancel.log | tail -40
 if grep -q "FAIL\|SCRIPT ERROR" /tmp/sell_cancel.log; then fail=1; fi
+
+
+
+echo "== Описи вузлів Древа (gen_descriptions --check) =="
+python3 tools/gen_descriptions.py --check --path data/perk_tree.json || fail=1
+echo "== tree seed =="
+python3 tools/check_tree_seed.py || fail=1
+
+
+echo "== Гра: підказки предметів (DescFormat) =="
+"$GODOT" --headless --path . res://tests/item_tooltip_test.tscn > /tmp/item_tooltip.log 2>&1 || fail=1
+grep -E "^OK |^FAIL |ITEM_TOOLTIP_|SCRIPT ERROR" /tmp/item_tooltip.log | tail -50
+if grep -q "FAIL\|SCRIPT ERROR\|ITEM_TOOLTIP_FAIL" /tmp/item_tooltip.log; then fail=1; fi
+
+echo "== Гра: міграція дерева (tree_version) =="
+"$GODOT" --headless --path . res://tests/tree_migration_test.tscn > /tmp/tree_migration.log 2>&1 || fail=1
+grep -E "^OK |^FAIL |TREE_MIGRATION_|SCRIPT ERROR" /tmp/tree_migration.log | tail -40
+if grep -q "FAIL\|SCRIPT ERROR\|TREE_MIGRATION_FAIL" /tmp/tree_migration.log; then fail=1; fi
 
 [ $fail -eq 0 ] && echo "ВСЕ ГАРАЗД" || echo "Є ПОМИЛКИ"
 exit $fail

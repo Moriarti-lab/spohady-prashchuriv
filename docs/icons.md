@@ -17,3 +17,7 @@
 
 ## Інструменти
 `tools/cut_icon_sheets.py` нарізає аркуші 4×4 з `art/sheets/`; `tools/gen_icons_json.py` збирає реєстр.
+
+## 0.6.0
+
+Заповнено `path` для: `w_wand`, `b_robe`, `sk_iron_wall`, `sk_rapid_shot`, `sk_hunters_trap`, `sk_ancestral_ward`. Іконки скілів — кругла маска, прозоре тло.

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Древо звитяги — генератор v5</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="bar">
+    <div class="t">🌳 Древо звитяги <span class="ver">v5</span></div>
+    <div class="grp">
+      <button id="btnGen" title="Згенерувати заново (новий seed)">🎲 Згенерувати</button>
+      <label style="font-size:12px;color:var(--dim)">seed
+        <input id="seedIn" type="text" spellcheck="false" placeholder="auto">
+      </label>
+      <button id="btnSeed" title="Згенерувати з цим seed">↻</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="btnPlay">⏸ Пауза</button>
+      <button id="btnReplay" title="Програти ріст заново">⟲ Ріст</button>
+      <select id="speed" title="Швидкість росту">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+      <button id="btnAll" title="Показати все">⤢ Все</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button id="btnDl" title="Завантажити поточний JSON">⤓ JSON</button>
+      <button id="btnLoad" title="Відкрити JSON з диска">⤒ Файл</button>
+      <input id="fileIn" type="file" accept="application/json,.json" hidden>
+      <button id="btnLog" title="Журнал генератора">☰ Журнал</button>
+    </div>
+  </header>
+
+  <main id="mid">
+    <div id="stage">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg"><g id="world"></g></svg>
+      <div id="stageTag">…</div>
+      <div id="legend">
+        <button id="lgBtn" title="Згорнути легенду">−</button>
+        <div class="lgtitle">Регіони</div>
+        <div class="chips" id="regChips"></div>
+        <div class="lgtitle">Типи</div>
+        <div class="chips" id="typeChips"></div>
+      </div>
+      <aside id="info" hidden>
+        <button id="infoX" title="Закрити">×</button>
+        <h3 id="iName"></h3>
+        <div class="chips" id="iChips"></div>
+        <p id="iDesc"></p>
+        <div id="iStats"></div>
+        <div id="iLinks" style="margin-top:8px;font-size:12px;color:var(--dim)"></div>
+      </aside>
+      <div id="tip"></div>
+    </div>
+  </main>
+
+  <footer id="foot">
+    <span>вузлів <b id="fNodes">—</b></span>
+    <span>зв'язків <b id="fLinks">—</b></span>
+    <span>сиріт <b id="fOrph">—</b></span>
+    <span>досяжних <b id="fReach">—</b></span>
+    <span>сер. ступінь <b id="fDeg">—</b></span>
+    <span>мін. відстань <b id="fDist">—</b></span>
+    <span>seed <b id="fSeed">—</b></span>
+    <span id="fStatus">—</span>
+  </footer>
+</div>
+<pre id="log"></pre>
+
+<script src="app.js" defer></script>
+</body>
+</html>

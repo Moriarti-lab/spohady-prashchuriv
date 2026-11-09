@@ -69,7 +69,7 @@
       "color": "#9AA3AD"
     },
     "w_wand": {
-      "path": "",
+      "path": "res://art/icons/weapons/w_wand.png",
       "label": "Жезл",
       "color": "#9AA3AD"
     },
@@ -129,7 +129,7 @@
       "color": "#7A8794"
     },
     "b_robe": {
-      "path": "",
+      "path": "res://art/icons/armor/b_robe.png",
       "label": "Балахон",
       "color": "#7A8794"
     },
@@ -299,7 +299,7 @@
       "color": "#C8753A"
     },
     "sk_iron_wall": {
-      "path": "",
+      "path": "res://art/icons/skills/sk_iron_wall.png",
       "label": "Стіна",
       "color": "#C8753A"
     },
@@ -314,7 +314,7 @@
       "color": "#C8753A"
     },
     "sk_rapid_shot": {
-      "path": "",
+      "path": "res://art/icons/skills/sk_rapid_shot.png",
       "label": "Швидка",
       "color": "#C8753A"
     },
@@ -339,7 +339,7 @@
       "color": "#C8753A"
     },
     "sk_hunters_trap": {
-      "path": "",
+      "path": "res://art/icons/skills/sk_hunters_trap.png",
       "label": "Пастка",
       "color": "#C8753A"
     },
@@ -379,7 +379,7 @@
       "color": "#C8753A"
     },
     "sk_ancestral_ward": {
-      "path": "",
+      "path": "res://art/icons/skills/sk_ancestral_ward.png",
       "label": "Захист",
       "color": "#C8753A"
     },

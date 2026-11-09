@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Спогади пращурів"
 config/description="Action-RPG про пам'ять пращурів і богів Київської Русі. Прототип."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
 

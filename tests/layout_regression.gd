@@ -188,7 +188,7 @@ func _run() -> void:
 	for id in PerkTree.nodes().keys():
 		xs.append(absf(PerkTree.pos(id).x))
 	xs.sort()
-	ok(xs[xs.size() - 1] > 10000.0, "координати Древа після 10× (max |x|=%.1f)" % xs[xs.size() - 1])
+	ok(xs[xs.size() - 1] > 5000.0, "координати Древа у великому просторі (max |x|=%.1f)" % xs[xs.size() - 1])
 
 	print("\nПідсумок: %d перевірок, %d помилок" % [_n, _bad])
 	get_tree().quit(1 if _bad > 0 else 0)

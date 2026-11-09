@@ -832,6 +832,31 @@ func tap_world(screen_pos: Vector2) -> bool:
 	return true
 
 
+## Знайти здобич під екранною точкою (без підбору). Повертає LootDrop або null.
+func loot_at_screen(screen_pos: Vector2) -> LootDrop:
+	if camera == null:
+		return null
+	var o := camera.project_ray_origin(screen_pos)
+	var n := camera.project_ray_normal(screen_pos)
+	if absf(n.y) < 0.001:
+		return null
+	var tt := -o.y / n.y
+	if tt <= 0.0:
+		return null
+	var hit := o + n * tt
+	var best: LootDrop = null
+	var bd := 2.0
+	for d in get_tree().get_nodes_in_group("loot"):
+		var ld := d as LootDrop
+		if ld == null or ld.attract:
+			continue
+		var dd := Vector2(ld.global_position.x - hit.x, ld.global_position.z - hit.z).length()
+		if dd < bd:
+			bd = dd
+			best = ld
+	return best
+
+
 ## Підібрати все біля героя одним дотиком по кнопці (необовʼязково).
 func loot_near(radius: float) -> int:
 	var n := 0
