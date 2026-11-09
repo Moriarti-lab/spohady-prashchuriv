@@ -17,6 +17,12 @@ if [ -n "${JSDOM_PATH:-}" ]; then
   NODE_PATH="$JSDOM_PATH" node tools/test_editor_ui.js || fail=1
 fi
 
+
+echo "== Редактор APK: core / gen / UI =="
+if [ -x tests/editor/run_all.sh ] || [ -f tests/editor/run_all.sh ]; then
+  bash tests/editor/run_all.sh || fail=1
+fi
+
 echo "== Гра: smoke-тест (1–2 хвилини) =="
 "$GODOT" --headless --path . res://tests/smoke_test.tscn > /tmp/smoke.log 2>&1
 grep -v "^  ok" /tmp/smoke.log | grep -v "^ERROR: \(Pages in use\|.*were never freed\|Buffer with\|.*leaked\|Texture with\|Parameter\)" | tail -25

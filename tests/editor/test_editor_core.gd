@@ -76,6 +76,10 @@ func _check_theme() -> int:
 	if ThemeRuntime.accent.to_html(false) != th.accent.to_html(false):
 		print("FAIL ThemeRuntime apply")
 		return 1
+	# Restore defaults so drafts are not left pure-red after CI.
+	th2.reset_to_defaults()
+	th2.save_draft()
+	th2.apply_to_palette()
 	print("OK theme")
 	return 0
 

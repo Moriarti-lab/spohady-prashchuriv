@@ -1,4 +1,4 @@
-## Генератор Древа v7. На десктопі — точний Python; на Android — GDScript-порт (≈ той самий seed/метрики).
+## Генератор Древа v7. На десктопі — Python якщо є; інакше / на телефоні — GDScript-порт.
 class_name TreeGeneratorV7
 extends RefCounted
 
@@ -15,27 +15,24 @@ static func load_default_tree() -> Dictionary:
 
 
 static func generate(seed: int, progress: Callable = Callable()) -> Dictionary:
-	## {ok, error, tree, source}  source = "python"|"gdscript"|"default"
-	var out := {"ok": false, "error": "", "tree": {}, "source": ""}
+	## {ok, error, tree, source, metrics}  source = "python"|"gdscript"|"default"
+	var out := {"ok": false, "error": "", "tree": {}, "source": "", "metrics": {}}
 	if seed == DEFAULT_SEED:
-		# Швидкий шлях: дефолтний ассет уже згенерований цим seed.
 		var d := load_default_tree()
 		if not d.is_empty() and int(d.get("meta", {}).get("seed", -1)) == seed:
 			out["ok"] = true
 			out["tree"] = d
 			out["source"] = "default"
+			if progress.is_valid():
+				progress.call(1.0, "Дефолтний ассет")
 			return out
+	# Prefer Python on desktop when available (byte-identical to tools/).
 	if _python_available():
 		var r := _generate_python(seed, progress)
 		if r.get("ok", false):
 			return r
-		# падаємо на GDScript, якщо python звалився
 		out["error"] = str(r.get("error", ""))
-	# GDScript-порт ще нестабільний (ризик зависання) — на мобільних лише дефолтний ассет.
-	if OS.has_feature("android") or OS.has_feature("ios"):
-		out["ok"] = false
-		out["error"] = "На телефоні зараз доступна генерація лише seed %d (дефолтний ассет). Інші seed — згенеруйте на ПК і імпортуйте пакунок." % DEFAULT_SEED
-		return out
+	# GDScript port — required on phone for ANY seed.
 	var g := _generate_gdscript(seed, progress)
 	if g.get("ok", false):
 		return g
@@ -47,31 +44,31 @@ static func generate(seed: int, progress: Callable = Callable()) -> Dictionary:
 static func _python_available() -> bool:
 	if OS.has_feature("android") or OS.has_feature("ios"):
 		return false
+	if OS.has_feature("editor_app") and OS.has_feature("mobile"):
+		return false
 	var abs_py := ProjectSettings.globalize_path(PY_TOOL)
 	if not FileAccess.file_exists(PY_TOOL) and not FileAccess.file_exists(abs_py):
 		return false
-	# which python3
 	var output: Array = []
 	var code := OS.execute("python3", PackedStringArray(["--version"]), output, true)
 	return code == 0
 
 
 static func _generate_python(seed: int, progress: Callable) -> Dictionary:
-	var out := {"ok": false, "error": "", "tree": {}, "source": "python"}
+	var out := {"ok": false, "error": "", "tree": {}, "source": "python", "metrics": {}}
 	var tool := ProjectSettings.globalize_path(PY_TOOL)
 	if not FileAccess.file_exists(tool):
-		# try workspace-relative
 		tool = "tools/generate_perk_tree_v7.py"
 	var tmp := "user://editor_drafts/_gen_out.json"
 	DirAccess.make_dir_recursive_absolute("user://editor_drafts")
 	var abs_out := ProjectSettings.globalize_path(tmp)
 	if progress.is_valid():
-		progress.call(0.05, "Запуск Python-генератора…")
+		progress.call(0.05, "Запуск генератора…")
 	var args := PackedStringArray([tool, "--seed", str(seed), "--out", abs_out, "--force"])
 	var output: Array = []
 	var code := OS.execute("python3", args, output, true, true)
 	if code != 0:
-		out["error"] = "Python-генератор завершився з кодом %d: %s" % [code, "\n".join(PackedStringArray(output))]
+		out["error"] = "Генератор завершився з кодом %d: %s" % [code, "\n".join(PackedStringArray(output))]
 		return out
 	if not FileAccess.file_exists(tmp):
 		out["error"] = "Генератор не створив файл результату."
@@ -88,20 +85,29 @@ static func _generate_python(seed: int, progress: Callable) -> Dictionary:
 
 
 static func _generate_gdscript(seed: int, progress: Callable) -> Dictionary:
-	var out := {"ok": false, "error": "", "tree": {}, "source": "gdscript"}
+	var out := {"ok": false, "error": "", "tree": {}, "source": "gdscript", "metrics": {}}
 	if progress.is_valid():
-		progress.call(0.1, "Генерація (GDScript)…")
+		progress.call(0.02, "Генерація…")
 	var core_script = load("res://scripts/editor/gen/tree_gen_v7_core.gd")
 	if core_script == null:
-		out["error"] = "GDScript-порт генератора не завантажився."
+		out["error"] = "Порт генератора не завантажився."
 		return out
 	var gen = core_script.new()
 	if gen == null:
-		out["error"] = "Не вдалося створити генератор (парсер GDScript-порту)."
+		out["error"] = "Не вдалося створити генератор."
 		return out
 	var err: String = str(gen.build(seed, progress))
 	if err != "" and err != "null":
 		out["error"] = err
+		return out
+	var m: Dictionary = gen.metrics()
+	out["metrics"] = m
+	if not gen.validators_ok(m):
+		out["error"] = "Дерево не пройшло перевірки: crossings=%s orphans=%s mindist=%.1f own=%s desc=%s unwired=%s" % [
+			m.get("crossings"), m.get("orphans"), float(m.get("min_node_dist", 0)),
+			str(m.get("own")), m.get("desc_mismatch"), m.get("unwired")]
+		# Still return tree for preview/debug, but mark not ok
+		out["tree"] = gen.tree_dict()
 		return out
 	out["ok"] = true
 	out["tree"] = gen.tree_dict()
