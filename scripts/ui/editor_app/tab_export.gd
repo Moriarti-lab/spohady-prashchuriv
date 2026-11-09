@@ -29,7 +29,7 @@ func setup(s: EditorSession) -> void:
 
 	body.add_child(EditorChrome.make_label("Експорт / імпорт", 30, Palette.GOLD))
 	body.add_child(EditorChrome.make_label(
-		"Пакунок: manifest.json + tree.json + ui_layout.json + theme.json (zip або тека). Імпорт у гру — user://overrides/ без знищення сейвів.",
+		"Пакунок: маніфест + древо + розкладка + тема (zip або тека). Застосування в гру не чіпає сейви героя.",
 		18, Palette.TEXT_DIM))
 
 	_path = EditorChrome.make_line("шлях до .zip")
@@ -57,10 +57,10 @@ func setup(s: EditorSession) -> void:
 	var row2 := HBoxContainer.new()
 	row2.add_theme_constant_override("separation", 10)
 	body.add_child(row2)
-	var inst := EditorChrome.make_btn("Застосувати в гру (overrides)", Palette.GOLD)
+	var inst := EditorChrome.make_btn("Застосувати в гру", Palette.GOLD)
 	inst.pressed.connect(func():
 		if session.install_to_game():
-			_ok("Overrides записано."))
+			_ok("Записано в гру."))
 	row2.add_child(inst)
 
 	_log = EditorChrome.make_label("", 18)

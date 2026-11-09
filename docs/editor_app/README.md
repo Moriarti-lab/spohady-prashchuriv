@@ -32,7 +32,7 @@
 tests/editor/run_all.sh
 ```
 
-Скріншоти: `docs/editor_app/screenshots/tab_0.png` … `tab_6.png` (1024×473).
+Скріншоти: `docs/editor_app/screenshots/tab_0.png` … `tab_6.png` (1920×864).
 
 ## Експорт
 

@@ -1,9 +1,12 @@
-## Вкладка «Тема»: кольори панелей/акценту/HP/мана/статів + прев’ю.
+## Вкладка «Тема»: кольори панелей/акценту/HP/мана/статів + живе прев’ю.
 class_name EditorTabTheme
 extends ScrollContainer
 
 var session: EditorSession
-var _preview: ColorRect
+var _preview_host: PanelContainer
+var _prev_title: Label
+var _prev_btn: Button
+var _prev_stats: HBoxContainer
 var _rows: Dictionary = {}  # key -> ColorPickerButton
 
 
@@ -23,15 +26,37 @@ func setup(s: EditorSession) -> void:
 	add_child(margin)
 
 	body.add_child(EditorChrome.make_label("Тема", 30, Palette.GOLD))
-	body.add_child(EditorChrome.make_label("Зміни автозберігаються. «Застосувати» пише ThemeRuntime для прев’ю в редакторі.", 18, Palette.TEXT_DIM))
+	body.add_child(EditorChrome.make_label(
+		"Зміни автозберігаються. «Застосувати» оновлює кольори в редакторі й прев’ю нижче.",
+		18, Palette.TEXT_DIM))
 
-	_preview = ColorRect.new()
-	_preview.custom_minimum_size = Vector2(0, 72)
-	_preview.color = session.theme.panel
-	body.add_child(_preview)
-	var prev_lbl := EditorChrome.make_label("Прев’ю панелі", 18)
-	prev_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	body.add_child(prev_lbl)
+	_preview_host = PanelContainer.new()
+	_preview_host.custom_minimum_size = Vector2(0, 140)
+	body.add_child(_preview_host)
+	var pv := VBoxContainer.new()
+	pv.add_theme_constant_override("separation", 8)
+	_preview_host.add_child(pv)
+	var pad := MarginContainer.new()
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 12)
+	pv.add_child(pad)
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 8)
+	pad.add_child(inner)
+	_prev_title = EditorChrome.make_label("Прев’ю панелі · Редактор Спогадів", 22, Palette.GOLD)
+	inner.add_child(_prev_title)
+	_prev_btn = EditorChrome.make_btn("Кнопка зразка", Palette.GOLD, 18)
+	_prev_btn.custom_minimum_size = Vector2(180, 44)
+	inner.add_child(_prev_btn)
+	_prev_stats = HBoxContainer.new()
+	_prev_stats.add_theme_constant_override("separation", 12)
+	inner.add_child(_prev_stats)
+	for pair in [["Сила", "str"], ["Спритність", "agi"], ["Віра", "faith"], ["Життя", "hp"], ["Чар", "mana"]]:
+		var sl := Label.new()
+		sl.text = pair[0]
+		sl.add_theme_font_size_override("font_size", 18)
+		sl.set_meta("stat_key", pair[1])
+		_prev_stats.add_child(sl)
 
 	_add_color(body, "panel", "Панель", session.theme.panel)
 	_add_color(body, "panel_light", "Панель світла", session.theme.panel_light)
@@ -42,9 +67,9 @@ func setup(s: EditorSession) -> void:
 	_add_color(body, "night", "Ніч / фон", session.theme.night)
 	_add_color(body, "hp", "Життя", session.theme.hp)
 	_add_color(body, "mana", "Чар", session.theme.mana)
-	_add_color(body, "stat_str", "Стат: Сила", session.theme.stat_colors.get("str", Color.RED))
-	_add_color(body, "stat_agi", "Стат: Спритність", session.theme.stat_colors.get("agi", Color.GREEN))
-	_add_color(body, "stat_faith", "Стат: Віра", session.theme.stat_colors.get("faith", Color.YELLOW))
+	_add_color(body, "stat_str", "Стат: Сила", session.theme.stat_colors.get("str", Color("C62828")))
+	_add_color(body, "stat_agi", "Стат: Спритність", session.theme.stat_colors.get("agi", Color("2E7D32")))
+	_add_color(body, "stat_faith", "Стат: Віра", session.theme.stat_colors.get("faith", Color("E0A526")))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -53,15 +78,18 @@ func setup(s: EditorSession) -> void:
 	apply.pressed.connect(func():
 		_flush()
 		session.theme.apply_to_palette()
-		session.status.emit("Тему застосовано в ThemeRuntime.", "info"))
+		_refresh_preview()
+		session.status.emit("Тему застосовано до прев’ю.", "info"))
 	row.add_child(apply)
 	var reset := EditorChrome.make_btn("Скинути до дефолту", Palette.EMBROIDERY)
 	reset.pressed.connect(func():
 		session.theme.reset_to_defaults()
 		_reload_pickers()
 		session.theme.apply_to_palette()
+		_refresh_preview()
 		session.status.emit("Тему скинуто.", "info"))
 	row.add_child(reset)
+	_refresh_preview()
 
 
 func _add_color(parent: Node, key: String, title: String, col: Color) -> void:
@@ -69,13 +97,18 @@ func _add_color(parent: Node, key: String, title: String, col: Color) -> void:
 	row.add_theme_constant_override("separation", 12)
 	parent.add_child(row)
 	var l := EditorChrome.make_label(title, 20)
-	l.custom_minimum_size.x = 220
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.custom_minimum_size.x = 240
 	row.add_child(l)
 	var p := ColorPickerButton.new()
 	p.color = col
-	p.custom_minimum_size = Vector2(120, 44)
+	p.custom_minimum_size = Vector2(160, 52)
 	p.edit_alpha = false
-	p.color_changed.connect(func(_c): _flush())
+	# Touch: larger picker popup
+	p.get_picker().custom_minimum_size = Vector2(360, 420)
+	p.color_changed.connect(func(_c):
+		_flush()
+		_refresh_preview())
 	row.add_child(p)
 	_rows[key] = p
 
@@ -94,8 +127,37 @@ func _flush() -> void:
 	t.stat_colors["str"] = _rows["stat_str"].color
 	t.stat_colors["agi"] = _rows["stat_agi"].color
 	t.stat_colors["faith"] = _rows["stat_faith"].color
-	_preview.color = t.panel
 	t.changed.emit()
+
+
+func _refresh_preview() -> void:
+	var t := session.theme
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = t.panel
+	sb.border_color = t.accent
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	_preview_host.add_theme_stylebox_override("panel", sb)
+	_prev_title.add_theme_color_override("font_color", t.accent)
+	FolkTheme.apply_button(_prev_btn, t.accent, 18)
+	for child in _prev_stats.get_children():
+		var key := str(child.get_meta("stat_key", ""))
+		var c := t.text
+		if key == "str":
+			c = t.stat_colors.get("str", Color("C62828"))
+		elif key == "agi":
+			c = t.stat_colors.get("agi", Color("2E7D32"))
+		elif key == "faith":
+			c = t.stat_colors.get("faith", Color("E0A526"))
+		elif key == "hp":
+			c = t.hp
+		elif key == "mana":
+			c = t.mana
+		child.add_theme_color_override("font_color", c)
 
 
 func _reload_pickers() -> void:
@@ -112,4 +174,4 @@ func _reload_pickers() -> void:
 	_rows["stat_str"].color = t.stat_colors["str"]
 	_rows["stat_agi"].color = t.stat_colors["agi"]
 	_rows["stat_faith"].color = t.stat_colors["faith"]
-	_preview.color = t.panel
+	_refresh_preview()

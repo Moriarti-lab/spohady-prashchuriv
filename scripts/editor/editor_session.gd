@@ -53,6 +53,15 @@ func boot() -> void:
 			status.emit("Завантажено дефолтне Древо v7.3.", "info")
 	else:
 		gen_source = "draft"
+		# Чернетка без meta.seed — підтягнути з дефолтного ассета якщо схоже.
+		if not tree_doc.tree_meta.has("seed"):
+			var d := TreeGeneratorV7.load_default_tree()
+			var dm = d.get("meta", {})
+			if typeof(dm) == TYPE_DICTIONARY and not d.is_empty():
+				if int(dm.get("seed", -1)) >= 0:
+					for k in dm.keys():
+						if not tree_doc.tree_meta.has(k):
+							tree_doc.tree_meta[k] = dm[k]
 		status.emit("Відновлено чернетку Древа.", "info")
 	dirty = false
 
@@ -164,7 +173,7 @@ func install_to_game() -> bool:
 	if err != "":
 		_emit_err(err)
 		return false
-	status.emit("Застосовано в user://overrides/ (сейви героя не чіпали).", "info")
+	status.emit("Застосовано в гру (сейви героя не чіпали).", "info")
 	return true
 
 

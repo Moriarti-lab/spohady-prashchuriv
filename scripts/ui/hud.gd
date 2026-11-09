@@ -53,6 +53,7 @@ var _quest_screen: QuestScreen
 var _touches := {}      # індекс пальця -> роль ("stick", "attack", "skill0".."skill3", "potion_hp", "potion_mana")
 var _overlay_open := false
 var _toast_tween: Tween
+var editor_preview := false  ## true у редакторі GUI — без оверлеїв/прив'язки світу
 
 
 func _init() -> void:
@@ -61,6 +62,8 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	if editor_preview:
+		layer = 1  # inside SubViewport only; never float over other editor tabs
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	FolkTheme.fullscreen(_root)
@@ -71,12 +74,27 @@ func _ready() -> void:
 	_build_interact()
 	_build_target_frame()
 	_build_touch_controls()
-	_build_overlays()
+	if not editor_preview:
+		_build_overlays()
 	_root.resized.connect(_layout)
-	get_viewport().size_changed.connect(_layout)
+	if not editor_preview:
+		get_viewport().size_changed.connect(_layout)
 	_layout()
-	GameState.changed.connect(_on_state_changed)
-	_on_state_changed()
+	if not editor_preview:
+		GameState.changed.connect(_on_state_changed)
+		_on_state_changed()
+	else:
+		_name_label.text = "Герой · рівень 1"
+		_gold_label.text = "Гривні: 0"
+		_hp_bar.set_values(100, 100)
+		_mana_bar.set_values(50, 50)
+		_xp_bar.set_values(0, 100)
+		_attack.text = "Удар"
+		_potion_hp.sub_text = "×3"
+		_potion_mana.sub_text = "×3"
+		_loc_label.text = "Ліс"
+		if _submenu:
+			_submenu.visible = false
 
 
 func _exit_tree() -> void:
@@ -383,11 +401,14 @@ func _layout() -> void:
 	if not _stick.active:
 		_stick.base_center = _stick.home
 		_stick.queue_redraw()
-	_banner.size = Vector2(vs.x, 80)
-	_banner.position = Vector2(0, vs.y * 0.2)
-	_toast.size = Vector2(vs.x, 40)
-	_toast.position = Vector2(0, vs.y * 0.58)
-	_apply_layout_override()
+	if _banner != null:
+		_banner.size = Vector2(vs.x, 80)
+		_banner.position = Vector2(0, vs.y * 0.2)
+	if _toast != null:
+		_toast.size = Vector2(vs.x, 40)
+		_toast.position = Vector2(0, vs.y * 0.58)
+	if not editor_preview:
+		_apply_layout_override()
 
 
 func _apply_layout_override() -> void:

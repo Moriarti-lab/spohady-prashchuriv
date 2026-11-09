@@ -17,24 +17,49 @@ var _bg_panel: VBoxContainer
 var _apply_confirm: ConfirmationDialog
 var _pending_save_path := ""
 var _building_props := false
+var embed_mode := false  ## true = вкладка редактора APK (без зміни сцени)
+var _session = null  ## EditorSession, optional
+var _close_btn: Button = null
 
 
 func _ready() -> void:
-	FolkTheme.fullscreen(self)
+	if not embed_mode:
+		FolkTheme.fullscreen(self)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	doc = TreeEditorDoc.new()
+	if doc == null:
+		doc = TreeEditorDoc.new()
 	_picker = NativeFilePicker.new()
 	add_child(_picker)
 	_picker.file_picked.connect(_on_picked)
 	_build_ui()
-	var err := TreeDraftStore.load_draft(doc, DRAFT_ID)
-	if err != "":
-		TreeDraftStore.load_shipped_into(doc)
+	if _session == null:
+		var err := TreeDraftStore.load_draft(doc, DRAFT_ID)
+		if err != "":
+			TreeDraftStore.load_shipped_into(doc)
 	_view.bind_doc(doc)
 	doc.selection_changed.connect(_on_sel)
 	doc.changed.connect(_on_doc_changed)
+	call_deferred("_fit_when_sized")
+	_set_status("Редактор Древа · зміни в чернетці, сейви героя не чіпаємо")
+
+
+func bind_session(session) -> void:
+	## Перед додаванням у дерево сцени (або одразу після): спільний doc сесії.
+	_session = session
+	embed_mode = true
+	doc = session.tree_doc
+
+
+func _fit_when_sized() -> void:
+	if _view == null:
+		return
+	# Чекаємо реальний розмір полотна (у вкладці спочатку 0).
+	for _i in range(8):
+		if _view.size.x > 64.0 and _view.size.y > 64.0:
+			break
+		await get_tree().process_frame
 	_view.fit_all()
-	_set_status("Редактор Древа · чернетка окремо від сейвів героя")
+	_view.queue_redraw()
 
 
 func _build_ui() -> void:
@@ -71,7 +96,7 @@ func _build_ui() -> void:
 	top.add_child(head)
 	head.add_child(FolkTheme.label("Редактор Древа", 24, Palette.GOLD))
 	_search = LineEdit.new()
-	_search.placeholder_text = "Пошук id/назва…"
+	_search.placeholder_text = "Пошук за назвою…"
 	_search.custom_minimum_size = Vector2(160, 44)
 	_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_search.text_submitted.connect(_on_search)
@@ -222,6 +247,11 @@ func _set_status(msg: String) -> void:
 
 
 func _close() -> void:
+	if embed_mode:
+		_set_status("Чернетку збережено в редакторі.")
+		if _session:
+			_session.autosave()
+		return
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 
@@ -281,7 +311,7 @@ func _export_json() -> void:
 	# Always also write a reliable user:// export; native save is best-effort
 	var path := "user://tree_drafts/%s/export_tree.json" % DRAFT_ID
 	var err := TreeDraftStore.export_tree_json(doc, path)
-	_set_status("Експорт у %s" % path if err == "" else err)
+	_set_status("Експортовано" if err == "" else err)
 	_pending_save_path = "json_export"
 	_picker.save_json_as("perk_tree.json")
 
@@ -303,7 +333,7 @@ func _on_picked(path: String) -> void:
 			# If Android content:// write works via FileAccess
 			if err3 != "":
 				# fallback already in user://
-				_set_status("Native save: %s · копія в user://tree_drafts/" % err3)
+				_set_status("Збереження: %s · є локальна копія" % err3)
 			else:
 				_set_status("Експортовано: %s" % path)
 		_:
@@ -322,7 +352,7 @@ func _do_apply() -> void:
 			_set_status("Застосування скасовано: %s" % e)
 			return
 	var err := TreeDraftStore.apply_to_game(doc)
-	_set_status("Застосовано до гри (active override)" if err == "" else err)
+	_set_status("Застосовано до гри" if err == "" else err)
 
 
 func _rebuild_props() -> void:

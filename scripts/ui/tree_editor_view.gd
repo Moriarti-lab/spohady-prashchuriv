@@ -12,11 +12,11 @@ enum Mode { VIEW, MOVE, LINK, BG }
 const ZOOM_MIN := 0.012
 const ZOOM_MAX := 1.7
 const TAP_SLOP := 14.0
-const RADIUS := {"small": 20.0, "notable": 38.0, "keystone": 48.0, "skill": 34.0, "start": 40.0, "core": 56.0}
+const RADIUS := {"small": 14.0, "notable": 22.0, "keystone": 28.0, "skill": 20.0, "start": 24.0, "core": 32.0}
 
 var doc: TreeEditorDoc
 var mode: int = Mode.VIEW
-var zoom := 0.35
+var zoom := 0.08
 var center := Vector2.ZERO
 var _t := 0.0
 var _touches := {}
@@ -91,9 +91,11 @@ func fit_all() -> void:
 	var mid := (mn + mx) * 0.5
 	var ext := (mx - mn) * 0.5
 	center = mid
-	var zx := size.x / maxf(ext.x * 2.2, 1.0)
-	var zy := size.y / maxf(ext.y * 2.2, 1.0)
-	zoom = clampf(minf(zx, zy), ZOOM_MIN, 0.8)
+	var pad := 1.12
+	var zx := size.x / maxf(ext.x * pad, 1.0)
+	var zy := size.y / maxf(ext.y * pad, 1.0)
+	# Не даємо «пляму» з мінімальних кіл: якщо zoom дуже малий — усе одно вміщуємо.
+	zoom = clampf(minf(zx, zy), ZOOM_MIN, ZOOM_MAX)
 	queue_redraw()
 
 
@@ -216,7 +218,7 @@ func pick(screen_pt: Vector2) -> String:
 	var best := ""
 	var bd := 1.0e9
 	for id in doc.nodes.keys():
-		var r := maxf(float(RADIUS.get(str(doc.get_node(id).get("type", "small")), 22.0)) * zoom, 18.0) + 14.0
+		var r := maxf(float(RADIUS.get(str(doc.get_node(id).get("type", "small")), 22.0)) * zoom, 6.0 * maxf(zoom, 0.08)) + 10.0 * maxf(zoom, 0.15)
 		var d := to_screen(doc.pos_of(id)).distance_to(screen_pt)
 		if d < r and d < bd:
 			bd = d
@@ -287,7 +289,7 @@ func _draw() -> void:
 func _draw_node(id: String, p: Vector2) -> void:
 	var d: Dictionary = doc.get_node(id)
 	var type := str(d.get("type", "small"))
-	var r := maxf(float(RADIUS.get(type, 22.0)) * zoom, 5.0)
+	var r := clampf(float(RADIUS.get(type, 14.0)) * zoom, 2.5, 26.0)
 	var col := Color("C9A227")
 	var rid := str(d.get("region", ""))
 	for rg in doc.regions:

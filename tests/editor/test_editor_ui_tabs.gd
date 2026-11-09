@@ -15,7 +15,7 @@ func _run() -> void:
 		print("FAIL change_scene ", err)
 		quit(1)
 		return
-	await create_timer(0.35).timeout
+	await create_timer(0.6).timeout
 	var tree_root := self.root
 	var main := _find_editor(tree_root)
 	if main == null:
@@ -34,7 +34,8 @@ func _run() -> void:
 		return
 	for i in range(tabs.get_tab_count()):
 		tabs.current_tab = i
-		await create_timer(0.2).timeout
+		# Tree tab needs fit_all after layout
+		await create_timer(0.55 if i == 1 else 0.35).timeout
 		var tex := tree_root.get_viewport().get_texture()
 		if tex == null:
 			print("FAIL no viewport tex tab ", i)
@@ -49,6 +50,19 @@ func _run() -> void:
 		print("EXPORT ", session.export_bundle(zip))
 		print("IMPORT ", session.import_bundle(zip))
 		print("GEN_DEFAULT ", session.generate_tree(424242), " nodes=", session.tree_doc.nodes.size())
+	# Also dump to res docs path if writable
+	var docs := "res://docs/editor_app/screenshots"
+	# res:// may be read-only in export; write via globalize ProjectSettings
+	var docs_abs := ProjectSettings.globalize_path("res://docs/editor_app/screenshots")
+	DirAccess.make_dir_recursive_absolute(docs_abs)
+	for i in range(tabs.get_tab_count()):
+		var src := "%s/tab_%d.png" % [OUT, i]
+		var dst := "%s/tab_%d.png" % [docs_abs, i]
+		if FileAccess.file_exists(src):
+			var img2 := Image.load_from_file(src)
+			if img2:
+				img2.save_png(dst)
+				print("DOC_SHOT ", dst)
 	print("EDITOR_UI_TESTS_OK")
 	quit(0)
 

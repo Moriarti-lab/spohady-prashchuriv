@@ -13,11 +13,11 @@ var text: Color = Color("F2EBDD")
 var text_dim: Color = Color("B9AE9A")
 var embroidery: Color = Color("B3261E")
 var night: Color = Color("1E1A1A")
-var hp: Color = Color("C7352B")
-var mana: Color = Color("2AA8A2")
+var hp: Color = Color("8B1E1E")
+var mana: Color = Color("4FC3F7")
 var stat_colors: Dictionary = {
-	"str": Color("D8574B"),
-	"agi": Color("7CBF5A"),
+	"str": Color("C62828"),
+	"agi": Color("2E7D32"),
 	"faith": Color("E0A526"),
 }
 
@@ -30,9 +30,9 @@ func reset_to_defaults() -> void:
 	text_dim = Color("B9AE9A")
 	embroidery = Color("B3261E")
 	night = Color("1E1A1A")
-	hp = Color("C7352B")
-	mana = Color("2AA8A2")
-	stat_colors = {"str": Color("D8574B"), "agi": Color("7CBF5A"), "faith": Color("E0A526")}
+	hp = Color("8B1E1E")
+	mana = Color("4FC3F7")
+	stat_colors = {"str": Color("C62828"), "agi": Color("2E7D32"), "faith": Color("E0A526")}
 	changed.emit()
 
 

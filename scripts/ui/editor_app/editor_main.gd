@@ -63,6 +63,7 @@ func _ready() -> void:
 	_tabs = TabContainer.new()
 	_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_style_tabs(_tabs)
 	_root_box.add_child(_tabs)
 
 	_add_tab("Головна", EditorTabHome.new())
@@ -95,6 +96,30 @@ func _fill_viewport() -> void:
 
 func _debug_sizes() -> void:
 	print("EDITOR_SIZE ", size, " tabs=", _tabs.size if _tabs else Vector2.ZERO, " tab_count=", _tabs.get_tab_count() if _tabs else -1)
+
+
+func _style_tabs(tabs: TabContainer) -> void:
+	var bar_h := 64
+	tabs.add_theme_constant_override("tab_separation", 4)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.14, 0.10, 0.09)
+	normal.set_content_margin_all(14)
+	normal.content_margin_top = 16
+	normal.content_margin_bottom = 16
+	normal.set_corner_radius_all(8)
+	var selected := normal.duplicate()
+	selected.bg_color = Color(0.22, 0.16, 0.12)
+	selected.border_color = Palette.GOLD
+	selected.border_width_bottom = 3
+	tabs.add_theme_stylebox_override("tab_unselected", normal)
+	tabs.add_theme_stylebox_override("tab_selected", selected)
+	tabs.add_theme_stylebox_override("tab_hovered", selected)
+	tabs.add_theme_font_size_override("font_size", 22)
+	tabs.add_theme_color_override("font_selected_color", Palette.GOLD)
+	tabs.add_theme_color_override("font_unselected_color", Palette.LINEN)
+	tabs.add_theme_constant_override("side_margin", 8)
+	# Touch target height via margins (~64px)
+	pass
 
 
 func _add_tab(title: String, tab: Control) -> void:
