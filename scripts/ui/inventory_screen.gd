@@ -1168,7 +1168,25 @@ func _pct(v: float) -> String:
 
 
 func _stat_row(grid: GridContainer, name: String, value: String, tip: String = "") -> void:
-	grid.add_child(FolkTheme.label(name, 20, Palette.TEXT_DIM))
+	var col: Color = Palette.TEXT_DIM
+	match name:
+		"Сила":
+			col = Palette.STAT_COLORS.get("str", Palette.TEXT_DIM)
+		"Спритність":
+			col = Palette.STAT_COLORS.get("agi", Palette.TEXT_DIM)
+		"Віра":
+			col = Palette.STAT_COLORS.get("faith", Palette.TEXT_DIM)
+		"Життя":
+			col = Palette.STAT_COLORS.get("hp", Palette.HP_COLOR)
+		"Чар", "Відновлення чару":
+			col = Palette.STAT_COLORS.get("mana", Palette.MANA_COLOR)
+		"Броня":
+			col = Palette.STAT_COLORS.get("armor", Palette.TEXT_DIM)
+		"Шкода атаки":
+			col = Palette.STAT_COLORS.get("dmg", Palette.TEXT_DIM)
+		_:
+			col = Palette.TEXT_DIM
+	grid.add_child(FolkTheme.label(name, 20, col))
 	var l := FolkTheme.label(value, 20, Palette.LINEN)
 	grid.add_child(l)
 

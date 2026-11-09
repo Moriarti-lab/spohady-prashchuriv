@@ -73,6 +73,8 @@ if grep -q "FAIL\|SCRIPT ERROR" /tmp/sell_cancel.log; then fail=1; fi
 
 echo "== Описи вузлів Древа (gen_descriptions --check) =="
 python3 tools/gen_descriptions.py --check --path data/perk_tree.json || fail=1
+echo "== tree seed =="
+python3 tools/check_tree_seed.py || fail=1
 
 
 echo "== Гра: підказки предметів (DescFormat) =="
