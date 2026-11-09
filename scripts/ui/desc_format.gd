@@ -76,10 +76,13 @@ const DIM := "B9AE9A"
 const LINEN := "F2EBDD"
 
 static func _hero_level() -> int:
-	var n := Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return 1
+	var n: Node = tree.root.get_node_or_null("/root/GameState")
 	if n == null:
 		return 1
-	return int(n.level)
+	return int(n.get("level"))
 
 
 static func _hero_stat(stat_key: String) -> int:
@@ -538,6 +541,29 @@ static func make_rich(_parent: Node = null) -> RichTextLabel:
 	rt.add_theme_color_override("default_color", Palette.LINEN)
 	rt.add_theme_font_size_override("normal_font_size", 19)
 	return rt
+
+
+
+## Картка підказки з авто-висотою (без порожнього низу). Рамка — колір рідкості.
+static func make_tooltip_card(item: Dictionary, ctx: Dictionary = {}, width: float = 420.0) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	card.custom_minimum_size = Vector2(width, 0)
+	var border := rarity_color(int(item.get("rarity", 0)))
+	card.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.96), border, 3, 10))
+	var pad := MarginContainer.new()
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 4)
+	card.add_child(pad)
+	var tip := make_rich()
+	tip.fit_content = true
+	tip.scroll_active = false
+	tip.custom_minimum_size = Vector2(width - 36.0, 0)
+	tip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	tip.text = item_tooltip(item, ctx)
+	pad.add_child(tip)
+	return card
 
 
 ## Повертає "" якщо все гаразд, інакше перший сирий ключ / RAW_KEY.

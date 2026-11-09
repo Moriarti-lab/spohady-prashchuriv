@@ -8,6 +8,7 @@ var _prev_title: Label
 var _prev_btn: Button
 var _prev_stats: HBoxContainer
 var _rows: Dictionary = {}  # key -> ColorPickerButton
+var _tip_host: VBoxContainer
 
 
 func setup(s: EditorSession) -> void:
@@ -57,6 +58,15 @@ func setup(s: EditorSession) -> void:
 		sl.add_theme_font_size_override("font_size", 18)
 		sl.set_meta("stat_key", pair[1])
 		_prev_stats.add_child(sl)
+
+	body.add_child(EditorChrome.make_label("Прев’ю підказки предмета", 22, Palette.GOLD))
+	body.add_child(EditorChrome.make_label(
+		"Спільний DescFormat.item_tooltip (ctx=editor). Картка авто-висоти.",
+		16, Palette.TEXT_DIM))
+	_tip_host = VBoxContainer.new()
+	_tip_host.add_theme_constant_override("separation", 12)
+	body.add_child(_tip_host)
+	_refresh_item_tips()
 
 	_add_color(body, "panel", "Панель", session.theme.panel)
 	_add_color(body, "panel_light", "Панель світла", session.theme.panel_light)
@@ -158,6 +168,7 @@ func _refresh_preview() -> void:
 		elif key == "mana":
 			c = t.mana
 		child.add_theme_color_override("font_color", c)
+	_refresh_item_tips()
 
 
 func _reload_pickers() -> void:
@@ -175,3 +186,36 @@ func _reload_pickers() -> void:
 	_rows["stat_agi"].color = t.stat_colors["agi"]
 	_rows["stat_faith"].color = t.stat_colors["faith"]
 	_refresh_preview()
+
+
+func _refresh_item_tips() -> void:
+	if _tip_host == null:
+		return
+	for c in _tip_host.get_children():
+		_tip_host.remove_child(c)
+		c.queue_free()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var samples: Array = [
+		Items.make("sword", 6, 2, rng),
+		Items.make("mail", 5, 1, rng),
+	]
+	# Prefer a real skill id for nauz
+	var sk := "power_strike"
+	for k in Skills.DATA.keys():
+		sk = str(k)
+		break
+	samples.append(Nauzi.make_nauz(sk, 10, 3))
+	var tid := "fury"
+	for k2 in Nauzi.THREADS.keys():
+		tid = str(k2)
+		break
+	samples.append(Nauzi.make_thread(tid, "red", 2))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_tip_host.add_child(row)
+	for it in samples:
+		var card := DescFormat.make_tooltip_card(it, {"where": "editor"}, 360.0)
+		row.add_child(card)
+
+

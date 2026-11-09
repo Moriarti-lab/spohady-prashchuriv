@@ -794,6 +794,8 @@ func _build_skill_page() -> Control:
 	_skill_info = FolkTheme.label("", 17, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true)
 	dv.add_child(_skill_info)
 	_nauz_detail_rich = DescFormat.make_rich()
+	_nauz_detail_rich.fit_content = true
+	_nauz_detail_rich.scroll_active = false
 	_nauz_detail_rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dv.add_child(_nauz_detail_rich)
 	_thread_pick_box = VBoxContainer.new()

@@ -54,6 +54,8 @@ var _touches := {}      # індекс пальця -> роль ("stick", "attac
 var _overlay_open := false
 var _toast_tween: Tween
 var editor_preview := false  ## true у редакторі GUI — без оверлеїв/прив'язки світу
+var _loot_popup: Control
+var _loot_target: LootDrop
 
 
 func _init() -> void:
@@ -686,8 +688,8 @@ func _touch_down(index: int, pos: Vector2) -> void:
 		player.move_input = Vector2.ZERO
 		return
 	if pos.y > TOP_STRIP and world != null:
-		# дотик по землі справа: підібрати здобич, що лежить там
-		world.tap_world(pos)
+		# дотик по землі: предмет — картка підказки; інакше підібрати
+		_on_world_tap(pos)
 
 
 func _touch_up(index: int) -> void:
@@ -752,6 +754,79 @@ func show_level_up(lvl: int) -> void:
 	tw.tween_callback(func() -> void: _banner.visible = false)
 
 
+
+func _on_world_tap(pos: Vector2) -> void:
+	if world == null:
+		return
+	var ld: LootDrop = world.loot_at_screen(pos) if world.has_method("loot_at_screen") else null
+	if ld == null:
+		world.tap_world(pos)
+		return
+	if ld.kind == LootDrop.KIND_ITEM and not ld.item.is_empty():
+		show_loot_popup(ld)
+	else:
+		ld.attract = true
+
+
+func show_loot_popup(ld: LootDrop) -> void:
+	hide_loot_popup()
+	if ld == null or not is_instance_valid(ld):
+		return
+	_loot_target = ld
+	var host := Control.new()
+	host.name = "LootPopup"
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	host.mouse_filter = Control.MOUSE_FILTER_STOP
+	_root.add_child(host)
+	_loot_popup = host
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.35)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventScreenTouch and ev.pressed:
+			hide_loot_popup()
+		elif ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			hide_loot_popup())
+	host.add_child(dim)
+	var wrap := VBoxContainer.new()
+	wrap.add_theme_constant_override("separation", 10)
+	wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	wrap.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	wrap.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	wrap.grow_vertical = Control.GROW_DIRECTION_BOTH
+	wrap.mouse_filter = Control.MOUSE_FILTER_STOP
+	host.add_child(wrap)
+	var card := DescFormat.make_tooltip_card(ld.item, {"where": "loot"}, 420.0)
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	wrap.add_child(card)
+	var pick := Button.new()
+	pick.text = "Підібрати"
+	FolkTheme.apply_button(pick, Palette.EMBROIDERY, 22)
+	pick.custom_minimum_size = Vector2(220, 56)
+	pick.pressed.connect(_loot_pickup_pressed)
+	wrap.add_child(pick)
+	# Center wrap after layout
+	await get_tree().process_frame
+	if not is_instance_valid(wrap):
+		return
+	var vs := get_viewport().get_visible_rect().size
+	wrap.position = Vector2((vs.x - wrap.size.x) * 0.5, (vs.y - wrap.size.y) * 0.42)
+
+
+func _loot_pickup_pressed() -> void:
+	if _loot_target != null and is_instance_valid(_loot_target):
+		_loot_target.attract = true
+	hide_loot_popup()
+
+
+func hide_loot_popup() -> void:
+	if _loot_popup != null and is_instance_valid(_loot_popup):
+		_loot_popup.queue_free()
+	_loot_popup = null
+	_loot_target = null
+
+
 func toast(text: String) -> void:
 	_toast.text = text
 	_toast.visible = true
@@ -767,6 +842,7 @@ func toast(text: String) -> void:
 # ---------- Екрани ----------
 
 func _enter_overlay() -> void:
+	hide_loot_popup()
 	close_submenu()
 	_release_all()
 	_hide_screens()
