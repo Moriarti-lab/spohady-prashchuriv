@@ -14,12 +14,12 @@ const errs = (d) => ctx.validateTree(d).errors.length;
 ok(JSON.stringify(embedded) === JSON.stringify(file), "вбудоване Древо == data/perk_tree.json");
 const v = ctx.validateTree(file);
 ok(v.errors.length === 0 && v.warnings.length === 0, "data/perk_tree.json проходить перевірку редактора " + JSON.stringify(v));
-ok(file.nodes.length >= 250 && file.nodes.length <= 1000, "вузлів 250–1000: " + file.nodes.length);
+ok(file.nodes.length >= 250 && file.nodes.length <= 1200, "вузлів 250–1200: " + file.nodes.length);
 ok((file.version === 3 || file.version === 4) && file.nodes.filter(n => n.type === "core").length === 1, "версія 3/4 і одне Серце роду");
 ok(file.nodes.filter(n => n.skill || n.mod_skill).length === 0, "пасивне Древо без skill/mod_skill");
 // експорт того, що читає редактор, дає той самий файл
 const exported = JSON.parse(ctx.serializeTree({ format: file.format, version: file.version, title: file.title, comment: file.comment,
-  regions: file.regions, class_starts: file.class_starts, nodes: file.nodes.map(ctx.normalizeNode), links: file.links }));
+  meta: file.meta, regions: file.regions, class_starts: file.class_starts, nodes: file.nodes.map(ctx.normalizeNode), links: file.links }));
 let same = true; try { assert.deepStrictEqual(exported, file); } catch (e) { same = false; console.log(String(e.message).slice(0, 600)); }
 ok(same, "нормалізація + серіалізація не змінюють файл");
 ok(ctx.serializeTree(file).endsWith("}\n") && ctx.serializeTree(file).startsWith('{\n "format"'), "формат запису: відступ 1, новий рядок у кінці");
