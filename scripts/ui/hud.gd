@@ -387,6 +387,57 @@ func _layout() -> void:
 	_banner.position = Vector2(0, vs.y * 0.2)
 	_toast.size = Vector2(vs.x, 40)
 	_toast.position = Vector2(0, vs.y * 0.58)
+	_apply_layout_override()
+
+
+func _apply_layout_override() -> void:
+	## Якщо є user://overrides/ui_layout.json — застосовуємо якорі до відомих контролів.
+	var path := "user://overrides/ui_layout.json"
+	if not FileAccess.file_exists(path):
+		return
+	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if typeof(data) != TYPE_DICTIONARY:
+		return
+	var store := LayoutStore.new()
+	if store.from_dict(data) != "":
+		return
+	# Мапінг id → Control (реєстр для HUD).
+	var map := {
+		"portrait_panel": _top_panel,
+		"minimap": _mini,
+		"stick": _stick,
+		"attack": _attack,
+		"potion_hp": _potion_hp,
+		"potion_mana": _potion_mana,
+		"menu": _submenu,
+	}
+	var phone := Vector2(store.canvas_w, store.canvas_h)
+	var vs := _root.size
+	if vs.x < 10.0:
+		vs = get_viewport().get_visible_rect().size
+	var sx := vs.x / phone.x
+	var sy := vs.y / phone.y
+	for el in store.get_elements("hud"):
+		var id := str(el.get("id", ""))
+		var node = map.get(id, null)
+		if node == null:
+			continue
+		var r: Rect2 = store.element_rect(el, phone.x, phone.y)
+		var pos := Vector2(r.position.x * sx, r.position.y * sy)
+		var sz := Vector2(r.size.x * sx, r.size.y * sy)
+		if node is TouchStick:
+			(node as TouchStick).home = pos + sz * 0.5
+			if not (node as TouchStick).active:
+				(node as TouchStick).base_center = (node as TouchStick).home
+				node.queue_redraw()
+		elif node.has_method("place"):
+			node.place(pos + sz * 0.5)
+		elif node is Control:
+			(node as Control).position = pos
+			(node as Control).size = sz
+		if node is CanvasItem:
+			(node as CanvasItem).visible = bool(el.get("visible", true))
+			(node as CanvasItem).z_index = int(el.get("z", 0))
 
 
 # ---------- Оновлення ----------

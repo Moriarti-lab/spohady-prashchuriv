@@ -93,6 +93,7 @@ func _ready() -> void:
 	add_child(load_guard)
 	InputSetup.ensure()
 	PerkTree.ensure_loaded()
+	ThemeRuntime.load_overrides_if_any()
 	migrate_old_save()
 	var cf := ConfigFile.new()
 	if cf.load(SETTINGS_PATH) == OK:

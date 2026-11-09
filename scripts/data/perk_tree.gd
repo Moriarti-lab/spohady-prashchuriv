@@ -7,6 +7,8 @@ const FORMAT := "spohady-perk-tree"
 const VERSION := 4
 const SUPPORTED_VERSIONS := [1, 2, 3, 4]
 const TREE_PATH := "res://data/perk_tree.json"
+const OVERRIDE_TREE := "user://overrides/tree.json"
+const ACTIVE_TREE := "user://tree_active/perk_tree.json"
 const NODE_TYPES := ["small", "notable", "keystone", "skill", "start", "core"]  # skill застарів у v3, лишається для сумісності
 ## Ключ бонусу -> шаблон тексту (%s — число зі знаком).
 const STAT_TEXT := {
@@ -67,7 +69,22 @@ static var is_fallback := false
 static func ensure_loaded() -> void:
 	if _loaded:
 		return
-	load_from_file()
+	load_from_file(resolve_tree_path())
+
+
+## Пріоритет: user://overrides/tree.json → user://tree_active/perk_tree.json → shipped res://.
+## Сейви героя не чіпаємо.
+static func resolve_tree_path() -> String:
+	if FileAccess.file_exists(OVERRIDE_TREE):
+		return OVERRIDE_TREE
+	if FileAccess.file_exists(ACTIVE_TREE):
+		return ACTIVE_TREE
+	return TREE_PATH
+
+
+static func reload_from_path(path: String) -> Array:
+	_loaded = false
+	return load_from_file(path)
 
 
 ## Читає res://data/perk_tree.json. Повертає список помилок (порожній — усе гаразд).
