@@ -444,6 +444,7 @@ func _on_to_stash() -> void:
 func _on_attach_thread() -> void:
 	# Нитка з _sel_bag → в ОБРАНИЙ науз (вкладка «Наузи»), інакше — перший у сумці.
 	# t61: раніше завжди брався перший науз у сумці, що неінтуїтивно.
+	# Нитка знімається з сумки лише після успішних перевірок у GameState.attach_*.
 	if _sel_bag < 0 or _sel_bag >= GameState.bag.size():
 		return
 	if not Nauzi.is_thread(GameState.bag[_sel_bag]):
@@ -452,19 +453,30 @@ func _on_attach_thread() -> void:
 	if _sel_nauz_uid > 0:
 		var found: Dictionary = GameState.find_nauz_by_uid(_sel_nauz_uid)
 		if found.is_empty():
-			_status_nauz("Обраний науз не знайдено — обери його на вкладці «Наузи».")
+			_attach_thread_fail("Обраний науз не знайдено — обери його на вкладці «Наузи».")
 			return
 		var idx := int(found.get("index", -1))
+		if idx < 0:
+			_attach_thread_fail("Невірний індекс науза — обери науз знову.")
+			return
+		# Перечитати індекс нитки після можливих змін UI (захист від застарілого _sel_bag).
+		if ti < 0 or ti >= GameState.bag.size() or not Nauzi.is_thread(GameState.bag[ti]):
+			_attach_thread_fail("Нитка більше не в сумці — обери її знову.")
+			return
 		var ok := false
 		if str(found.get("where", "")) == "socket":
 			ok = GameState.attach_thread_to_socket(idx, ti)
 		else:
+			# Науз у сумці: індекси валідні на момент виклику; GameState знімає нитку лише після fit/slots.
+			if idx == ti:
+				_attach_thread_fail("Обери науз і нитку окремо.")
+				return
 			ok = GameState.attach_thread(idx, ti)
 		if ok:
 			_sel_bag = -1
 			_refresh()
 		else:
-			_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
+			_attach_thread_fail(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
 		return
 	var nauz_i := -1
 	for i in range(GameState.bag.size()):
@@ -472,13 +484,23 @@ func _on_attach_thread() -> void:
 			nauz_i = i
 			break
 	if nauz_i < 0:
-		_status_nauz("У сумці немає науза — обери науз на вкладці «Наузи».")
+		_attach_thread_fail("У сумці немає науза — обери науз на вкладці «Наузи».")
+		return
+	if nauz_i == ti:
+		_attach_thread_fail("Обери науз і нитку окремо.")
 		return
 	if not GameState.attach_thread(nauz_i, ti):
-		_status_nauz(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
+		_attach_thread_fail(GameState.last_error if GameState.last_error != "" else "Не вдалося вплести.")
 		return
 	_sel_bag = -1
 	_refresh()
+
+
+func _attach_thread_fail(msg: String) -> void:
+	## Показує причину і на вкладці Наузи, і в описі (якщо відкрита сумка / «Ще»).
+	_status_nauz(msg)
+	if _detail_rich:
+		_detail_rich.text = "[color=#D8574B]%s[/color]" % msg
 
 
 func _on_more_action(id: int) -> void:
