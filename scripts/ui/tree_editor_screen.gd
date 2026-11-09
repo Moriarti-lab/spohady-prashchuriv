@@ -1,4 +1,4 @@
-## In-APK редактор Древа: меню → цей екран. Чернетки user://, фон world-space, реєстр статів.
+## In-APK редактор Древа: меню → цей екран. Чернетки окремо від сейвів; фон у просторі Древа.
 class_name TreeEditorScreen
 extends Control
 
@@ -108,6 +108,14 @@ func _build_ui() -> void:
 		b.custom_minimum_size = Vector2(56, 44)
 		b.pressed.connect(spec[1])
 		head.add_child(b)
+	var fit_top := Button.new()
+	fit_top.text = "Умістити"
+	FolkTheme.apply_button(fit_top, Palette.GOLD.darkened(0.2), 16)
+	fit_top.custom_minimum_size = Vector2(110, 48)
+	fit_top.pressed.connect(func() -> void:
+		if _view:
+			_view.fit_all())
+	head.add_child(fit_top)
 	var close := Button.new()
 	close.text = "Закрити"
 	FolkTheme.apply_button(close, Palette.EMBROIDERY, 20)
@@ -115,34 +123,56 @@ func _build_ui() -> void:
 	close.pressed.connect(_close)
 	head.add_child(close)
 
-	# Mode tools left
+	# Mode tools left — compact column that fits between header and bottom bar
+	var tools_panel := PanelContainer.new()
+	tools_panel.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+	tools_panel.offset_left = 4
+	tools_panel.offset_top = 82
+	tools_panel.offset_right = 120
+	tools_panel.offset_bottom = -100
+	var tool_panel_sb := StyleBoxFlat.new()
+	tool_panel_sb.bg_color = Color(0.08, 0.05, 0.05, 0.75)
+	tool_panel_sb.set_corner_radius_all(8)
+	tool_panel_sb.content_margin_left = 4
+	tool_panel_sb.content_margin_right = 4
+	tool_panel_sb.content_margin_top = 4
+	tool_panel_sb.content_margin_bottom = 4
+	tools_panel.add_theme_stylebox_override("panel", tool_panel_sb)
+	add_child(tools_panel)
+	var tools_scroll := ScrollContainer.new()
+	tools_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tools_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tools_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	tools_scroll.clip_contents = true
+	tools_panel.clip_contents = true
+	tools_panel.add_child(tools_scroll)
 	var tools := VBoxContainer.new()
-	tools.position = Vector2(8, 88)
-	tools.add_theme_constant_override("separation", 6)
-	add_child(tools)
+	tools.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tools.add_theme_constant_override("separation", 4)
+	tools_scroll.add_child(tools)
 	for spec in [[TreeEditorView.Mode.VIEW, "Огляд"], [TreeEditorView.Mode.MOVE, "Рух"], [TreeEditorView.Mode.LINK, "Зв’язки"], [TreeEditorView.Mode.BG, "Фон"]]:
 		var b := Button.new()
 		b.text = spec[1]
-		FolkTheme.apply_button(b, Palette.PANEL_LIGHT, 16)
-		b.custom_minimum_size = Vector2(100, 48)
-		var m: int = spec[0]
-		b.pressed.connect(func() -> void: _set_mode(m))
+		FolkTheme.apply_button(b, Palette.PANEL_LIGHT, 15)
+		b.custom_minimum_size = Vector2(104, 40)
+		var mmode: int = spec[0]
+		b.pressed.connect(func() -> void: _set_mode(mmode))
 		tools.add_child(b)
-		_mode_btns[m] = b
+		_mode_btns[mmode] = b
+	var zoom_row := HBoxContainer.new()
+	zoom_row.add_theme_constant_override("separation", 4)
+	tools.add_child(zoom_row)
 	for spec in [["+", 1.25], ["−", 0.8]]:
 		var zb := Button.new()
 		zb.text = spec[0]
-		FolkTheme.apply_button(zb, Palette.PANEL_LIGHT, 28)
-		zb.custom_minimum_size = Vector2(64, 48)
+		FolkTheme.apply_button(zb, Palette.PANEL_LIGHT, 22)
+		zb.custom_minimum_size = Vector2(50, 40)
+		zb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var f: float = spec[1]
 		zb.pressed.connect(func() -> void: _view.zoom_center(f))
-		tools.add_child(zb)
-	var fit := Button.new()
-	fit.text = "Умістити"
-	FolkTheme.apply_button(fit, Palette.PANEL_LIGHT, 16)
-	fit.custom_minimum_size = Vector2(100, 44)
-	fit.pressed.connect(func() -> void: _view.fit_all())
-	tools.add_child(fit)
+		zoom_row.add_child(zb)
+	# «Умістити» only in top bar — left column stays short so status never overlaps
 	_set_mode(TreeEditorView.Mode.VIEW)
 
 	# Right property panel
@@ -208,17 +238,18 @@ func _build_ui() -> void:
 		b.pressed.connect(spec[1])
 		_action_bar.add_child(b)
 
-	_status = FolkTheme.label("", 16, Palette.LINEN)
+	_status = FolkTheme.label("", 15, Palette.LINEN)
 	_status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_status.offset_top = -88
-	_status.offset_bottom = -64
-	_status.offset_left = 110
+	_status.offset_top = -90
+	_status.offset_bottom = -66
+	_status.offset_left = 140
 	_status.offset_right = -330
+	_status.clip_text = true
 	add_child(_status)
 
 	_apply_confirm = ConfirmationDialog.new()
 	_apply_confirm.title = "Застосувати Древо до гри?"
-	_apply_confirm.dialog_text = "Сейви героя не зміняться. Поточне активне Древо збережеться в резервну копію user://tree_backups/. На пристрої змінюється лише user://tree_active/ (не файл у APK)."
+	_apply_confirm.dialog_text = "Сейви героя не зміняться. Поточне активне Древо збережеться в резервну копію. На пристрої змінюється лише активне Древо редактора (не файл у встановленій грі)."
 	_apply_confirm.confirmed.connect(_do_apply)
 	add_child(_apply_confirm)
 
@@ -238,7 +269,7 @@ func _set_mode(m: int) -> void:
 		TreeEditorView.Mode.LINK:
 			_set_status("Зв’язки: два дотики по вузлах")
 		TreeEditorView.Mode.BG:
-			_set_status("Фон: зніми «Замок», щоб рухати шаблон; pan/zoom завжди спільні")
+			_set_status("Фон: зніми «Замок», щоб рухати шаблон; перетягування й масштаб спільні")
 
 
 func _set_status(msg: String) -> void:
@@ -360,13 +391,13 @@ func _rebuild_props() -> void:
 	for c in _prop_box.get_children():
 		c.queue_free()
 	# Background section always
-	_prop_box.add_child(FolkTheme.label("Фон-шаблон (t76)", 18, Palette.GOLD))
+	_prop_box.add_child(FolkTheme.label("Фон-шаблон", 18, Palette.GOLD))
 	_add_check("Показувати фон", doc.bg_visible, func(v: bool) -> void: doc.bg_visible = v; doc.changed.emit(); _view.queue_redraw())
-	_add_check("Замок позиції/розміру", doc.bg_lock, func(v: bool) -> void: doc.bg_lock = v; _set_status("Замок фону: %s (pan/zoom вільні)" % ("так" if v else "ні")))
+	_add_check("Замок позиції/розміру", doc.bg_lock, func(v: bool) -> void: doc.bg_lock = v; _set_status("Замок фону: %s (карта вільно рухається)" % ("так" if v else "ні")))
 	_add_check("Зберігати пропорції", doc.bg_preserve_aspect, func(v: bool) -> void: doc.bg_preserve_aspect = v)
 	_add_slider("Прозорість", doc.bg_opacity, 0.0, 1.0, func(v: float) -> void: doc.bg_opacity = v; _view.queue_redraw())
-	_add_spin("Ширина (world)", doc.bg_size.x, 10.0, 50000.0, func(v: float) -> void: doc.set_bg_width(v); _view.queue_redraw())
-	_add_spin("Висота (world)", doc.bg_size.y, 10.0, 50000.0, func(v: float) -> void: doc.set_bg_height(v); _view.queue_redraw())
+	_add_spin("Ширина", doc.bg_size.x, 10.0, 50000.0, func(v: float) -> void: doc.set_bg_width(v); _view.queue_redraw())
+	_add_spin("Висота", doc.bg_size.y, 10.0, 50000.0, func(v: float) -> void: doc.set_bg_height(v); _view.queue_redraw())
 	_add_spin("X початку", doc.bg_origin.x, -100000.0, 100000.0, func(v: float) -> void: if not doc.bg_lock: doc.bg_origin.x = v; _view.queue_redraw())
 	_add_spin("Y початку", doc.bg_origin.y, -100000.0, 100000.0, func(v: float) -> void: if not doc.bg_lock: doc.bg_origin.y = v; _view.queue_redraw())
 	var bginfo := FolkTheme.label(

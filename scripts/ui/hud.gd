@@ -93,6 +93,12 @@ func _ready() -> void:
 		_potion_hp.sub_text = "×3"
 		_potion_mana.sub_text = "×3"
 		_loc_label.text = "Ліс"
+		# Placeholder skill icons/labels so empty circles are readable in editor
+		var skill_labels := ["Н1", "Н2", "Н3", "Н4"]
+		for i in range(mini(_skills.size(), skill_labels.size())):
+			var sb: TouchButton = _skills[i]
+			sb.text = skill_labels[i]
+			sb.queue_redraw()
 		if _submenu:
 			_submenu.visible = false
 
@@ -202,6 +208,16 @@ func toggle_submenu() -> void:
 func close_submenu() -> void:
 	if _submenu != null:
 		_submenu.visible = false
+
+
+func editor_set_menu_open(open: bool) -> void:
+	## Редактор GUI: меню лише коли явно редагуємо елемент «Меню».
+	if _submenu == null:
+		return
+	_submenu.visible = open
+	if open:
+		_update_menu_badges()
+		_layout()
 
 
 func _update_menu_badges() -> void:
@@ -379,8 +395,12 @@ func _layout() -> void:
 	var vs := _root.size
 	if vs.x < 10.0:
 		vs = get_viewport().get_visible_rect().size
-	_mini.position = Vector2(vs.x - MINI_SIZE - 16.0, 12.0)
-	_mini_frame.position = _mini.position
+	var mini_margin := 24.0 if editor_preview else 16.0
+	var mini_top := 16.0 if editor_preview else 12.0
+	_mini.position = Vector2(maxf(mini_margin, vs.x - MINI_SIZE - mini_margin), mini_top)
+	if _mini_frame:
+		_mini_frame.position = _mini.position
+		_mini_frame.size = Vector2(MINI_SIZE, MINI_SIZE)
 	_loc_label.size = Vector2(300, 26)
 	_loc_label.position = Vector2(_mini.position.x - 300.0 - 8.0, 14.0)
 	_quest_panel.position = Vector2(vs.x - 250.0 - 40.0, MINI_SIZE + 22.0)

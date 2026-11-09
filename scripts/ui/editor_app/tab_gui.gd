@@ -27,6 +27,8 @@ var _id_to_node: Dictionary = {}  # id -> Control
 var _overlay_frame: Control  # selection outline
 var _svp: SubViewport
 var _svp_host: SubViewportContainer
+var _menu_edit_open: bool = false
+var _phone_frame: Panel
 
 
 func setup(s: EditorSession) -> void:
@@ -93,6 +95,15 @@ func setup(s: EditorSession) -> void:
 	canvas_wrap.add_child(_phone_host)
 
 	# Hud is CanvasLayer — must live inside SubViewport or it paints over every tab.
+	_phone_frame = Panel.new()
+	_phone_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pfsb := StyleBoxFlat.new()
+	pfsb.bg_color = Color(0, 0, 0, 0)
+	pfsb.border_color = Color(Palette.GOLD, 0.55)
+	pfsb.set_border_width_all(2)
+	pfsb.set_corner_radius_all(8)
+	_phone_frame.add_theme_stylebox_override("panel", pfsb)
+	_phone_host.add_child(_phone_frame)
 	_svp_host = SubViewportContainer.new()
 	_svp_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_svp_host.stretch = true
@@ -210,6 +221,7 @@ func _rebuild_lists() -> void:
 func _apply_layout_to_hud() -> void:
 	if _hud == null or _hud._root == null:
 		return
+	_map_hud_nodes()
 	# Size phone host to canvas aspect of layout
 	var host := _phone_host.size
 	if host.x < 8 or host.y < 8:
@@ -218,13 +230,19 @@ func _apply_layout_to_hud() -> void:
 	var pw: float
 	var ph: float
 	if host.x / host.y > aspect:
-		ph = host.y * 0.96
+		ph = host.y * 0.84
 		pw = ph * aspect
 	else:
-		pw = host.x * 0.96
+		pw = host.x * 0.84
 		ph = pw / aspect
 	# Phone frame inside host; SubViewport isolates CanvasLayer
 	var origin := Vector2((host.x - pw) * 0.5, (host.y - ph) * 0.5)
+	if _phone_frame:
+		_phone_frame.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_phone_frame.anchor_right = 0
+		_phone_frame.anchor_bottom = 0
+		_phone_frame.position = origin - Vector2(4, 4)
+		_phone_frame.size = Vector2(pw, ph) + Vector2(8, 8)
 	if _svp_host:
 		_svp_host.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		_svp_host.anchor_right = 0
@@ -249,8 +267,12 @@ func _apply_layout_to_hud() -> void:
 			"potion_mana": _hud._potion_mana,
 			"menu": _hud._submenu,
 		}
-		# First run default hud layout at phone size
+		# First run default hud layout at phone size (block recursive resize)
+		if _hud._root.resized.is_connected(_hud._layout):
+			_hud._root.resized.disconnect(_hud._layout)
 		_hud._layout()
+		if not _hud._root.resized.is_connected(_hud._layout):
+			_hud._root.resized.connect(_hud._layout)
 		# Then override from store
 		var sx := pw / store.canvas_w
 		var sy := ph / store.canvas_h
@@ -271,13 +293,68 @@ func _apply_layout_to_hud() -> void:
 			elif node is Control:
 				(node as Control).position = pos
 				(node as Control).size = sz
+			if id == "menu":
+				# Меню — окремий елемент; за замовчуванням закрите в редакторі
+				continue
 			if node is CanvasItem:
 				(node as CanvasItem).visible = bool(el.get("visible", true))
-		# minimap frame follows mini
-		if _hud._mini_frame != null and _hud._mini != null and _hud._mini is Control:
-			_hud._mini_frame.position = (_hud._mini as Control).position
-			_hud._mini_frame.size = (_hud._mini as Control).size
+		# Меню: лише якщо явно редагуємо цей елемент
+		if _hud.has_method("editor_set_menu_open"):
+			_hud.editor_set_menu_open(_menu_edit_open and _selected_el == "menu")
+		elif _hud._submenu:
+			_hud._submenu.visible = _menu_edit_open and _selected_el == "menu"
+		# Clamp controls inside phone so minimap/actions не обрізаються
+		_clamp_hud_to_phone(Vector2(pw, ph))
+		# Force minimap fully inside phone with margin
+		if _hud._mini != null and _hud._mini is Control:
+			var mini := _hud._mini as Control
+			var msz := Vector2(Hud.MINI_SIZE, Hud.MINI_SIZE)
+			mini.size = msz
+			mini.position = Vector2(pw - msz.x - 20.0, 20.0)
+			if _hud._mini_frame:
+				_hud._mini_frame.position = mini.position
+				_hud._mini_frame.size = msz
+			if _hud._loc_label:
+				_hud._loc_label.position = Vector2(maxi(8.0, mini.position.x - 308.0), 18.0)
 		_update_selection_frame()
+
+
+
+func _clamp_hud_to_phone(phone: Vector2) -> void:
+	var pad := 8.0
+	for id in _id_to_node.keys():
+		var n = _id_to_node[id]
+		if n == null or not (n is Control):
+			continue
+		if id == "menu":
+			continue
+		var c := n as Control
+		var sz := c.size
+		if sz.x < 4.0 or sz.y < 4.0:
+			sz = Vector2(80, 80)
+		var p := c.position
+		p.x = clampf(p.x, pad, maxf(pad, phone.x - sz.x - pad))
+		p.y = clampf(p.y, pad, maxf(pad, phone.y - sz.y - pad))
+		if n is TouchStick:
+			var ts := n as TouchStick
+			var home := ts.home
+			home.x = clampf(home.x, pad + 60.0, phone.x - pad - 60.0)
+			home.y = clampf(home.y, pad + 60.0, phone.y - pad - 60.0)
+			ts.home = home
+			if not ts.active:
+				ts.base_center = home
+		elif n.has_method("place") and id in ["attack", "potion_hp", "potion_mana"]:
+			var center := (n as TouchButton).center if n is TouchButton else (p + sz * 0.5)
+			center.x = clampf(center.x, pad + 40.0, phone.x - pad - 40.0)
+			center.y = clampf(center.y, pad + 40.0, phone.y - pad - 40.0)
+			n.place(center)
+		else:
+			c.position = p
+	# Skills follow attack after clamp
+	if _hud and _hud._attack and _hud._skills.size() >= 4:
+		for i in range(4):
+			var a := deg_to_rad(float(Hud.SKILL_ANGLES[i]))
+			(_hud._skills[i] as TouchButton).place(_hud._attack.center + Vector2(cos(a), sin(a)) * Hud.SKILL_DIST)
 
 
 func _on_screen_sel(i: int) -> void:
@@ -294,7 +371,14 @@ func _on_el_sel(i: int) -> void:
 	if i < 0 or i >= els.size():
 		return
 	_selected_el = str(els[i].get("id"))
+	_menu_edit_open = (_selected_el == "menu")
+	if _hud and _hud.has_method("editor_set_menu_open"):
+		_hud.editor_set_menu_open(_menu_edit_open)
+	elif _hud and _hud._submenu:
+		_hud._submenu.visible = _menu_edit_open
 	_update_selection_frame()
+	if _menu_edit_open:
+		_info.text = "Меню відкрито для редагування. Оберіть інший елемент — закриється."
 
 
 func _update_selection_frame() -> void:
@@ -353,10 +437,10 @@ func _move_el(id: String, rel_screen: Vector2) -> void:
 	var pw: float
 	var ph: float
 	if host.x / host.y > aspect:
-		ph = host.y * 0.96
+		ph = host.y * 0.84
 		pw = ph * aspect
 	else:
-		pw = host.x * 0.96
+		pw = host.x * 0.84
 		ph = pw / aspect
 	var sx := session.layout.canvas_w / pw
 	var sy := session.layout.canvas_h / ph
