@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Селфтест редактора розкладки</title>
+<style>
+  body { background: #1e1a1a; color: #f2ebdd; font: 14px/1.5 ui-monospace, monospace; margin: 12px; position: relative; }
+  .ok { color: #7cd08a; } .bad { color: #ff8b80; }
+  #out { position: relative; z-index: 3; background: #1e1a1a; padding: 6px; }
+  /* iframe має бути в лайауті (не display:none), інакше getBoundingClientRect дає нулі */
+  iframe { position: absolute; left: 0; top: 0; width: 1000px; height: 640px; border: 0; opacity: 0.02; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="out">Запуск…</div>
+<iframe id="fr"></iframe>
+<script>
+const out = document.getElementById("out");
+const lines = [];
+let fails = 0;
+function check(name, cond, extra) {
+  lines.push((cond ? '<span class=ok>ok  </span>' : '<span class=bad>FAIL</span> ') + name + (extra ? " — " + extra : ""));
+  if (!cond) fails++;
+  out.innerHTML = lines.join("<br>");
+}
+function done() {
+  lines.push(fails ? "<b>Є ПОМИЛКИ</b>" : "<b>СЕЛФТЕСТ ПРОЙДЕНО</b>");
+  out.innerHTML = lines.join("<br>");
+  document.title = fails ? "SELFTEST FAIL" : "SELFTEST OK";
+  window.__selftest = { fails: fails, lines: lines };
+}
+
+function ev(w, type, x, y, extra) {
+  const opts = Object.assign({ bubbles: true, cancelable: true, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons: 1, clientX: x, clientY: y }, extra || {});
+  return new w.PointerEvent(type, opts);
+}
+
+const fr = document.getElementById("fr");
+// стартуємо з чистого аркуша: інакше автозбереження попереднього прогону підмішується
+try { localStorage.removeItem("spohady.uiLayout.v1"); } catch (e) { /* ignore */ }
+fr.addEventListener("load", () => {
+  const w = fr.contentWindow;
+  const d = fr.contentDocument;
+  const ev2 = (code) => w.eval(code);
+  try {
+    let S = null;
+    try { S = ev2("S"); } catch (e) { S = null; }
+    check("редактор завантажився без винятків", !!(S && S.doc), S ? "екранів: " + S.doc.screens.length : "немає стану");
+    check("п'ять екранів у моделі", !!S && S.doc.screens.length === 5);
+    if (!S) { done(); return; }
+    const shapes = d.querySelectorAll("#els .el");
+    check("намальовано 17 елементів HUD", shapes.length === 17, "намальовано: " + shapes.length);
+
+    const screen = w.findScreen(S.doc, "hud");
+    const before = w.resolvePositions(screen, w.canvasSize()).get("attack");
+    const shape = d.querySelector('#els .el[data-id="attack"]');
+    const b = shape.getBoundingClientRect();
+    check("«Удар» має прямокутник на полотні", b.width > 4 && b.height > 4,
+      Math.round(b.width) + "×" + Math.round(b.height) + " px");
+
+    const scale = b.width / before.w;
+    const cx = b.left + b.width / 2;
+    const cy = b.top + b.height / 2;
+    const svg = d.getElementById("canvas");
+    shape.dispatchEvent(ev(w, "pointerdown", cx, cy));
+    svg.dispatchEvent(ev(w, "pointermove", cx - 100, cy));
+    svg.dispatchEvent(ev(w, "pointerup", cx - 100, cy));
+
+    const after = w.resolvePositions(w.findScreen(S.doc, "hud"), w.canvasSize()).get("attack");
+    const dxUnits = before.x - after.x;
+    const expected = 100 / scale;
+    check("тягання зсунуло «Удар» ліворуч", Math.abs(dxUnits - expected) < 8,
+      "зсув " + Math.round(dxUnits) + " од., очікували ~" + Math.round(expected));
+    check("висота й ширина не змінилися", Math.round(after.w) === Math.round(before.w) && Math.round(after.h) === Math.round(before.h),
+      Math.round(after.w) + "×" + Math.round(after.h));
+    const el = w.findElement(S.doc, "hud", "attack");
+    check("якір лишився право-низ", el.a.l === "r" && el.a.t === "b", JSON.stringify(el.a));
+    check("виділення на «Ударі»", w.eval('S.selection.has("attack")'));
+
+    check("інспектор показує формулу центра", d.getElementById("inspector").textContent.indexOf("центр") >= 0,
+      d.getElementById("inspector").textContent.slice(0, 80));
+
+    // клік по навичці
+    const sk = d.querySelector('#els .el[data-id="skill0"]');
+    const sb = sk.getBoundingClientRect();
+    sk.dispatchEvent(ev(w, "pointerdown", sb.left + sb.width / 2, sb.top + sb.height / 2));
+    svg.dispatchEvent(ev(w, "pointerup", sb.left + sb.width / 2, sb.top + sb.height / 2));
+    check("вибір навички одним кліком", w.eval('S.selection.size === 1 && S.selection.has("skill0")'),
+      w.eval("[...S.selection].join(',')"));
+
+    check("формула навички показує кут", d.getElementById("inspector").textContent.indexOf("кут") >= 0,
+      d.getElementById("inspector").textContent.slice(0, 80));
+
+    // знову вибираємо «Удар», щоб міняти його розмір
+    const atkShape = d.querySelector('#els .el[data-id="attack"]');
+    const ab = atkShape.getBoundingClientRect();
+    atkShape.dispatchEvent(ev(w, "pointerdown", ab.left + ab.width / 2, ab.top + ab.height / 2));
+    svg.dispatchEvent(ev(w, "pointerup", ab.left + ab.width / 2, ab.top + ab.height / 2));
+
+    // зміна w у інспекторі
+    const wInput = d.querySelector('#inspector input[data-field="w"]');
+    if (wInput) {
+      wInput.value = "200";
+      wInput.dispatchEvent(new w.Event("input", { bubbles: true }));
+      const atk2 = w.resolvePositions(w.findScreen(S.doc, "hud"), w.canvasSize()).get("attack");
+      check("поле w змінило ширину", Math.round(atk2.w) === 200, "w = " + Math.round(atk2.w));
+    } else {
+      check("поле w є в інспекторі", false);
+    }
+
+    // перемикання пресета
+    const sel = d.getElementById("presetSel");
+    sel.value = "16:9";
+    sel.dispatchEvent(new w.Event("change", { bubbles: true }));
+    check("пресет 16:9 застосовано", w.eval('S.presetId === "16:9"') && w.canvasSize().w === 1280);
+
+    // копіювання на «Удар» і вставка в «Сумку»
+    const a2 = d.querySelector('#els .el[data-id="attack"]').getBoundingClientRect();
+    d.querySelector('#els .el[data-id="attack"]').dispatchEvent(ev(w, "pointerdown", a2.left + a2.width / 2, a2.top + a2.height / 2));
+    svg.dispatchEvent(ev(w, "pointerup", a2.left + a2.width / 2, a2.top + a2.height / 2));
+    const btnByText = (txt) => [...d.querySelectorAll("#inspector button")].find((b) => b.textContent === txt);
+    btnByText("Копіювати").click();
+    check("копія в буфері", w.eval("S.clip.length") === 1, "у буфері: " + w.eval("S.clip.length"));
+    const screenSel = d.getElementById("screenSel");
+    screenSel.value = "bag";
+    screenSel.dispatchEvent(new w.Event("change", { bubbles: true }));
+    check("перемкнулися на «Сумку»", w.eval("S.screenId") === "bag");
+    const pasteBtn = [...d.querySelectorAll("#inspector button")].find((b) => b.textContent.indexOf("Вставити") === 0);
+    check("кнопка «Вставити» з’явилась", !!pasteBtn);
+    if (pasteBtn) {
+      pasteBtn.click();
+      const bag = w.findScreen(S.doc, "bag");
+      check("вставка додала елемент", bag.elements.length === 11, "елементів: " + bag.elements.length);
+    }
+
+    // undo / redo через кнопки топбара
+    const tabsShape = d.querySelector('#els .el[data-id="tabs"]');
+    if (tabsShape) {
+      const tb = tabsShape.getBoundingClientRect();
+      tabsShape.dispatchEvent(ev(w, "pointerdown", tb.left + tb.width / 2, tb.top + tb.height / 2));
+      svg.dispatchEvent(ev(w, "pointerup", tb.left + tb.width / 2, tb.top + tb.height / 2));
+      const textInput = d.querySelector('#inspector input[data-field="text"]');
+      textInput.value = "Перевірка";
+      textInput.dispatchEvent(new w.Event("input", { bubbles: true }));
+      check("текст змінено", w.findElement(S.doc, "bag", "tabs").text === "Перевірка",
+        w.findElement(S.doc, "bag", "tabs").text);
+      d.getElementById("btnUndo").click();
+      check("undo повернув текст", w.findElement(S.doc, "bag", "tabs").text !== "Перевірка",
+        w.findElement(S.doc, "bag", "tabs").text);
+      d.getElementById("btnRedo").click();
+      check("redo повернув зміну", w.findElement(S.doc, "bag", "tabs").text === "Перевірка",
+        w.findElement(S.doc, "bag", "tabs").text);
+      check("localStorage містить розкладку", (w.localStorage.getItem("spohady.uiLayout.v1") || "").indexOf('"screens"') >= 0);
+    } else {
+      check("екран «Сумка» має вкладки", false);
+    }
+
+    // перевірки: навмисно виводимо «Удар» за екран
+    w.eval('S.screenId = "hud"; S.selection.clear(); ');
+    w.eval('findElement(S.doc, "hud", "attack").o = { l: -5000, t: -206, r: -4840, b: -46 }');
+    w.eval("renderAll()");
+    const issueRows = d.querySelectorAll("#issues .issue");
+    check("панель показує зауваження", issueRows.length > 0, "рядків: " + issueRows.length);
+    if (issueRows.length) {
+      issueRows[0].click();
+      check("клік по зауваженню виділяє елемент", w.eval("S.selection.size === 1"),
+        w.eval("[...S.selection].join(',')"));
+    }
+
+    // фон і контур «як зараз»
+    w.eval('setBackground(S.doc, "hud", { dataUrl: "data:image/png;base64,QUJD", opacity: 0.5 }); renderAll();');
+    check("фон намальовано", d.querySelectorAll("#canvas image").length === 1,
+      "image: " + d.querySelectorAll("#canvas image").length);
+    check("повзунок прозорості видно", !d.getElementById("bgOpacityBox").classList.contains("hidden"));
+    const ghostBox = d.getElementById("ghost");
+    ghostBox.checked = true;
+    ghostBox.dispatchEvent(new w.Event("change", { bubbles: true }));
+    w.eval('findElement(S.doc, "hud", "minimap").o = { l: -200, t: 300, r: -50, b: 450 }; renderCanvas();');
+    check("контур «як зараз» намалювався", !!d.querySelector("#canvas #ghost"),
+      d.querySelectorAll("#canvas #ghost rect").length + " контурів");
+
+    // рамка: Shift + тягання по порожньому полотну
+    const clientOf = (cx, cy) => {
+      const raw = w.eval("JSON.stringify((function () { const p = svg.createSVGPoint(); p.x = " + cx + "; p.y = " + cy + "; const q = p.matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; })())");
+      const a = JSON.parse(raw);
+      return { x: a[0], y: a[1] };
+    };
+    w.eval('S.doc = makeDefaultDoc(); S.screenId = "hud"; S.selection.clear(); renderAll();');
+    const p1 = clientOf(300, 380);
+    const p2 = clientOf(1540, 715);
+    svg.dispatchEvent(ev(w, "pointerdown", p1.x, p1.y, { shiftKey: true }));
+    check("рамка стартувала", w.eval("gesture && gesture.kind") === "marquee",
+      String(w.eval("gesture && gesture.kind")) + " / screen=" + w.eval("S.screenId"));
+    svg.dispatchEvent(ev(w, "pointermove", p2.x, p2.y, { shiftKey: true }));
+    check("рамка виділила елементи", w.eval("S.selection.size") >= 3,
+      "виділено: " + w.eval("S.selection.size") + " " + w.eval("[...S.selection].join('|')"));
+    svg.dispatchEvent(ev(w, "pointerup", p2.x, p2.y, { shiftKey: true }));
+    const distBtn = [...d.querySelectorAll("#inspector button")].find((b) => b.textContent.indexOf("⇹ X") === 0);
+    check("кнопка розподілу з’явилась", !!distBtn);
+
+    // імпорт: битий JSON і справжній документ
+    d.getElementById("btnImport").click();
+    d.getElementById("importText").value = "{це не json";
+    d.getElementById("importApply").click();
+    check("битий JSON не ламає редактор", w.eval("S.doc.screens.length") === 5,
+      "екранів: " + w.eval("S.doc.screens.length") + ", статус: " + d.getElementById("status").textContent);
+    d.getElementById("importText").value = JSON.stringify({ version: 1, screens: [{ id: "only", title: "Лише", elements: [] }] });
+    d.getElementById("importApply").click();
+    check("імпорт замінив документ", w.eval('S.doc.screens.length === 1 && S.doc.screens[0].title === "Лише"'),
+      "екранів: " + w.eval("S.doc.screens.length"));
+    check("панель імпорту закрилась", d.getElementById("importBox").classList.contains("hidden"));
+    w.eval("S.doc = makeDefaultDoc(); S.screenId = 'hud'; renderAll(); persist();");
+
+    // експорт: перехоплюємо клік по <a download>, щоб не тягнути файл
+    w.eval('window.__dl = null; HTMLAnchorElement.prototype.click = function () { window.__dl = this.getAttribute("download"); };');
+    d.getElementById("btnExport").click();
+    check("експорт формує ui_layout.json", w.eval("window.__dl") === "ui_layout.json",
+      String(w.eval("window.__dl")));
+
+    // порожнє місце знімає виділення
+    svg.dispatchEvent(ev(w, "pointerdown", 5, 5));
+    svg.dispatchEvent(ev(w, "pointerup", 5, 5));
+    check("клік по порожньому знімає виділення", w.eval("S.selection.size === 0"));
+
+    // опис для чату: буфер обміну відповідає асинхронно, тому перевіряємо згодом
+    d.getElementById("btnCopy").click();
+    setTimeout(() => {
+      try {
+        const copyStatus = d.getElementById("status").textContent;
+        check("опис копіюється (або пропонує вручну)", /скопійовано|вручну/.test(copyStatus), copyStatus);
+        if (/вручну/.test(copyStatus)) {
+          check("вікно з текстом відкрите", !d.getElementById("copyBox").classList.contains("hidden"));
+          check("у вікні справді опис", d.getElementById("copyText").value.indexOf("HUD · ") >= 0);
+          d.getElementById("copyDone").click();
+        }
+      } catch (e) {
+        check("без винятків у перевірці буфера", false, String(e && e.message));
+      }
+      done();
+    }, 500);
+  } catch (e) {
+    check("без винятків у селфтесті", false, String(e && e.message));
+    done();
+  }
+});
+fr.src = "index.html";
+</script>
+</body>
+</html>

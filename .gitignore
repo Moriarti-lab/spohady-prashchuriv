@@ -6,3 +6,6 @@ android/
 export_credentials.cfg
 .DS_Store
 *.apk
+
+# tree-viewer generated samples
+tools/tree-viewer/out/*.json
