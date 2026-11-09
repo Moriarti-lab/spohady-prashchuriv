@@ -87,7 +87,10 @@ func refresh() -> void:
 	var seed_v: Variant = meta.get("seed", null)
 	var seed_s := "—"
 	if seed_v != null and str(seed_v) != "" and str(seed_v) != "null":
-		seed_s = str(seed_v)
+		if typeof(seed_v) in [TYPE_INT, TYPE_FLOAT]:
+			seed_s = str(int(seed_v))
+		else:
+			seed_s = str(seed_v)
 	var src := session.gen_source
 	var src_map := {
 		"default": "дефолтний ассет",
