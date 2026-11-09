@@ -175,7 +175,7 @@ func _menu_button(text: String, color: Color, handler: Callable) -> Button:
 ## Портрет героя відкриває меню: Сумка, Навички, Характеристики, Древо, Завдання, Меню.
 func _build_submenu() -> void:
 	_submenu = PanelContainer.new()
-	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 1.0), Palette.GOLD, 3, 12))
+	_submenu.add_theme_stylebox_override("panel", FolkTheme.panel_style(Color(Palette.PANEL, 0.92), Palette.GOLD, 3, 10))
 	_submenu.visible = false
 	_submenu.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_submenu)
@@ -405,12 +405,16 @@ func _layout() -> void:
 	_loc_label.position = Vector2(_mini.position.x - 300.0 - 8.0, 14.0)
 	_quest_panel.position = Vector2(vs.x - 250.0 - 40.0, MINI_SIZE + 22.0)
 	_quest_panel.size = Vector2(250.0 + 24.0, 10)
-	if _top_panel != null:
-		_submenu.position = Vector2(16.0, _top_panel.position.y + _top_panel.size.y + 6.0)
+	if _top_panel != null and _submenu != null:
+		# Праворуч від портрета — не накриває лівий джойстик.
+		var sub_x := _top_panel.position.x + _top_panel.size.x + 10.0
+		var sub_y := maxf(4.0, _top_panel.position.y)
+		_submenu.position = Vector2(sub_x, sub_y)
 		_submenu.size = Vector2(10, 10)
 	_btn_interact.position = Vector2(vs.x * 0.5 - 170.0, vs.y - 120.0)
 	_btn_interact.size = Vector2(340, 70)
-	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 6.0)
+	# Плашка противника — щільно до верху екрана
+	_target_panel.position = Vector2(vs.x * 0.5 - 150.0, 2.0)
 	_attack.place(Vector2(vs.x - MARGIN - 80.0 - 20.0, vs.y - MARGIN - 80.0 - 10.0))
 	for i in range(SKILL_COUNT):
 		var a := deg_to_rad(float(SKILL_ANGLES[i]))

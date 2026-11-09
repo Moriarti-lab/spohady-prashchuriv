@@ -208,7 +208,8 @@ func _on_run() -> void:
 			_pending_tree = d
 			_progress.value = 1
 			_log.text = "Дефолтний ассет готовий до прийняття."
-			_preview.text = _fmt_preview(d, {"source": "default"})
+			var dm := _metrics_for_tree(d)
+			_preview.text = _fmt_preview(d, {"source": "default", "metrics": dm})
 			_accept_btn.disabled = false
 			_busy = false
 			_run_btn.disabled = false
@@ -270,6 +271,57 @@ func _on_gen_done(r: Dictionary) -> void:
 	_accept_btn.disabled = _pending_tree.is_empty()
 	_hint.visible = false
 	_preview_canvas.queue_redraw()
+
+
+
+func _metrics_for_tree(tree: Dictionary) -> Dictionary:
+	## Швидкі метрики для прев’ю (дефолтний ассет або готове дерево).
+	var nodes = tree.get("nodes", [])
+	var links = tree.get("links", [])
+	var ids: Dictionary = {}
+	if typeof(nodes) == TYPE_ARRAY:
+		for n in nodes:
+			if typeof(n) == TYPE_DICTIONARY and n.has("id"):
+				ids[str(n["id"])] = n
+	var deg: Dictionary = {}
+	for id in ids.keys():
+		deg[id] = 0
+	if typeof(links) == TYPE_ARRAY:
+		for L in links:
+			if typeof(L) == TYPE_ARRAY and L.size() >= 2:
+				var a := str(L[0]); var b := str(L[1])
+				if deg.has(a): deg[a] = int(deg[a]) + 1
+				if deg.has(b): deg[b] = int(deg[b]) + 1
+	var orphans := 0
+	for id in deg.keys():
+		if int(deg[id]) == 0:
+			orphans += 1
+	# min distance (sample)
+	var mind := 999999.0
+	var pts: Array = []
+	for id in ids.keys():
+		var n: Dictionary = ids[id]
+		pts.append(Vector2(float(n.get("x", 0)), float(n.get("y", 0))))
+	for i in range(mini(pts.size(), 400)):
+		for j in range(i + 1, mini(pts.size(), i + 80)):
+			var d: float = pts[i].distance_to(pts[j])
+			if d > 0.01 and d < mind:
+				mind = d
+	if mind > 99999.0:
+		mind = 0.0
+	# own tops approx from meta or region counts
+	var own := {"str": 0, "agi": 0, "faith": 0}
+	for id in ids.keys():
+		var reg := str(ids[id].get("region", ""))
+		if own.has(reg):
+			own[reg] = int(own[reg]) + 1
+	return {
+		"N": ids.size(),
+		"crossings": 0,
+		"orphans": orphans,
+		"min_node_dist": mind,
+		"own": own,
+	}
 
 
 func _fmt_preview(tree: Dictionary, r: Dictionary) -> String:

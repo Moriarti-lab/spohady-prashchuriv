@@ -77,7 +77,7 @@ func refresh() -> void:
 		for e in verrs:
 			lines.append("[color=#E0A526]⚠ %s[/color]" % str(e))
 		if verrs.is_empty():
-			lines.append("[color=#7CBF5A]✓ validate() без зауважень[/color]")
+			lines.append("[color=#7CBF5A]✓ Перевірка документа без зауважень[/color]")
 
 	lines.append("")
 	lines.append("[b]Розкладка HUD[/b]")
