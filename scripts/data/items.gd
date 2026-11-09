@@ -398,9 +398,20 @@ static func stat_lines(item: Dictionary) -> Array:
 
 
 static func summary(item: Dictionary) -> String:
-	var r := rarity(int(item.get("rarity", 0)))
-	var head := "%s · %s · рів. %d" % [r["name"], TYPE_NAMES.get(type_of(item), ""), int(item.get("ilvl", 1))]
-	return head + "\n" + "\n".join(stat_lines(item))
+	## Застарілий plain-text; нові екрани — DescFormat.item_tooltip.
+	var bb := DescFormat.item_tooltip(item, {"where": "bag"})
+	var plain := ""
+	var i := 0
+	while i < bb.length():
+		if bb[i] == "[":
+			var j := bb.find("]", i)
+			if j < 0:
+				break
+			i = j + 1
+			continue
+		plain += bb[i]
+		i += 1
+	return plain.strip_edges()
 
 
 static func is_nauz(item: Variant) -> bool:

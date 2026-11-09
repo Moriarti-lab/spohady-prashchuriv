@@ -74,6 +74,12 @@ if grep -q "FAIL\|SCRIPT ERROR" /tmp/sell_cancel.log; then fail=1; fi
 echo "== Описи вузлів Древа (gen_descriptions --check) =="
 python3 tools/gen_descriptions.py --check --path data/perk_tree.json || fail=1
 
+
+echo "== Гра: підказки предметів (DescFormat) =="
+"$GODOT" --headless --path . res://tests/item_tooltip_test.tscn > /tmp/item_tooltip.log 2>&1 || fail=1
+grep -E "^OK |^FAIL |ITEM_TOOLTIP_|SCRIPT ERROR" /tmp/item_tooltip.log | tail -50
+if grep -q "FAIL\|SCRIPT ERROR\|ITEM_TOOLTIP_FAIL" /tmp/item_tooltip.log; then fail=1; fi
+
 echo "== Гра: міграція дерева (tree_version) =="
 "$GODOT" --headless --path . res://tests/tree_migration_test.tscn > /tmp/tree_migration.log 2>&1 || fail=1
 grep -E "^OK |^FAIL |TREE_MIGRATION_|SCRIPT ERROR" /tmp/tree_migration.log | tail -40

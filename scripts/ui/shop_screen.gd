@@ -121,9 +121,12 @@ func _row(item: Dictionary, price: int, btn_text: String, enabled: bool, handler
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 1)
 	h.add_child(info)
-	var n := FolkTheme.label(str(item.get("name", "Річ")), 21, Items.rarity_color(item), HORIZONTAL_ALIGNMENT_LEFT, true)
-	info.add_child(n)
-	info.add_child(FolkTheme.label(Items.summary(item), 16, Palette.TEXT_DIM, HORIZONTAL_ALIGNMENT_LEFT, true))
+	var tip := DescFormat.make_rich()
+	tip.add_theme_font_size_override("normal_font_size", 16)
+	tip.fit_content = true
+	var where := "shop"
+	tip.text = DescFormat.item_tooltip(item, {"where": where, "buy": btn_text.begins_with("Куп")})
+	info.add_child(tip)
 	var b := Button.new()
 	b.text = "%s\n%d грн" % [btn_text, price]
 	FolkTheme.apply_button(b, Palette.EMBROIDERY, 19)

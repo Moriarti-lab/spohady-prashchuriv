@@ -648,7 +648,7 @@ func _refresh_bag() -> void:
 		_btn_equip.text = "Зняти" if GameState.bag_free() > 0 else "Сумка повна"
 		_btn_equip.disabled = GameState.bag_free() <= 0
 	if _detail_rich:
-		_detail_rich.text = DescFormat.item_bb(it, cmp_item)
+		_detail_rich.text = DescFormat.item_tooltip(it, {"where": "bag", "compare": cmp_item})
 
 
 # ---------- Навички ----------
@@ -1005,7 +1005,7 @@ func _refresh_skills() -> void:
 			_skill_info.text = req_fail
 		elif _skill_info.text == "" or _skill_info.text.begins_with("Обери"):
 			_skill_info.text = "%s · %s" % [str(nauz.get("name", "")), "в гнізді" if in_sock else "в сумці"]
-		_nauz_detail_rich.text = DescFormat.item_bb(nauz)
+		_nauz_detail_rich.text = DescFormat.item_tooltip(nauz, {"where": "nauz"})
 
 
 func _rebuild_socket_pick() -> void:
