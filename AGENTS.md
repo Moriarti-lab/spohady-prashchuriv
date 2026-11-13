@@ -45,9 +45,12 @@ godot --path . -e
 
 `tests/run_all.sh` — основной набор (Game + Editor). Запускать через Git Bash:
 `C:\Users\Xako\Tools\PortableGit\bin\bash.exe tests/run_all.sh`.
-Часть шагов требует `node` и `python3` — на этой машине они пока не установлены;
-без них смоук-тест и экспорт APK всё равно работают. CI (`.github/workflows/tests.yml`)
-гоняет всё на Ubuntu с Godot 4.7.2 — локальная версия движка должна совпадать.
+На этой машине уже стоят `node` 26.13.1 и `python3` 3.15.2 (обёртка `python3.cmd` над
+`python.exe`), оба в `PATH` — значит все шаги с `node`/`python3` работают локально.
+Шаги под `xvfb-run` (flow, nauzi_ui, layout_regression, sell_cancel) на Windows
+пропускаются сами по себе (`command -v`), это нормально — их покрывает CI.
+CI (`.github/workflows/tests.yml`) гоняет всё на Ubuntu с Godot 4.7.2 — локальная
+версия движка должна совпадать.
 
 ## Правила проекта
 
